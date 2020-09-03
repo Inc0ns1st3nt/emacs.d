@@ -7,6 +7,7 @@
 (setq x-select-enable-clipboard t
       x-select-enable-primary t)
 
+(counsel-find-file "~/")
 ;; kill-ring and clipboard are same? No, it's annoying!
 (setq save-interprogram-paste-before-kill nil)
 

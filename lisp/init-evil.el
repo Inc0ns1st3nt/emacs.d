@@ -523,11 +523,11 @@ If INCLUSIVE is t, the text object is inclusive."
   "eb" 'eval-buffer
   "sc" 'scratch
   "ee" 'eval-expression
-  "aa" 'copy-to-x-clipboard ; used frequently
+  "aa" 'copy-to-x-clipboard             ; used frequently
   "aw" 'ace-swap-window
   "af" 'ace-maximize-window
   "ac" 'aya-create
-  "pp" 'paste-from-x-clipboard ; used frequently
+  "pp" 'paste-from-x-clipboard          ; used frequently
   "bs" '(lambda () (interactive) (goto-edge-by-comparing-font-face -1))
   "es" 'goto-edge-by-comparing-font-face
   "vj" 'my-validate-json-or-js-expression
@@ -541,7 +541,7 @@ If INCLUSIVE is t, the text object is inclusive."
   "tt" 'find-file-in-current-directory
   "jj" 'find-file-in-project-at-point
   "kk" 'find-file-in-project-by-selected
-  "kn" 'find-file-with-similar-name ; ffip v5.3.1
+  "kn" 'find-file-with-similar-name     ; ffip v5.3.1
   "fd" 'find-directory-in-project-by-selected
   "trm" 'get-term
   "tff" 'toggle-frame-fullscreen
@@ -568,11 +568,11 @@ If INCLUSIVE is t, the text object is inclusive."
   "rt" 'counsel-etags-recent-tag
   "ft" 'counsel-etags-find-tag
   "yy" 'counsel-browse-kill-ring
-  "cf" 'counsel-grep ; grep current buffer
-  "gf" 'counsel-git ; find file
-  "gg" 'my-counsel-git-grep ; quickest grep should be easy to press
-  "gd" 'ffip-show-diff-by-description ;find-file-in-project 5.3.0+
-  "gt" 'my-evil-goto-definition ; "gt" is occupied by evil
+  "cf" 'counsel-grep           ; grep current buffer
+  "gf" 'counsel-git            ; find file
+  "gg" 'my-counsel-git-grep    ; quickest grep should be easy to press
+  "gd" 'ffip-show-diff-by-description   ;find-file-in-project 5.3.0+
+  "gt" 'my-evil-goto-definition         ; "gt" is occupied by evil
   "gl" 'my-git-log-trace-definition ; find history of a function or range
   "sh" 'my-select-from-search-text-history
   "rjs" 'run-js
@@ -588,14 +588,14 @@ If INCLUSIVE is t, the text object is inclusive."
   "tm" 'my-git-timemachine
   ;; toggle overview,  @see http://emacs.wordpress.com/2007/01/16/quick-and-dirty-code-folding/
   "op" 'compile
-  "c$" 'org-archive-subtree ; `C-c $'
+  "c$" 'org-archive-subtree             ; `C-c $'
   ;; org-do-demote/org-do-premote support selected region
-  "c<" 'org-do-promote ; `C-c C-<'
-  "c>" 'org-do-demote ; `C-c C->'
+  "c<" 'org-do-promote                  ; `C-c C-<'
+  "c>" 'org-do-demote                   ; `C-c C->'
   "cam" 'org-tags-view ; `C-c a m': search items in org-file-apps by tag
-  "cxi" 'org-clock-in ; `C-c C-x C-i'
+  "cxi" 'org-clock-in  ; `C-c C-x C-i'
   "cxo" 'org-clock-out ; `C-c C-x C-o'
-  "cxr" 'org-clock-report ; `C-c C-x C-r'
+  "cxr" 'org-clock-report               ; `C-c C-x C-r'
   "qq" 'my-multi-purpose-grep
   "dd" 'counsel-etags-grep-current-directory
   "rr" 'my-counsel-recentf
@@ -607,6 +607,7 @@ If INCLUSIVE is t, the text object is inclusive."
   "jp" 'my-print-json-path
   ;; {{ @see http://ergoemacs.org/emacs/emacs_pinky_2020.html
   ;; `keyfreq-show' proved sub-window operations happen most.
+  "xe" 'eval-last-sexp
   "x0" 'delete-window
   "x1" 'delete-other-windows
   "x2" 'split-window-vertically
@@ -630,6 +631,11 @@ If INCLUSIVE is t, the text object is inclusive."
   "fr" 'ffip-ivy-resume
   "fc" 'cp-ffip-ivy-last
   "ss" 'my-swiper
+  "hd" 'describe-function
+  "hf" 'find-function
+  "hk" 'describe-key
+  "hv" 'describe-variable
+
   "fb" 'flyspell-buffer
   "fe" 'flyspell-goto-next-error
   "fa" 'flyspell-auto-correct-word
@@ -672,15 +678,15 @@ If INCLUSIVE is t, the text object is inclusive."
   "xz" 'my-switch-to-shell
   "vf" 'vc-rename-file-and-buffer
   "vc" 'vc-copy-file-and-rename-buffer
-  "xv" 'vc-next-action ; 'C-x v v' in original
+  "xv" 'vc-next-action                  ; 'C-x v v' in original
   "va" 'git-add-current-file
   "vk" 'git-checkout-current-file
-  "vg" 'vc-annotate ; 'C-x v g' in original
+  "vg" 'vc-annotate                     ; 'C-x v g' in original
   "vv" 'vc-msg-show
   "v=" 'git-gutter:popup-hunk
   "hh" 'cliphist-paste-item
   "yu" 'cliphist-select-item
-  "ih" 'my-goto-git-gutter ; use ivy-mode
+  "ih" 'my-goto-git-gutter              ; use ivy-mode
   "ir" 'ivy-resume
   "ww" 'narrow-or-widen-dwim
   "ycr" 'my-yas-reload-all
