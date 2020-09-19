@@ -12,7 +12,7 @@
 
 (defun copy-yank-str (msg &optional clipboard-only)
   (unless clipboard-only (kill-new msg))
-  (my-pclip msg)
+  (util/set-clip msg)
   msg)
 
 (defun cp-filename-of-current-buffer (&optional n)
@@ -28,7 +28,7 @@ If N is not nil, copy file name and line number."
 (defun cp-ffip-ivy-last ()
   "Copy visible keys of `ivy-last' into `kill-ring' and clipboard."
   (interactive)
-  (my-ensure 'find-file-in-project)
+  (util/ensure 'find-file-in-project)
   (when ffip-ivy-last-saved
     (copy-yank-str
      (mapconcat (lambda (e)
@@ -44,53 +44,20 @@ If N is not nil, copy file name and line number."
     (copy-yank-str (file-truename buffer-file-name))
     (message "file full path => clipboard & yank ring")))
 
-(defun clipboard-to-kill-ring ()
-  "Copy from clipboard to `kill-ring'."
-  (interactive)
-  (let* ((warning-minimum-level :emergency))
-    (kill-new (my-gclip)))
-  (message "clipboard => kill-ring"))
-
 (defun kill-ring-to-clipboard ()
   "Copy from `kill-ring' to clipboard."
   (interactive)
-  (my-select-from-kill-ring (lambda (s)
-                              (let* ((summary (car s))
-                                     (hint " => clipboard" )
-                                     (msg (if (string-match-p "\.\.\.$" summary)
-                                              (substring summary 0 (- (length summary) (length hint)))
-                                            msg)))
-                                ;; cc actual string
-                                (my-pclip (cdr s))
-                                ;; echo
-                                (message "%s%s" msg hint)))))
-
-(defun copy-to-x-clipboard (&optional num)
-  "If NUM equals 1, copy the down-cased string.
-If NUM equals 2, copy the capitalised string.
-If NUM equals 3, copy the up-cased string.
-If NUM equals 4, indent 4 spaces."
-  (interactive "P")
-  (let* ((thing (my-use-selected-string-or-ask "")))
-    (when (region-active-p) (deactivate-mark))
-    (cond
-     ((not num))
-     ((= num 1)
-      (setq thing (downcase thing)))
-     ((= num 2)
-      (setq thing (capitalize thing)))
-     ((= num 3)
-      (setq thing (upcase thing)))
-     ((= num 4)
-      (setq thing (string-trim-right (concat "    "
-                                             (mapconcat 'identity (split-string thing "\n") "\n    ")))))
-     (t
-      (message "C-h f copy-to-x-clipboard to find right usage")))
-
-    (my-pclip thing)
-    (if (not (and num (= 4 num)))
-        (message "kill-ring => clipboard")
-      (message "thing => clipboard!"))))
+  (inc0n/select-from-kill-ring
+   (lambda (s)
+     (let* ((summary (car s))
+            (hint " => clipboard" )
+            (msg (if (string-match-p "\.\.\.$" summary)
+                     (substring summary 0 (- (length summary) (length hint)))
+                   msg)))
+       ;; cc actual string
+       (util/set-clip (cdr s))
+       ;; echo
+       (message "%s%s" msg hint)))))
 
 (defun paste-from-x-clipboard (&optional n)
   "Remove selected text and paste string clipboard.
@@ -106,7 +73,7 @@ If N is 4, rectangle paste. "
              (not (eobp)))
     (forward-char))
   (let ((str
-         (my-gclip)))
+         (util/get-clip)))
     (when (> (length str) (* 256 1024))
       ;; use light weight `major-mode' like `js-mode'
       (when (derived-mode-p 'js2-mode)
@@ -121,7 +88,7 @@ If N is 4, rectangle paste. "
       (lsp-disconnect)
       (run-at-time 300 nil #'lsp-deferred))
 
-    (my-delete-selected-region)
+    (util/delete-selected-region)
 
     ;; paste after the cursor in evil normal state
     (cond ((not n))                     ; do nothing

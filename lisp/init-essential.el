@@ -2,7 +2,7 @@
 
 ;; Like "init-misc.el", the difference is this file is always loaded
 
-(defun my-multi-purpose-grep (n)
+(defun inc0n/multi-purpose-grep (n)
   "Run different grep from N."
   (interactive "P")
   (cond
@@ -29,7 +29,7 @@
    ((= n 5)
     ;; grep Chinese using pinyinlib.
     ;; In ivy filter, trigger key must be pressed before filter chinese
-    (my-ensure 'pinyinlib)
+    (util/ensure 'pinyinlib)
     (let* ((counsel-etags-convert-grep-keyword
             (lambda (keyword)
               (if (and keyword (> (length keyword) 0))
@@ -38,7 +38,7 @@
       (counsel-etags-grep)))))
 
 ;; {{ message buffer things
-(defun my-search-backward-prompt (n)
+(defun inc0n/search-backward-prompt (n)
   "Search backward for N prompt.
 Return the line beginning of prompt line."
   (let* (rlt
@@ -54,7 +54,7 @@ Return the line beginning of prompt line."
         (forward-line -1)))
     rlt))
 
-(defun my-erase-one-visible-buffer (buf-name &optional n)
+(defun inc0n/erase-one-visible-buffer (buf-name &optional n)
   "Erase the content of visible buffer with BUF-NAME.
 Keep latest N cli program output if it's not nil."
   (let* ((original-window (get-buffer-window))
@@ -66,11 +66,11 @@ Keep latest N cli program output if it's not nil."
      (t
       (select-window target-window)
       (let* ((inhibit-read-only t))
-        (my-ensure 'evil-matchit-terminal)
+        (util/ensure 'evil-matchit-terminal)
         (when (and n (> n 0) (fboundp 'evilmi-prompt-line-p))
           ;; skip current prompt line
           (forward-line -2)
-          (setq beg (my-search-backward-prompt n)))
+          (setq beg (inc0n/search-backward-prompt n)))
         (cond
          (beg
           (delete-region (point-min) beg))
@@ -78,28 +78,28 @@ Keep latest N cli program output if it's not nil."
           (erase-buffer))))
       (select-window original-window)))))
 
-(defun my-erase-visible-buffer (&optional n)
+(defun inc0n/erase-visible-buffer (&optional n)
   "Erase the content of the *Messages* buffer.
 N specifies the buffer to erase."
   (interactive "P")
   (cond
    ((null n)
-    (my-erase-one-visible-buffer "*Messages*"))
+    (inc0n/erase-one-visible-buffer "*Messages*"))
 
    ((eq 1 n)
-    (my-erase-one-visible-buffer "*shell*"))
+    (inc0n/erase-one-visible-buffer "*shell*"))
 
    ((eq 2 n)
-    (my-erase-one-visible-buffer "*Javascript REPL*"))
+    (inc0n/erase-one-visible-buffer "*Javascript REPL*"))
 
    ((eq 3 n)
-    (my-erase-one-visible-buffer "*eshell*"))))
+    (inc0n/erase-one-visible-buffer "*eshell*"))))
 
-(defun my-erase-current-buffer (&optional n)
+(defun inc0n/erase-current-buffer (&optional n)
   "Erase current buffer even it's read-only.
 Keep N cli output if it's not nil."
   (interactive "P")
-  (my-erase-one-visible-buffer (buffer-name (current-buffer)) n)
+  (inc0n/erase-one-visible-buffer (buffer-name (current-buffer)) n)
   (goto-char (point-max)))
 ;; }}
 
@@ -174,7 +174,7 @@ If USE-INDIRECT-BUFFER is not nil, use `indirect-buffer' to hold the widen conte
    (t (error "Please select a region to narrow to"))))
 ;; }}
 
-(defun my-swiper (&optional other-source)
+(defun inc0n/swiper (&optional other-source)
   "Search current file.
 If OTHER-SOURCE is 1, get keyword from clipboard.
 If OTHER-SOURCE is 2, get keyword from `kill-ring'."
@@ -183,29 +183,29 @@ If OTHER-SOURCE is 2, get keyword from `kill-ring'."
                    ((eq 1 other-source)
                     (cliphist-select-item))
                    ((eq 2 other-source)
-                    (my-select-from-kill-ring 'identity))
+                    (inc0n/select-from-kill-ring 'identity))
                    ((region-active-p)
-                    (my-selected-str)))))
+                    (utils/selected-str/deactivate)))))
     ;; `swiper--re-builder' read from `ivy-re-builders-alist'
     ;; more flexible
-    (swiper keyword)))
+    (counsel-grep-or-swiper keyword)))
 
 (with-eval-after-load 'cliphist
   (defun cliphist-routine-before-insert-hack (&optional arg)
-    (my-delete-selected-region))
+    (util/delete-selected-region))
   (advice-add 'cliphist-routine-before-insert :before #'cliphist-routine-before-insert-hack))
 
 ;; {{ Write backup files to its own directory
 ;; @see https://www.gnu.org/software/emacs/manual/html_node/tramp/Auto_002dsave-and-Backup.html
-(defvar my-binary-file-name-regexp "\\.\\(avi\\|wav\\|pdf\\|mp[34g]\\|mkv\\|exe\\|3gp\\|rmvb\\|rm\\)$"
+(defvar inc0n/binary-file-name-regexp "\\.\\(avi\\|wav\\|pdf\\|mp[34g]\\|mkv\\|exe\\|3gp\\|rmvb\\|rm\\)$"
   "Is binary file name?")
 
 (setq backup-enable-predicate
       (lambda (name)
         (and (normal-backup-enable-predicate name)
-             (not (string-match-p my-binary-file-name-regexp name)))))
+             (not (string-match-p inc0n/binary-file-name-regexp name)))))
 
-(if (not (file-exists-p (expand-file-name "~/.backups")))
+(when (not (file-exists-p (expand-file-name "~/.backups")))
   (make-directory (expand-file-name "~/.backups")))
 (setq backup-by-copying t ; don't clobber symlinks
       backup-directory-alist '(("." . "~/.backups"))

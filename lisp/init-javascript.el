@@ -32,12 +32,12 @@
   (save-excursion
     (imenu--generic-function javascript-common-imenu-regex-list)))
 
-(defun my-common-js-setup ()
+(defun inc0n/common-js-setup ()
   (local-require 'js-comint))
 
 (defun mo-js-mode-hook ()
   (when (and (not (is-buffer-file-temp)) (not (derived-mode-p 'js2-mode)))
-    (my-common-js-setup)
+    (inc0n/common-js-setup)
     (setq imenu-create-index-function 'mo-js-imenu-make-index)))
 (add-hook 'js-mode-hook 'mo-js-mode-hook)
 
@@ -139,12 +139,12 @@ The line numbers of items will be extracted."
           (setq r nil))))
   r)
 
-(defun my-validate-json-or-js-expression (&optional not-json-p)
+(defun inc0n/validate-json-or-js-expression (&optional not-json-p)
   "Validate buffer or select region as JSON.
 If NOT-JSON-P is not nil, validate as Javascript expression instead of JSON."
   (interactive "P")
-  (let* ((json-exp (if (region-active-p) (my-selected-str)
-                     (my-buffer-str)))
+  (let* ((json-exp (if (region-active-p) (util/selected-str)
+                     (util/buffer-str)))
          (jsbuf-offet (if not-json-p 0 (length "var a=")))
          errs
          first-err
@@ -153,7 +153,7 @@ If NOT-JSON-P is not nil, validate as Javascript expression instead of JSON."
       (setq json-exp (format "var a=%s;"  json-exp)))
     (with-temp-buffer
       (insert json-exp)
-      (my-ensure 'js2-mode)
+      (util/ensure 'js2-mode)
       (js2-parse)
       (setq errs (js2-errors))
       (cond
@@ -169,7 +169,7 @@ If NOT-JSON-P is not nil, validate as Javascript expression instead of JSON."
                  (js2-get-msg (caar first-err))))))
     (if first-err (goto-char first-err-pos))))
 
-(defun my-print-json-path (&optional hardcoded-array-index)
+(defun inc0n/print-json-path (&optional hardcoded-array-index)
   "Print the path to the JSON value under point, and save it in the kill ring.
 If HARDCODED-ARRAY-INDEX provided, array index in JSON path is replaced with it."
   (interactive "P")
@@ -178,11 +178,11 @@ If HARDCODED-ARRAY-INDEX provided, array index in JSON path is replaced with it.
     (js2-print-json-path hardcoded-array-index))
    (t
     (let* ((cur-pos (point))
-           (str (my-buffer-str)))
+           (str (util/buffer-str)))
       (when (string= "json" (file-name-extension buffer-file-name))
         (setq str (format "var a=%s;" str))
         (setq cur-pos (+ cur-pos (length "var a="))))
-      (my-ensure 'js2-mode)
+      (util/ensure 'js2-mode)
       (with-temp-buffer
         (insert str)
         (js2-init-scanner)
@@ -193,7 +193,7 @@ If HARDCODED-ARRAY-INDEX provided, array index in JSON path is replaced with it.
 (defun js2-imenu--remove-duplicate-items (extra-rlt)
   (delq nil (mapcar 'js2-imenu--check-single-item extra-rlt)))
 
-(defun my-js2-imenu--merge-imenu-items (rlt extra-rlt)
+(defun inc0n/js2-imenu--merge-imenu-items (rlt extra-rlt)
   "RLT contains imenu items created from AST.
 EXTRA-RLT contains items parsed with simple regex.
 Merge RLT and EXTRA-RLT, items in RLT has *higher* priority."
@@ -221,16 +221,16 @@ Merge RLT and EXTRA-RLT, items in RLT has *higher* priority."
   (define-key js2-mode-map (kbd "C-c C-o") nil)
   (define-key js2-mode-map (kbd "C-c C-w") nil)
   ;; }}
-  (defun my-js2-mode-create-imenu-index-hack (orig-func &rest args)
+  (defun inc0n/js2-mode-create-imenu-index-hack (orig-func &rest args)
     (let* ((extra-items (save-excursion
                           (imenu--generic-function javascript-common-imenu-regex-list))))
-      (my-js2-imenu--merge-imenu-items (apply orig-func args) extra-items)))
-  (advice-add 'js2-mode-create-imenu-index :around #'my-js2-mode-create-imenu-index-hack))
+      (inc0n/js2-imenu--merge-imenu-items (apply orig-func args) extra-items)))
+  (advice-add 'js2-mode-create-imenu-index :around #'inc0n/js2-mode-create-imenu-index-hack))
 ;; }}
 
-(defun my-js2-mode-setup()
+(defun inc0n/js2-mode-setup()
   (unless (is-buffer-file-temp)
-    (my-common-js-setup)
+    (inc0n/common-js-setup)
     ;; if use node.js we need nice output
     (js2-imenu-extras-mode)
     (setq mode-name "JS2")
@@ -242,7 +242,7 @@ Merge RLT and EXTRA-RLT, items in RLT has *higher* priority."
     ;; @see https://github.com/mooz/js2-mode/issues/350
     (setq forward-sexp-function nil)))
 
-(add-hook 'js2-mode-hook 'my-js2-mode-setup)
+(add-hook 'js2-mode-hook 'inc0n/js2-mode-setup)
 
 ;; @see https://github.com/felipeochoa/rjsx-mode/issues/33
 (with-eval-after-load 'rjsx-mode
@@ -254,27 +254,29 @@ Merge RLT and EXTRA-RLT, items in RLT has *higher* priority."
 INDENT-SIZE decide the indentation level.
 `sudo pip install jsbeautifier` to install js-beautify.'"
   (interactive "P")
-  (let* ((js-beautify (if (executable-find "js-beautify") "js-beautify"
-                        "jsbeautify")))
-    ;; detect indentation level
-    (unless indent-size
-      (setq indent-size (cond
-                         ((memq major-mode '(js-mode javascript-mode))
-                          js-indent-level)
+  (if (executable-find "js-beautify")
+      (progn
+        ;; detect indentation level
+        (unless indent-size
+          (setq indent-size (cond
+                             ((memq major-mode '(js-mode javascript-mode))
+                              js-indent-level)
 
-                         ((memq major-mode '(web-mode))
-                          web-mode-code-indent-offset)
+                             ((memq major-mode '(web-mode))
+                              web-mode-code-indent-offset)
 
-                         ((memq major-mode '(typescript-mode))
-                          typescript-indent-level)
+                             ((memq major-mode '(typescript-mode))
+                              typescript-indent-level)
 
-                         (t
-                          2))))
-    ;; do it!
-    (run-cmd-and-replace-region (concat "js-beautify"
-                                        " --stdin "
-                                        " --jslint-happy --brace-style=end-expand --keep-array-indentation "
-                                        (format " --indent-size=%d " indent-size)))))
+                             (t
+                              2))))
+        ;; do it!
+        (run-cmd-and-replace-region
+         (concat "js-beautify"
+                 " --stdin "
+                 " --jslint-happy --brace-style=end-expand --keep-array-indentation "
+                 (format " --indent-size=%d " indent-size))))
+    (message "js-beautify needs to be installed!")))
 ;; }}
 
 ;; {{ js-comint

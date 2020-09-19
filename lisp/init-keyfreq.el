@@ -37,7 +37,7 @@
         diredp-next-line
         diredp-previous-line
         electric-pair-delete-pair
-        my-erase-visible-buffer
+        inc0n/erase-visible-buffer
         eval-buffer
         evil-a-WORD
         evil-append
@@ -166,7 +166,7 @@
         move-beginning-of-line
         move-end-of-line
         mwheel-scroll
-        my-setup-develop-environment
+        inc0n/setup-develop-environment
         newline-and-indent
         next-history-element
         next-line
@@ -212,6 +212,7 @@
         select-window-8
         select-window-9
         self-insert-command
+        slime-autodoc-space
         smarter-move-beginning-of-line
         suspend-frame
         term-send-raw
@@ -238,10 +239,14 @@
         yas-compile-directory
         yas-expand
         yas-next-field-or-maybe-expand
-        ))
+        ;; mine
+        undo-fu-only-undo
+        evil-digit-argument-or-evil-beginning-of-line
+        undo-fu-only-redo))
 
 (with-eval-after-load 'keyfreq
-  (my-write-to-missing-file "()" keyfreq-file))
+  (util/write-to-missing-file "()" keyfreq-file)
+  (turnon-keyfreq-mode))
 
 ;; And use keyfreq-show to see how many times you used a command.
 ;; It's recommended to use `keyfreq-mode' (could be in "~/.custom.el").

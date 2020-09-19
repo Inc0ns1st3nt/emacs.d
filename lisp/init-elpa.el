@@ -1,13 +1,13 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
-(defun my-initialize-package ()
+(defun inc0n/initialize-package ()
   (unless nil ;package--initialized
     ;; optimization, no need to activate all the packages so early
     (setq package-enable-at-startup nil)
     ;; @see https://www.gnu.org/software/emacs/news/NEWS.27.1
     (package-initialize)))
 
-(my-initialize-package)
+(inc0n/initialize-package)
 
 ;; List of visible packages from melpa-unstable (http://melpa.org).
 ;; Please add the package name into `melpa-include-packages'
@@ -139,10 +139,10 @@
         ;; }}
         ))
 
-(defvar my-ask-elpa-mirror t)
+(defvar inc0n/ask-elpa-mirror t)
 (when (and (not noninteractive) ; no popup in batch mode
-           my-ask-elpa-mirror
-           (not (file-exists-p (file-truename (concat my-emacs-d "elpa"))))
+           inc0n/ask-elpa-mirror
+           (not (file-exists-p (file-truename (concat inc0n/emacs-d "elpa"))))
            (yes-or-no-p "Switch to faster package repositories in China temporarily?
 You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use this ELPA mirror."))
   (setq package-archives
@@ -153,9 +153,9 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
 ;; (setq package-archives '(("myelpa" . "~/myelpa/")))
 
 ;; my local repository is always needed.
-(push (cons "localelpa" (concat my-emacs-d "localelpa/")) package-archives)
+(push (cons "localelpa" (concat inc0n/emacs-d "localelpa/")) package-archives)
 
-(defun my-package-generate-autoloads-hack (pkg-desc pkg-dir)
+(defun inc0n/package-generate-autoloads-hack (pkg-desc pkg-dir)
   "Stop package.el from leaving open autoload files lying around."
   (let* ((path (expand-file-name (concat
                                   ;; pkg-desc is string in emacs 24.3.1,
@@ -164,9 +164,9 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
                                  pkg-dir)))
     (with-current-buffer (find-file-existing path)
       (kill-buffer nil))))
-(advice-add 'package-generate-autoloads :after #'my-package-generate-autoloads-hack)
+(advice-add 'package-generate-autoloads :after #'inc0n/package-generate-autoloads-hack)
 
-(defun my-package--add-to-archive-contents-hack (orig-func &rest args)
+(defun inc0n/package--add-to-archive-contents-hack (orig-func &rest args)
   "Some packages should be hidden."
   (let* ((package (nth 0 args))
          (archive (nth 1 args))
@@ -185,13 +185,13 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
                 ;; color themes are welcomed
                 (string-match-p "-theme" (format "%s" pkg-name))))))
 
-    (when my-debug
+    (when inc0n/debug
       (message "package name=%s version=%s package=%s" pkg-name version package))
 
     (when add-to-p
       ;; The package is visible through package manager
       (apply orig-func args))))
-(advice-add 'package--add-to-archive-contents :around #'my-package--add-to-archive-contents-hack)
+(advice-add 'package--add-to-archive-contents :around #'inc0n/package--add-to-archive-contents-hack)
 
 ;; On-demand installation of packages
 (defun require-package (package &optional min-version no-refresh)
@@ -204,6 +204,11 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
    (t
     (package-refresh-contents)
     (require-package package min-version t))))
+
+(defun require-packages (packages)
+  "Install POPULAR-THEMES from melpa."
+  (dolist (package packages)
+    (require-package package)))
 
 ;;------------------------------------------------------------------------------
 ;; Fire up package.el and ensure the following packages are installed.
@@ -233,14 +238,12 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
 (require-package 'jump)
 (require-package 'nvm)
 (require-package 'writeroom-mode)
-(require-package 'haml-mode)
 (require-package 'scss-mode)
 (require-package 'markdown-mode)
 (require-package 'link)
 (require-package 'connection)
 (require-package 'dictionary) ; dictionary requires 'link and 'connection
 (require-package 'htmlize)
-(require-package 'jade-mode)
 (require-package 'diminish)
 (require-package 'scratch)
 (require-package 'rainbow-delimiters)
@@ -285,7 +288,7 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
 (require-package 'company-native-complete)
 (require-package 'company-c-headers)
 (require-package 'company-statistics)
-(require-package 'lsp-mode)
+(if *emacs26* (require-package 'lsp-mode))
 (require-package 'elpy)
 (require-package 'legalese)
 (require-package 'simple-httpd)
@@ -344,120 +347,111 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
   ;; org => ppt, org v8.3 is required (Emacs 25 uses org v8.2)
   (require-package 'org-re-reveal))
 
-(defun my-install-popular-themes (popular-themes)
-  "Install POPULAR-THEMES from melpa."
-  (dolist (theme popular-themes)
-    (require-package theme)))
+(require-package 'magit)
 
-(when *emacs25*
-  (require-package 'magit) ; Magit 2.12 is the last feature release to support Emacs 24.4.
-  ;; most popular 100 themes
-  (my-install-popular-themes
-   '(
-     afternoon-theme
-     alect-themes
-     ample-theme
-     ample-zen-theme
-     anti-zenburn-theme
-     apropospriate-theme
-     atom-dark-theme
-     atom-one-dark-theme
-     badwolf-theme
-     base16-theme
-     birds-of-paradise-plus-theme
-     bubbleberry-theme
-     busybee-theme
-     cherry-blossom-theme
-     clues-theme
-     color-theme-sanityinc-solarized
-     color-theme-sanityinc-tomorrow
-     cyberpunk-theme
-     dakrone-theme
-     darkburn-theme
-     darkmine-theme
-     darkokai-theme
-     darktooth-theme
-     django-theme
-     doom-themes
-     dracula-theme
-     espresso-theme
-     exotica-theme
-     eziam-theme
-     fantom-theme
-     farmhouse-theme
-     flatland-theme
-     flatui-theme
-     gandalf-theme
-     gotham-theme
-     grandshell-theme
-     gruber-darker-theme
-     gruvbox-theme
-     hc-zenburn-theme
-     hemisu-theme
-     heroku-theme
-     inkpot-theme
-     ir-black-theme
-     jazz-theme
-     jbeans-theme
-     kaolin-themes
-     leuven-theme
-     light-soap-theme
-     lush-theme
-     madhat2r-theme
-     majapahit-theme
-     material-theme
-     minimal-theme
-     moe-theme
-     molokai-theme
-     monochrome-theme
-     monokai-theme
-     mustang-theme
-     naquadah-theme
-     noctilux-theme
-     nord-theme
-     obsidian-theme
-     occidental-theme
-     oldlace-theme
-     omtose-phellack-theme
-     organic-green-theme
-     phoenix-dark-mono-theme
-     phoenix-dark-pink-theme
-     planet-theme
-     professional-theme
-     purple-haze-theme
-     railscasts-theme
-     rebecca-theme
-     reverse-theme
-     seti-theme
-     smyx-theme
-     soft-charcoal-theme
-     soft-morning-theme
-     soft-stone-theme
-     solarized-theme
-     soothe-theme
-     spacegray-theme
-     spacemacs-theme
-     srcery-theme
-     subatomic-theme
-     subatomic256-theme
-     sublime-themes
-     sunny-day-theme
-     tango-2-theme
-     tango-plus-theme
-     tangotango-theme
-     tao-theme
-     toxi-theme
-     twilight-anti-bright-theme
-     twilight-bright-theme
-     twilight-theme
-     ujelly-theme
-     underwater-theme
-     vscode-dark-plus-theme
-     white-sand-theme
-     zen-and-art-theme
-     zenburn-theme
-     zerodark-theme
-     )))
+;; install the most popular 100 themes
+(require-packages
+ '(afternoon-theme
+   alect-themes
+   ample-theme
+   ample-zen-theme
+   anti-zenburn-theme
+   apropospriate-theme
+   atom-dark-theme
+   atom-one-dark-theme
+   badwolf-theme
+   base16-theme
+   birds-of-paradise-plus-theme
+   bubbleberry-theme
+   busybee-theme
+   cherry-blossom-theme
+   clues-theme
+   color-theme-sanityinc-solarized
+   color-theme-sanityinc-tomorrow
+   cyberpunk-theme
+   dakrone-theme
+   darkburn-theme
+   darkmine-theme
+   darkokai-theme
+   darktooth-theme
+   django-theme
+   doom-themes
+   dracula-theme
+   espresso-theme
+   exotica-theme
+   eziam-theme
+   fantom-theme
+   farmhouse-theme
+   flatland-theme
+   flatui-theme
+   gandalf-theme
+   gotham-theme
+   grandshell-theme
+   gruber-darker-theme
+   gruvbox-theme
+   hc-zenburn-theme
+   hemisu-theme
+   heroku-theme
+   inkpot-theme
+   ir-black-theme
+   jazz-theme
+   jbeans-theme
+   kaolin-themes
+   leuven-theme
+   light-soap-theme
+   lush-theme
+   madhat2r-theme
+   majapahit-theme
+   material-theme
+   moe-theme
+   molokai-theme
+   monochrome-theme
+   monokai-theme
+   mustang-theme
+   naquadah-theme
+   noctilux-theme
+   nord-theme
+   obsidian-theme
+   occidental-theme
+   oldlace-theme
+   omtose-phellack-theme
+   organic-green-theme
+   phoenix-dark-mono-theme
+   phoenix-dark-pink-theme
+   planet-theme
+   professional-theme
+   purple-haze-theme
+   railscasts-theme
+   rebecca-theme
+   reverse-theme
+   seti-theme
+   smyx-theme
+   soft-charcoal-theme
+   soft-morning-theme
+   soft-stone-theme
+   solarized-theme
+   soothe-theme
+   spacegray-theme
+   spacemacs-theme
+   srcery-theme
+   subatomic-theme
+   subatomic256-theme
+   sublime-themes
+   sunny-day-theme
+   tango-2-theme
+   tango-plus-theme
+   tangotango-theme
+   toxi-theme
+   twilight-anti-bright-theme
+   twilight-bright-theme
+   twilight-theme
+   ujelly-theme
+   underwater-theme
+   vscode-dark-plus-theme
+   white-sand-theme
+   zen-and-art-theme
+   zenburn-theme
+   zerodark-theme))
 ;; }}
 
 ;; kill buffer without my confirmation

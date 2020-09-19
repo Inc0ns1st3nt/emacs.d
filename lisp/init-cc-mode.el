@@ -13,7 +13,7 @@
 
 (setq-default c-basic-offset 4)
 
-(defun my-common-cc-mode-setup ()
+(defun inc0n/common-cc-mode-setup ()
   "setup shared by all languages (java/groovy/c++ ...)"
   ;; give me NO newline automatically after electric expressions are entered
   (setq c-auto-newline nil)
@@ -34,7 +34,7 @@
   ;;   void fn() // press ENTER here, zero means no indentation
   (fix-c-indent-offset-according-to-syntax-context 'func-decl-cont 0))
 
-(defun my-c-mode-setup ()
+(defun inc0n/c-mode-setup ()
   "C/C++ only setup."
   ;; @see http://stackoverflow.com/questions/3509919/ \
   ;; emacs-c-opening-corresponding-header-file
@@ -55,9 +55,9 @@
 ;; donot use c-mode-common-hook or cc-mode-hook because many major-modes use this hook
 (defun c-mode-common-hook-setup ()
   (unless (is-buffer-file-temp)
-    (my-common-cc-mode-setup)
+    (inc0n/common-cc-mode-setup)
     (unless (or (derived-mode-p 'java-mode) (derived-mode-p 'groovy-mode))
-      (my-c-mode-setup))
+      (inc0n/c-mode-setup))
 
     ;; gtags (GNU global) stuff
     (when (and (executable-find "global")

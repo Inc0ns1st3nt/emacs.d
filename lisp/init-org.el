@@ -33,18 +33,19 @@
 (setq org2nikola-output-root-directory "~/.config/nikola")
 ;; }}
 
-(defun org-demote-or-promote (&optional is-promote)
-  "Demote or promote current org tree."
-  (interactive "P")
-  (save-excursion
-    (beginning-of-line)
-    (unless (or (region-active-p)
-                (let ((line (thing-at-point 'line t)))
-                  (and (string-match-p "^\\*+ $" line) ;; is node only one spaced
-                       (= (point) (- (point-max) (length line))) ;; is line at EOF
-                       )))
-      (org-mark-subtree)))
-  (if is-promote (org-do-promote) (org-do-demote)))
+(defun org-op-on-tree-and-subtree (procedure)
+  "Call procedure on the tree and its subtree or tree in region"
+  (lambda ()
+    ;; fix edge case when heading at EOF and only has spaces as heading title
+    (save-excursion
+      (beginning-of-line)
+      (unless (or (region-active-p)
+                  (let ((line (thing-at-point 'line t)))
+                    (and (string-match-p "^\\*+ $" line) ;; is node only one spaced
+                         (= (point) (- (point-max) (length line))) ;; is line at EOF
+                         )))
+        (org-mark-subtree)))
+    (funcall procedure)))
 
 ;; {{ @see http://orgmode.org/worg/org-contrib/org-mime.html
 (with-eval-after-load 'org-mime
@@ -65,7 +66,7 @@
     (local-set-key (kbd "C-c M-o") 'org-mime-org-buffer-htmlize)
 
     ;; don't spell check double words
-    (setq my-flyspell-check-doublon nil)
+    (setq inc0n/flyspell-check-doublon nil)
 
     ;; create updated table of contents of org file
     ;; @see https://github.com/snosov1/toc-org
@@ -74,40 +75,39 @@
     ;; display wrapped lines instead of truncated lines
     (setq truncate-lines nil)
     (setq word-wrap t)))
-(add-hook 'org-mode-hook 'org-mode-hook-setup)
+(add-hook 'org-mode-hook #'org-mode-hook-setup)
 
 (with-eval-after-load 'org
   ;; {{
-  (defvar my-org-src--saved-temp-window-config nil
+  (defvar inc0n/org-src--saved-temp-window-config nil
     "Window layout before edit special element.")
-  (defun my-org-edit-special (&optional arg)
+  (defun inc0n/org-edit-special (&optional arg)
     "Save current window layout before `org-edit' buffer is open.
 ARG is ignored."
-    (setq my-org-src--saved-temp-window-config (current-window-configuration)))
+    (setq inc0n/org-src--saved-temp-window-config (current-window-configuration)))
 
-  (defun my-org-edit-src-exit ()
+  (defun inc0n/org-edit-src-exit ()
     "Restore the window layout that was saved before `org-edit-special' is called."
-    (when my-org-src--saved-temp-window-config
-      (set-window-configuration my-org-src--saved-temp-window-config)
-      (setq my-org-src--saved-temp-window-config nil)))
-
+    (when inc0n/org-src--saved-temp-window-config
+      (set-window-configuration inc0n/org-src--saved-temp-window-config)
+      (setq inc0n/org-src--saved-temp-window-config nil)))
 
   ;; org 9.3 do not restore windows layout when editing special element
-  (advice-add 'org-edit-special :before 'my-org-edit-special)
-  (advice-add 'org-edit-src-exit :after 'my-org-edit-src-exit)
+  (advice-add 'org-edit-special :before 'inc0n/org-edit-special)
+  (advice-add 'org-edit-src-exit :after 'inc0n/org-edit-src-exit)
   ;; }}
 
-  (my-ensure 'org-clock)
+  (util/ensure 'org-clock)
 
   ;; org-re-reveal requires org 8.3 while Emacs 25 uses org 8.2
   (when *emacs26*
-    (my-ensure 'org-re-reveal))
+    (util/ensure 'org-re-reveal))
 
   ;; odt export
   (add-to-list 'org-export-backends 'odt)
 
   ;; markdown export
-  (my-ensure 'ox-md)
+  (util/ensure 'ox-md)
   (add-to-list 'org-export-backends 'md)
 
   (defun org-agenda-show-agenda-and-todo (&optional arg)
@@ -116,79 +116,57 @@ ARG is ignored."
     (org-agenda arg "n"))
 
 
-  (defun my-org-open-at-point-hack (orig-func &rest args)
+  (defun inc0n/org-open-at-point-hack (orig-func &rest args)
     "\"C-u M-x org-open-at-point\" to open link with `browse-url-generic-program'.
 It's value could be customized liked \"/usr/bin/firefox\".
 \"M-x org-open-at-point\" to open the url with embedded emacs-w3m."
-    (let* ((arg (nth 0 args))
-           (reference-buffer (nth 1 args))
-           (browse-url-browser-function
-            (cond
-             ;; open with `browse-url-generic-program'
-             ((equal arg '(4)) 'browse-url-generic)
-             ;; open with w3m
-             (t 'w3m-browse-url))))
+    (let ((browse-url-browser-function
+           ;; open with `browse-url-generic-program'
+           'browse-url-generic ;;'w3m-browse-url
+           ))
       (apply orig-func args)))
-  (advice-add 'org-open-at-point :around #'my-org-open-at-point-hack)
+  (advice-add 'org-open-at-point :around #'inc0n/org-open-at-point-hack)
 
-  (defun my-org-publish-hack (orig-func &rest args)
+  (defun inc0n/org-publish-hack (orig-func &rest args)
     "Stop running `major-mode' hook when `org-publish'."
-    (let* ((load-user-customized-major-mode-hook nil))
+    (let ((load-user-customized-major-mode-hook nil))
       (apply orig-func args)))
-  (advice-add 'org-publish :around #'my-org-publish-hack)
+  (advice-add 'org-publish :around #'inc0n/org-publish-hack)
 
   ;; {{ NO spell check for embedded snippets
-  (defun my-org-mode-code-snippet-p ()
+  (defun inc0n/org-mode-code-snippet-p ()
     "Code snippet embedded in org file?"
-    (let* (rlt
-           (begin-regexp "^[ \t]*#\\+begin_\\(src\\|html\\|latex\\|example\\)")
-           (end-regexp "^[ \t]*#\\+end_\\(src\\|html\\|latex\\|example\\)")
-           (case-fold-search t)
-           b e)
+    (let ((begin-regexp "^[ \t]*#\\+begin_\\(src\\|html\\|latex\\|example\\)")
+          (end-regexp "^[ \t]*#\\+end_\\(src\\|html\\|latex\\|example\\)")
+          (case-fold-search t))
       (save-excursion
-        (if (setq b (re-search-backward begin-regexp nil t))
-            (setq e (re-search-forward end-regexp nil t))))
-      (if (and b e (< (point) e)) (setq rlt t))
-      rlt))
+        (if (re-search-backward begin-regexp nil t)
+            (let ((e (re-search-forward end-regexp nil t)))
+              (< (point) e))
+          nil))))
 
-  (defun my-org-mode-flyspell-verify-hack (orig-func &rest args)
+  (defun inc0n/org-mode-flyspell-verify-hack (orig-func &rest args)
     "flyspell only uses `ispell-word'."
-    (let* ((run-spellcheck (apply orig-func args)))
-      (when run-spellcheck
-        (cond
-         ;; skip checking in below fonts
-         ((font-belongs-to (point) '(org-verbatim org-code))
-          (setq run-spellcheck nil))
-
-         ;; skip checking property lines
-         ((string-match "^[ \t]+:[A-Z]+:[ \t]+" (my-line-str))
-          (setq run-spellcheck nil))
-
-         ;; skipping checking in code snippet
-         ;; slow test should be placed at last
-         ((my-org-mode-code-snippet-p)
-          (setq run-spellcheck nil))))
-      run-spellcheck))
-  (advice-add 'org-mode-flyspell-verify :around #'my-org-mode-flyspell-verify-hack)
+    (let ((run-spellcheck
+           (apply orig-func args)))
+      (and run-spellcheck
+           ;; will not run if any of the following it `t'
+           (not (or
+                 ;; skip checking in below fonts
+                 (font-belongs-to (point) '(org-verbatim org-code))
+                 ;; skip checking property lines
+                 (string-match "^[ \t]+:[A-Z]+:[ \t]+" (inc0n/line-str))
+                 ;; skipping checking in code snippet
+                 ;; slow test should be placed at last
+                 (inc0n/org-mode-code-snippet-p))))))
+  (advice-add 'org-mode-flyspell-verify :around #'inc0n/org-mode-flyspell-verify-hack)
   ;; }}
 
-  ;; {{ convert to odt
-  (defun my-setup-odt-org-convert-process ()
-    (interactive)
-    (let* ((cmd "/Applications/LibreOffice.app/Contents/MacOS/soffice"))
-      (when (and *is-a-mac* (file-exists-p cmd))
-        ;; org v8
-        (setq org-odt-convert-processes
-              '(("LibreOffice" "/Applications/LibreOffice.app/Contents/MacOS/soffice --headless --convert-to %f%x --outdir %d %i"))))))
-  (my-setup-odt-org-convert-process)
-  ;; }}
-
-  (defun my-org-refile-hack (orig-func &rest args)
-    "When `org-refile' scans org files,
-skip user's own code in `org-mode-hook'."
-    (let* ((force-buffer-file-temp-p t))
+  (defun inc0n/org-refile-hack (orig-func &rest args)
+    "When `org-refile' scans org files, skip user's own code in `org-mode-hook'."
+    (let ((force-buffer-file-temp-p t))
       (apply orig-func args)))
-  (advice-add 'org-refile :around #'my-org-refile-hack)
+  (advice-add 'org-refile :around #'inc0n/org-refile-hack)
 
   ;; {{ export org-mode in Chinese into PDF
   ;; @see http://freizl.github.io/posts/tech/2012-04-06-export-orgmode-file-in-Chinese.html
@@ -215,7 +193,7 @@ skip user's own code in `org-mode-hook'."
         ;; org-startup-indented t
         ;; {{ org 8.2.6 has some performance issue. Here is the workaround.
         ;; @see http://punchagan.muse-amuse.in/posts/how-i-learnt-to-use-emacs-profiler.html
-        org-agenda-inhibit-startup t ;; ~50x speedup
+        org-agenda-inhibit-startup t       ;; ~50x speedup
         org-agenda-use-tag-inheritance nil ;; 3-4x speedup
         ;; }}
         ;; org v8
@@ -226,10 +204,29 @@ skip user's own code in `org-mode-hook'."
         org-refile-targets '((nil :maxlevel . 5) (org-agenda-files :maxlevel . 5))
         org-refile-use-outline-path 'file
         org-outline-path-complete-in-steps nil
-        org-todo-keywords (quote ((sequence "TODO(t)" "STARTED(s)" "|" "DONE(d!/!)")
-                                  (sequence "WAITING(w@/!)" "SOMEDAY(S)" "PROJECT(P@)" "|" "CANCELLED(c@/!)")))
+        org-todo-keywords '((sequence "TODO(t)" "STARTED(s)" "|" "DONE(d!/!)")
+                            (sequence "WAITING(w@/!)" "SOMEDAY(S)" "PROJECT(P@)" "|" "CANCELLED(c@/!)"))
         org-imenu-depth 9
         ;; @see http://irreal.org/blog/1
-        org-src-fontify-natively t))
+        org-src-fontify-natively t)
+
+  (setq org-capture-templates
+        `(("t" "todo" entry (file ,(concat org-directory "/refile.org"))
+           "* TODO %?\n  %i\n  %a")
+          ("r" "respond" entry (file ,(concat org-directory "/refile.org"))
+           "* NEXT Respond to %:from on %:subject\nSCHEDULED: %t\n%U\n%a\n")
+          ("n" "note" entry (file ,(concat org-directory "/note.org"))
+           "* %? :NOTE:\n%U\n%a\n")
+          ("j" "Journal" entry (file+datetree ,(concat org-directory "/diary.org"))
+           "* %?\n%U\n")
+          ("w" "org-protocol" entry (file ,(concat org-directory "/refile.org"))
+           "* TODO Review %c\n%U\n")
+          ("m" "Meeting" entry (file ,(concat org-directory "/refile.org"))
+           "* MEETING with %? :MEETING:\n%U")
+          ("p" "Phone call" entry (file ,(concat org-directory "/refile.org"))
+           "* PHONE %? :PHONE:\n%U")
+          ("h" "Habit" entry (file ,(concat org-directory "/refile.org"))
+           "* NEXT %?\n%U\n%a\nSCHEDULED: %(format-time-string \"%<<%Y-%m-%d %a .+1d/3d>>\")\n:PROPERTIES:\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:END:\n")))
+  (setq org-agenda-files (quote ("~/sources/org/"))))
 
 (provide 'init-org)

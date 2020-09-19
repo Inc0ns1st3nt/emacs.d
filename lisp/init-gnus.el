@@ -1,6 +1,6 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
-(defun my-gnus-group-list-subscribed-groups ()
+(defun inc0n/gnus-group-list-subscribed-groups ()
  "List all subscribed groups with or without un-read messages."
   (interactive)
   (gnus-group-list-all-groups 5))
@@ -12,7 +12,7 @@
 
 (add-hook 'gnus-group-mode-hook
           ;; list all the subscribed groups even they contain zero un-read messages
-          (lambda () (local-set-key "o" 'my-gnus-group-list-subscribed-groups )))
+          (lambda () (local-set-key "o" 'inc0n/gnus-group-list-subscribed-groups )))
 
 (setq message-send-mail-function 'smtpmail-send-it
       smtpmail-default-smtp-server "smtp.gmail.com"

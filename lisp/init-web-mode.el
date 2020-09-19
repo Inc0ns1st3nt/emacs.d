@@ -5,11 +5,11 @@
 
 (defun web-mode-hook-setup ()
   (unless (is-buffer-file-temp)
-    (setq my-flyspell-check-doublon nil)
+    (setq inc0n/flyspell-check-doublon nil)
     (remove-hook 'yas-after-exit-snippet-hook
-                 'web-mode-yasnippet-exit-hook t)
+                 #'web-mode-yasnippet-exit-hook t)
     (remove-hook 'yas/after-exit-snippet-hook
-                 'web-mode-yasnippet-exit-hook t)))
+                 #'web-mode-yasnippet-exit-hook t)))
 
 (add-hook 'web-mode-hook 'web-mode-hook-setup)
 

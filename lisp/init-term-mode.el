@@ -1,6 +1,6 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
-(defun my-kill-process-buffer-when-exit (process event)
+(defun inc0n/kill-process-buffer-when-exit (process event)
   "Kill buffer of PROCESS when it's terminated.
 EVENT is ignored."
   (ignore event)
@@ -17,7 +17,7 @@ EVENT is ignored."
   (native-complete-setup-bash))
 
 ;; `bash-completion-tokenize' can handle garbage output of "complete -p"
-(defun my-bash-completion-tokenize-hack (orig-fun &rest args)
+(defun inc0n/bash-completion-tokenize-hack (orig-fun &rest args)
   "Original code extracts tokens line by line of output of \"complete -p\"."
   (let* ((beg (nth 0 args))
          (end (nth 1 args)))
@@ -27,7 +27,7 @@ EVENT is ignored."
       nil)
      (t
       (apply orig-fun args)))))
-(advice-add 'bash-completion-tokenize :around #'my-bash-completion-tokenize-hack)
+(advice-add 'bash-completion-tokenize :around #'inc0n/bash-completion-tokenize-hack)
 
 (defun shell-mode-hook-setup ()
   "Set up `shell-mode'."
@@ -41,7 +41,7 @@ EVENT is ignored."
          (shell (file-name-nondirectory (car (process-command proc)))))
     ;; Don't waste time on dumb shell which `shell-write-history-on-exit' is binding to
     (unless (string-match shell-dumb-shell-regexp shell)
-      (set-process-sentinel proc #'my-kill-process-buffer-when-exit))))
+      (set-process-sentinel proc #'inc0n/kill-process-buffer-when-exit))))
 (add-hook 'shell-mode-hook 'shell-mode-hook-setup)
 ;; }}
 
@@ -52,28 +52,28 @@ EVENT is ignored."
 (add-hook 'eshell-mode-hook 'eshell-mode-hook-setup)
 
 ;; {{ @see http://emacs-journey.blogspot.com.au/2012/06/improving-ansi-term.html
-(advice-add 'term-sentinel :after #'my-kill-process-buffer-when-exit)
+(advice-add 'term-sentinel :after #'inc0n/kill-process-buffer-when-exit)
 
 ;; always use bash
-(defvar my-term-program "/bin/bash")
+(defvar var/term-program "/bin/bash")
 
 ;; utf8
-(defun my-term-use-utf8 ()
+(defun inc0n/term-use-utf8 ()
   (set-buffer-process-coding-system 'utf-8-unix 'utf-8-unix))
-(add-hook 'term-exec-hook 'my-term-use-utf8)
+(add-hook 'term-exec-hook 'inc0n/term-use-utf8)
 ;; }}
 
 ;; {{ hack counsel-browser-history
-(defvar my-comint-full-input nil)
-(defun my-counsel-shell-history-hack (orig-func &rest args)
-  (setq my-comint-full-input (my-comint-current-input))
-  (my-comint-kill-current-input)
+(defvar var/comint-full-input nil)
+(defun inc0n/counsel-shell-history-hack (orig-func &rest args)
+  (setq var/comint-full-input (util/comint-current-input))
+  (util/comint-kill-current-input)
   (apply orig-func args)
-  (setq my-comint-full-input nil))
-(advice-add 'counsel-shell-history :around #'my-counsel-shell-history-hack)
-(defun my-ivy-history-contents-hack (orig-func &rest args)
+  (setq var/comint-full-input nil))
+(advice-add 'counsel-shell-history :around #'inc0n/counsel-shell-history-hack)
+(defun inc0n/ivy-history-contents-hack (orig-func &rest args)
   (let* ((rlt (apply orig-func args))
-         (input my-comint-full-input))
+         (input var/comint-full-input))
     (when (and input (not (string= input "")))
       ;; filter shell history with current input
       (setq rlt
@@ -83,7 +83,7 @@ EVENT is ignored."
                        rlt))))
     (when (and rlt (> (length rlt) 0)))
     rlt))
-(advice-add 'ivy-history-contents :around #'my-ivy-history-contents-hack)
+(advice-add 'ivy-history-contents :around #'inc0n/ivy-history-contents-hack)
 ;; }}
 
 ;; {{ comint-mode

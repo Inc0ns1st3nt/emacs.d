@@ -1,7 +1,7 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
 ;; http://stackoverflow.com/questions/3875213/turning-on-linum-mode-when-in-python-c-mode
-(defvar my-linum-inhibit-modes
+(defvar inc0n/linum-inhibit-modes
   '(eshell-mode
     shell-mode
     js-comint-mode
@@ -43,9 +43,11 @@
 ;; I don't care Emacs 25 performance any more
 (when (fboundp 'global-display-line-numbers-mode)
   (defun display-line-numbers-mode-hook-setup ()
-    (setq display-line-numbers (not (or (memq major-mode my-linum-inhibit-modes)
-                                        ;; don't show line number for certain file extensions
-                                        (should-use-minimum-resource)))))
+    (setq display-line-numbers
+          (and (not (or (memq major-mode inc0n/linum-inhibit-modes)
+                        ;; don't show line number for certain file extensions
+                        (should-use-minimum-resource)))
+               'relative)))
   (add-hook 'display-line-numbers-mode-hook 'display-line-numbers-mode-hook-setup)
   (global-display-line-numbers-mode t))
 

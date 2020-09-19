@@ -24,19 +24,19 @@
 [_ii_] Imenu
 [_q_] Quit
 "
-  ("hr" my-dired-redo-from-commands-history)
+  ("hr" inc0n/dired-redo-from-commands-history)
   ("B" bookmark-set)
   ("m" counsel-bookmark-goto)
-  ("f" my-counsel-recentf)
+  ("f" inc0n/counsel-recentf)
   ("d" counsel-recent-directory)
   ("bh" counsel-insert-bash-history)
   ("hh" random-healthy-color-theme)
   ("ss" wg-create-workgroup)
-  ("ii" my-counsel-imenu)
+  ("ii" counsel-imenu)
   ("ll" wg-open-workgroup)
 
-  ("e" my-erase-visible-buffer)
-  ("r" my-erase-current-buffer)
+  ("e" inc0n/erase-visible-buffer)
+  ("r" inc0n/erase-current-buffer)
   ("E" toggle-typewriter)
   ("V" twm/toggle-sound-style)
   ("uu" undo-tree-visualize)
@@ -48,7 +48,7 @@
   ("n" emms-next)
   ("w" mybigword-pronounce-word)
   ("im" mybigword-show-image-of-word)
-  ("W" my-lookup-big-word-definition-in-buffer)
+  ("W" inc0n/lookup-big-word-definition-in-buffer)
   ("v" mybigword-play-video-of-word-at-point)
   ("p" emms-previous)
   ("P" emms-pause)
@@ -168,7 +168,7 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
 (with-eval-after-load 'dired
-  (defun my-replace-dired-base (base)
+  (defun inc0n/replace-dired-base (base)
     "Change file name in `wdired-mode'"
     (let* ((fp (dired-file-name-at-point))
            (fb (file-name-nondirectory fp))
@@ -178,7 +178,7 @@
       (when (yes-or-no-p (format "%s => %s at %s?"
                                  fb nf dir))
         (rename-file fp (concat dir nf)))))
-  (defun my-extract-mp3-from-video ()
+  (defun inc0n/extract-mp3-from-video ()
     "Extract mp3 from current video file using ffmpeg."
     (interactive)
     (let* ((video-file (file-name-nondirectory (dired-file-name-at-point)))
@@ -201,7 +201,7 @@
                           (format "%s-%s-%s.mp3" (file-name-base video-file) start total)))))
       (shell-command (concat cmd " &"))))
 
-  (defun my-extract-mkv-subtitle ()
+  (defun inc0n/extract-mkv-subtitle ()
     "Use mkvtoolnix to extract mkv subtitle."
     (interactive)
     (let* ((file (file-name-nondirectory (dired-file-name-at-point)))
@@ -238,7 +238,7 @@
                                  track-number
                                  (file-name-base file))))))))
 
-  (defun my-record-wav-by-mp3 ()
+  (defun inc0n/record-wav-by-mp3 ()
     "Record a wav using meta data from current mp3 file."
     (interactive)
     (let* ((mp3-file (file-name-nondirectory (dired-file-name-at-point)))
@@ -252,8 +252,8 @@
                         total
                         output-file))
       (message "Start recording %s seconds wav ..." total)
-      (my-async-shell-command cmd)))
-  (defun my-play-both-mp3-and-wav ()
+      (inc0n/async-shell-command cmd)))
+  (defun inc0n/play-both-mp3-and-wav ()
     "Play wav and mp3."
     (interactive)
     (let* ((audio-file (file-name-nondirectory (dired-file-name-at-point)))
@@ -262,8 +262,8 @@
            (cmd (format "mplayer -quiet \"%s\" \"%s\""
                         audio-file
                         (concat base "." (if (string= ext "mp3") "wav" "mp3")))))
-      (my-async-shell-command cmd)))
-  (defun my-copy-file-info (fn)
+      (inc0n/async-shell-command cmd)))
+  (defun inc0n/copy-file-info (fn)
     (message "%s => clipboard & yank ring"
              (copy-yank-str (funcall fn (dired-file-name-at-point)))))
   (defhydra hydra-dired (:color blue)
@@ -281,22 +281,22 @@
 [_ee_] Mkv => Srt
 [_+_] Create directory
 "
-    ("sa" (my-fetch-subtitles))
-    ("s1" (my-fetch-subtitles (dired-file-name-at-point)))
-    ("pp" (my-copy-file-info 'file-truename))
-    ("nn" (my-copy-file-info 'file-name-nondirectory))
-    ("bb" (my-copy-file-info 'file-name-base))
-    ("dd" (my-copy-file-info 'file-name-directory))
-    ("rb" (my-replace-dired-base (car kill-ring)))
-    ("vv" my-extract-mp3-from-video)
-    ("ee" my-extract-mkv-subtitle)
-    ("aa" my-record-wav-by-mp3)
-    ("cc" my-dired-redo-last-command)
-    ("zz" my-play-both-mp3-and-wav)
+    ("sa" (inc0n/fetch-subtitles))
+    ("s1" (inc0n/fetch-subtitles (dired-file-name-at-point)))
+    ("pp" (inc0n/copy-file-info 'file-truename))
+    ("nn" (inc0n/copy-file-info 'file-name-nondirectory))
+    ("bb" (inc0n/copy-file-info 'file-name-base))
+    ("dd" (inc0n/copy-file-info 'file-name-directory))
+    ("rb" (inc0n/replace-dired-base (car kill-ring)))
+    ("vv" inc0n/extract-mp3-from-video)
+    ("ee" inc0n/extract-mkv-subtitle)
+    ("aa" inc0n/record-wav-by-mp3)
+    ("cc" inc0n/dired-redo-last-command)
+    ("zz" inc0n/play-both-mp3-and-wav)
     ("C" dired-do-copy)
     ("R" dired-do-rename)
     ("cf" find-file)
-    ("df" my-ediff-files)
+    ("df" inc0n/ediff-files)
     ("rr" dired-toggle-read-only)
     ("ff" (lambda (regexp)
             (interactive "sMatching regexp: ")
@@ -456,10 +456,10 @@ Git:
 [_tt_] Stash        [_Q_] Quit gutter
 [_ta_] Apply Stash  [_f_] Find file in commit
 "
-  ("ri" my-git-rebase-interactive)
+  ("ri" inc0n/git-rebase-interactive)
   ("rr" git-gutter-reset-to-default)
   ("rh" git-gutter-reset-to-head-parent)
-  ("s" my-git-show-commit)
+  ("s" inc0n/git-show-commit)
   ("l" magit-log-buffer-file)
   ("b" magit-show-refs-popup)
   ("k" git-link)
@@ -468,13 +468,13 @@ Git:
   ("tt" magit-stash)
   ("dd" magit-diff-dwim)
   ("dc" magit-diff-staged)
-  ("dr" (progn (magit-diff-range (my-git-commit-id))))
+  ("dr" (progn (magit-diff-range (inc0n/git-commit-id))))
   ("cc" magit-commit-popup)
   ("ca" magit-commit-amend)
   ("ja" (magit-commit-amend "--reuse-message=HEAD"))
   ("au" magit-stage-modified)
   ("Q" git-gutter-toggle)
-  ("f" my-git-find-file-in-commit)
+  ("f" inc0n/git-find-file-in-commit)
   ("q" nil))
 (global-set-key (kbd "C-c C-g") 'hydra-git/body)
 ;; }}
@@ -491,7 +491,7 @@ _m_ Man
 "
   ("b" sdcv-search-input)
   ("t" sdcv-search-input+)
-  ("d" my-lookup-dict-org)
+  ("d" inc0n/lookup-dict-org)
   ("g" w3m-google-search)
   ("f" w3m-search-financial-dictionary)
   ("s" w3m-stackoverflow-search)

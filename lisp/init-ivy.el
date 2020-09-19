@@ -10,29 +10,7 @@
     ;; so we manually add it
     (setq counsel-grep-base-command
           (concat (executable-find "rg")
-                  " -n -M 512 --no-heading --color never -i \"%s\" %s")))
-
-   (*win64*
-    (let* ((path (getenv "path"))
-           (cygpath (or (and (file-exists-p "c:/cygwin64/bin") "c:/cygwin64/bin")
-                        (and (file-exists-p "d:/cygwin64/bin") "d:/cygwin64/bin")
-                        (and (file-exists-p "e:/cygwin64/bin") "e:/cygwin64/bin"))))
-      ;; `cygpath' could be nil on Windows
-      (when cygpath
-        (unless (string-match-p cygpath counsel-git-cmd)
-          (setq counsel-git-cmd (concat cygpath "/" counsel-git-cmd)))
-
-        (unless (string-match-p cygpath counsel-git-grep-cmd-default)
-          (setq counsel-git-grep-cmd-default (concat cygpath "/" counsel-git-grep-cmd-default)))
-        ;; ;; git-log does not work
-        ;; (unless (string-match-p cygpath counsel-git-log-cmd)
-        ;;   (setq counsel-git-log-cmd (concat "GIT_PAGER="
-        ;;                                     cygpath
-        ;;                                     "/cat "
-        ;;                                     cygpath
-        ;;                                     "/git log --grep '%s'")))
-        (unless (string-match-p cygpath counsel-grep-base-command)
-          (setq counsel-grep-base-command (concat cygpath "/" counsel-grep-base-command)))))))
+                  " -n -M 512 --no-heading --color never -i \"%s\" %s"))))
 
   ;; @see https://oremacs.com/2015/07/23/ivy-multiaction/
   ;; press "M-o" to choose ivy action
@@ -49,43 +27,36 @@
 
 (define-key read-expression-map (kbd "C-r") 'counsel-expression-history)
 
-(defvar my-git-recent-files-extra-options ""
+(defvar inc0n/git-recent-files-extra-options ""
   "Extra options for git recent files.
 For example, could be \"---author=MyName\"")
 
-(defmacro my-git-extract-file (n items rlt)
-  "Extract Nth item from ITEMS as a file candidate.
-The candidate could be placed in RLT."
-  `(let* ((file (string-trim (nth ,n ,items))))
-     (when (file-exists-p file)
-       (push (cons file (file-truename file)) ,rlt))))
-
-(defun my-git-recent-files ()
+(defun inc0n/git-recent-files ()
   "Get files in my recent git commits."
-  (let* ((default-directory (my-git-root-dir))
+  (let* ((default-directory (inc0n/git-root-dir))
          ;; two weeks is a sprint, minus weekend and days for sprint review and test
          (cmd (format "git --no-pager log %s --name-status --since=\"10 days ago\" --pretty=format:"
-                      my-git-recent-files-extra-options))
-         (lines (my-lines-from-command-output cmd))
-         items
+                      inc0n/git-recent-files-extra-options))
+         (lines (util/lines-from-command-output cmd))
          rlt)
     (when lines
       (dolist (l lines)
-        (setq items (split-string l "[ \t]+" l))
-        (cond
-         ((= (length items) 2)
-          (my-git-extract-file 1 items rlt))
-         ((= (length items) 3)
-          (my-git-extract-file 1 items rlt)
-          (my-git-extract-file 2 items rlt)))))
+        (let ((items (split-string l "[ \t]+" l)))
+          ;; get file if exist only
+          (reduce (lambda (acc file)
+                    (let ((file (string-trim file)))
+                      (if (file-exists-p file)
+                          (acons file (file-truename file) acc)
+                        acc)))
+                  (cdr items)))))
     rlt))
 
-(defun my-counsel-recentf (&optional n)
+(defun inc0n/counsel-recentf (&optional n)
   "Find a file on `recentf-list'.
 If N is 1, only list files in current project.
 If N is 2, list files in my recent 20 commits."
   (interactive "P")
-  (my-ensure 'recentf)
+  (util/ensure 'recentf)
   (unless n (setq n 0))
   (recentf-mode 1)
   (let* ((files (mapcar #'substring-no-properties recentf-list))
@@ -97,11 +68,11 @@ If N is 2, list files in my recent 20 commits."
       (setq files (delq nil (delete-dups (mapcar (lambda (f) (path-in-directory-p f root-dir)) files)))))
      ((eq n 2)
       (setq hint (format "Files in recent Git commits: "))
-      (setq files (my-git-recent-files))))
+      (setq files (inc0n/git-recent-files))))
 
     (ivy-read hint
               files
-              :initial-input (if (region-active-p) (my-selected-str))
+              :initial-input (if (region-active-p) (util/selected-str))
               :action (lambda (f)
                         (if (consp f) (setq f (cdr f)))
                         (with-ivy-window
@@ -110,15 +81,19 @@ If N is 2, list files in my recent 20 commits."
 
 ;; grep by author is bad idea. Too slow
 
-(defun my-build-bookmark-candidate (bookmark)
+(defun inc0n/build-bookmark-candidate (bookmark)
   "Re-shape BOOKMARK."
-  (let* ((key (cond
-               ((and (assoc 'filename bookmark) (cdr (assoc 'filename bookmark)))
-                (format "%s (%s)" (car bookmark) (cdr (assoc 'filename bookmark))))
-               ((and (assoc 'location bookmark) (cdr (assoc 'location bookmark)))
-                (format "%s (%s)" (car bookmark) (cdr (assoc 'location bookmark))))
-               (t
-                (car bookmark)))))
+  (let ((key (cond
+              ((and (assoc 'filename bookmark)
+                    (cdr (assoc 'filename bookmark)))
+               (format "%s (%s)"
+                       (car bookmark) (cdr (assoc 'filename bookmark))))
+              ((and (assoc 'location bookmark)
+                    (cdr (assoc 'location bookmark)))
+               (format "%s (%s)"
+                       (car bookmark) (cdr (assoc 'location bookmark))))
+              (t
+               (car bookmark)))))
     ;; key will be displayed
     ;; re-shape the data so full bookmark be passed to ivy-read
     (cons key bookmark)))
@@ -130,18 +105,18 @@ If N is 2, list files in my recent 20 commits."
   (bookmark-maybe-load-default-file)
   ;; do the real thing
   (ivy-read "bookmarks:"
-            (delq nil (mapcar #'my-build-bookmark-candidate
+            (delq nil (mapcar #'inc0n/build-bookmark-candidate
                               (and (boundp 'bookmark-alist)
                                    bookmark-alist)))
             :action #'bookmark-jump))
 
 (defun counsel-insert-bash-history ()
-  "Yank the bash history."
+  "Yank one command from the bash history."
   (interactive)
-  (shell-command "history -r") ; reload history
-  (let* ((collection
-          (nreverse
-           (my-read-lines (file-truename "~/.bash_history")))))
+  (shell-command "history -r")          ; reload history
+  (let ((collection
+         (nreverse
+          (util/read-lines (file-truename "~/.bash_history")))))
     (ivy-read (format "Bash history:") collection
               :action (lambda (val)
                         (kill-new val)
@@ -154,7 +129,7 @@ If N is not nil, only list directories in current project."
   (interactive "P")
   (unless recentf-mode (recentf-mode 1))
   (let* ((cands (delete-dups
-                 (append my-dired-directory-history
+                 (append inc0n/dired-directory-history
                          (mapcar 'file-name-directory recentf-list)
                          ;; fasd history
                          (if (executable-find "fasd")
@@ -175,23 +150,23 @@ If N is not nil, only list directories in current project."
   (local-set-key (kbd "RET") #'ivy-occur-press-and-switch))
 (add-hook 'ivy-occur-grep-mode-hook 'ivy-occur-grep-mode-hook-setup)
 
-(defun my-counsel-git-grep (&optional level)
+(defun inc0n/counsel-git-grep (&optional level)
   "Git grep in project.  If LEVEL is not nil, grep files in parent commit."
   (interactive "P")
-  (let* ((str (if (region-active-p) (my-selected-str))))
+  (let* ((str (if (region-active-p) (util/selected-str))))
     (cond
      (level
       (unless str
-        (setq str (my-use-selected-string-or-ask "Grep keyword: ")))
+        (setq str (util/use-selected-string-or-ask "Grep keyword: ")))
       (when str
-        (let* ((default-directory (my-git-root-dir))
+        (let* ((default-directory (inc0n/git-root-dir))
                ;; C-u 1 command to grep files in HEAD
-               (cmd-opts (concat (my-git-files-in-rev-command "HEAD" (1- level))
+               (cmd-opts (concat (inc0n/git-files-in-rev-command "HEAD" (1- level))
                                  " | xargs -I{} "
                                  "git --no-pager grep -n --no-color -I -e \"%s\" -- {}"))
                (cmd (format cmd-opts str)))
           (ivy-read "git grep in commit: "
-                    (my-lines-from-command-output cmd)
+                    (util/lines-from-command-output cmd)
                     :caller 'counsel-etags-grep
                     :history 'counsel-git-grep-history
                     :action #'counsel-git-grep-action))))
@@ -202,16 +177,13 @@ If N is not nil, only list directories in current project."
   "If N > 1, assume just yank the Nth item in `kill-ring'.
 If N is nil, use `ivy-mode' to browse `kill-ring'."
   (interactive "P")
-  (my-select-from-kill-ring (lambda (s)
-                              (let* ((plain-str (my-insert-str s))
-                                     (trimmed (string-trim plain-str)))
-                                (setq kill-ring (cl-delete-if
-                                                 `(lambda (e) (string= ,trimmed (string-trim e)))
-                                                 kill-ring))
-                                (kill-new plain-str)))))
+  (inc0n/select-from-kill-ring
+   (lambda (s)
+     (let ((plain-str (util/insert-str s)))
+       (kill-new plain-str)))))
 
 (defun ivy-switch-buffer-matcher-pinyin (regexp candidates)
-  (my-ensure 'pinyinlib)
+  (util/ensure 'pinyinlib)
   (let* ((pys (split-string regexp "[ \t]+"))
          (regexp (format ".*%s.*"
                          (mapconcat 'pinyinlib-build-regexp-string pys ".*"))))
@@ -220,7 +192,7 @@ If N is nil, use `ivy-mode' to browse `kill-ring'."
 (defun ivy-switch-buffer-by-pinyin ()
   "Switch to another buffer."
   (interactive)
-  (my-ensure 'ivy)
+  (util/ensure 'ivy)
   (let* ((this-command 'ivy-switch-buffer))
     (ivy-read "Switch to buffer: " 'internal-complete-buffer
               :matcher #'ivy-switch-buffer-matcher-pinyin
@@ -235,7 +207,7 @@ If N is nil, use `ivy-mode' to browse `kill-ring'."
   (setq ivy-display-style 'fancy))
 
 ;; {{ swiper&ivy-mode
-(global-set-key (kbd "C-s") 'counsel-grep-or-swiper)
+(global-set-key (kbd "C-s") 'inc0n/swiper)
 ;; }}
 
 (global-set-key (kbd "C-h v") 'counsel-describe-variable)
@@ -278,62 +250,36 @@ If N is nil, use `ivy-mode' to browse `kill-ring'."
     (ivy--regex-plus str)))
 ;; }}
 
-(defun my-counsel-imenu ()
-  "Jump to a buffer position indexed by imenu."
-  (interactive)
-  (my-ensure 'counsel)
-  (cond
-   ;; `counsel--imenu-candidates' was created on 2019-10-12
-   ((and (fboundp 'counsel--imenu-candidates)
-         (not (memq major-mode '(pdf-view-mode))))
-    (let* ((cands (counsel--imenu-candidates))
-           (pre-selected (thing-at-point 'symbol))
-           (pos (point))
-           closest)
-      (dolist (c cands)
-        (let* ((item (cdr c))
-               (m (cdr item)))
-          (when (and m (<= (marker-position m) pos))
-            (cond
-             ((not closest)
-              (setq closest item))
-             ((< (- pos (marker-position m))
-                 (- pos (marker-position (cdr closest))))
-              (setq closest item))))))
-      (if closest (setq pre-selected (car closest)))
-      (ivy-read "imenu items: " cands
-                :preselect pre-selected
-                :require-match t
-                :action #'counsel-imenu-action
-                :keymap counsel-imenu-map
-                :history 'counsel-imenu-history
-                :caller 'counsel-imenu)))
-   (t
-    (counsel-imenu))))
-
-(defun my-imenu-or-list-tag-in-current-file ()
+(defun inc0n/imenu-or-list-tag-in-current-file ()
   "Combine the power of counsel-etags and imenu."
   (interactive)
   (counsel-etags-push-marker-stack)
   (cond
-   ((my-use-tags-as-imenu-function-p)
-    ;; see code of `my-use-tags-as-imenu-function-p'. Currently we only use ctags for imenu
+   ((inc0n/use-tags-as-imenu-function-p)
+    ;; see code of `inc0n/use-tags-as-imenu-function-p'. Currently we only use ctags for imenu
     ;; in typescript because `lsp-mode' is too damn slow
     (let* ((imenu-create-index-function 'counsel-etags-imenu-default-create-index-function))
-      (my-counsel-imenu)))
+      (counsel-imenu)))
    (t
-    (my-counsel-imenu))))
+    (counsel-imenu))))
 
 (with-eval-after-load 'ivy
   ;; better performance on everything (especially windows), ivy-0.10.0 required
   ;; @see https://github.com/abo-abo/swiper/issues/1218
-  (setq ivy-dynamic-exhibit-delay-ms 250)
+  (setq ivy-dynamic-exhibit-delay-ms 75)
 
   ;; Press C-p and Enter to select current input as candidate
-  ;; https://oremacs.com/2017/11/30/ivy-0.10.0/
+  ;; hhttps://oremacs.com/2017/11/30/ivy-0.10.0/ttps://oremacs.com/2017/11/30/ivy-0.10.0/
   (setq ivy-use-selectable-prompt t)
 
-  (setq ivy-re-builders-alist '((t . re-builder-extended-pattern)))
+  ;; use fuzzy for ivy everywhere except swiper
+  ;; https://emacs.stackexchange.com/questions/36745/enable-ivy-fuzzy-matching-everywhere-except-in-swiper
+  (setq ivy-re-builders-alist
+        '((counsel-M-x . ivy--regex-fuzzy)
+          (counsel-describe-function . ivy--regex-fuzzy)
+          (counsel-ag . ivy--regex-plus)
+          (swiper . ivy--regex-plus)
+          (t . ivy--regex-fuzzy))) ;; (t . re-builder-extended-pattern)
   ;; set actions when running C-x b
   ;; replace "frame" with window to open in new window
   (ivy-set-actions
@@ -342,12 +288,16 @@ If N is nil, use `ivy-mode' to browse `kill-ring'."
      ("k" kill-buffer "kill")
      ("r" ivy--rename-buffer-action "rename"))))
 
-(defun my-counsel-company ()
+(defun inc0n/counsel-company ()
   "Input code from company backend using fuzzy matching."
   (interactive)
   (company-abort)
   (let* ((company-backends '(company-ctags))
          (company-ctags-fuzzy-match-p t))
     (counsel-company)))
+
+(defun counsel-ag-thing-at-point ()
+  (interactive)
+  (counsel-ag (ivy-thing-at-point)))
 
 (provide 'init-ivy)

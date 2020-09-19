@@ -33,7 +33,8 @@
         company-dabbrev-ignore-case nil
         ;; press M-number to choose candidate
         company-show-numbers t
-        company-idle-delay 0.2
+        company-minimum-prefix-length 2
+        company-idle-delay 0.05
         company-clang-insert-arguments nil
         company-require-match nil
         company-ctags-ignore-case t ; I use company-ctags instead
@@ -59,9 +60,9 @@
           minibuffer-inactive-mode)))
 
 (with-eval-after-load 'company-ispell
-  (defun my-company-ispell-available-hack (orig-func &rest args)
+  (defun inc0n/company-ispell-available-hack (orig-func &rest args)
     ;; in case evil is disabled
-    (my-ensure 'evil-nerd-commenter)
+    (util/ensure 'evil-nerd-commenter)
     (cond
      ((and (derived-mode-p 'prog-mode)
            (or (not (company-in-string-or-comment)) ; respect advice in `company-in-string-or-comment'
@@ -70,9 +71,9 @@
       nil)
      (t
       (apply orig-func args))))
-  (advice-add 'company-ispell-available :around #'my-company-ispell-available-hack))
+  (advice-add 'company-ispell-available :around #'inc0n/company-ispell-available-hack))
 
-(defun my-add-ispell-to-company-backends ()
+(defun inc0n/add-ispell-to-company-backends ()
   "Add ispell to the last of `company-backends'."
   (setq company-backends
         (add-to-list 'company-backends 'company-ispell)))
@@ -86,21 +87,21 @@
     (setq company-backends (delete 'company-ispell company-backends))
     (message "company-ispell disabled"))
    (t
-    (my-add-ispell-to-company-backends)
+    (inc0n/add-ispell-to-company-backends)
     (message "company-ispell enabled!"))))
 
 (defun company-ispell-setup ()
   ;; @see https://github.com/company-mode/company-mode/issues/50
   (when (boundp 'company-backends)
     (make-local-variable 'company-backends)
-    (my-add-ispell-to-company-backends)
+    (inc0n/add-ispell-to-company-backends)
     ;; @see https://github.com/redguardtoo/emacs.d/issues/473
     (cond
      ((and (boundp 'ispell-alternate-dictionary)
            ispell-alternate-dictionary)
       (setq company-ispell-dictionary ispell-alternate-dictionary))
      (t
-       (setq company-ispell-dictionary (file-truename (concat my-emacs-d "misc/english-words.txt")))))))
+       (setq company-ispell-dictionary (file-truename (concat inc0n/emacs-d "misc/english-words.txt")))))))
 
 ;; message-mode use company-bbdb.
 ;; So we should NOT turn on company-ispell

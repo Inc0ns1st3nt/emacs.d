@@ -60,8 +60,8 @@
   "`w3m-display-hook' must search current buffer with this keyword twice if not nil")
 
 (defun w3m-guess-keyword (&optional encode-space-with-plus)
-  (my-ensure 'w3m)
-  (let* ((keyword (my-use-selected-string-or-ask "Enter keyword:"))
+  (util/ensure 'w3m)
+  (let* ((keyword (util/use-selected-string-or-ask "Enter keyword:"))
          (encoded-keyword (w3m-url-encode-string (setq w3m-global-keyword keyword))))
     ;; some search requires plus sign to replace space
     (if encode-space-with-plus
@@ -69,7 +69,7 @@
       encoded-keyword)))
 
 (defun w3m-customized-search-api (search-engine &optional encode-space-with-plus)
-  (my-ensure 'w3m)
+  (util/ensure 'w3m)
   (w3m-search search-engine (w3m-guess-keyword encode-space-with-plus)))
 
 (defun w3m-stackoverflow-search ()
@@ -93,20 +93,8 @@
 
 ; {{ Search using external browser
 (setq browse-url-generic-program
-      (cond
-       (*is-a-mac* ; mac
-        "open")
-       (*unix* ; linux or unix
-        ;; prefer Chrome than Firefox
-        (or (executable-find "google-chrome")
-            (executable-find "firefox")))
-       (t
-        ;; Windows: you need add "firefox.exe" to environment variable PATH
-        ;; @see https://en.wikipedia.org/wiki/PATH_(variable)
-        (executable-find "firefox")
-        ;; if you prefer chrome
-        ;; (executable-find "chrome")
-        )))
+      (or (executable-find "google-chrome")
+          (executable-find "firefox")))
 
 (setq browse-url-browser-function 'browse-url-generic)
 
@@ -152,13 +140,13 @@
       (unless url
         (save-excursion
           (goto-char (point-min))
-          (when (string-match "^Archived-at: <?\\([^ <>]*\\)>?" (setq str (my-buffer-str)))
+          (when (string-match "^Archived-at: <?\\([^ <>]*\\)>?" (setq str (util/buffer-str)))
             (setq url (match-string 1 str)))))
       (setq url (w3mext-encode-specials url))
-      (setq cmd (format "%s -cache 2000 %s &" (my-guess-mplayer-path) url))
+      (setq cmd (format "%s -cache 2000 %s &" (inc0n/guess-mplayer-path) url))
       (when (string= url "buffer://")
         ;; cache 2M data and don't block UI
-        (setq cmd (my-guess-image-viewer-path url t))))
+        (setq cmd (inc0n/guess-image-viewer-path url t))))
     (if url (shell-command cmd))))
 
 (defun w3mext-subject-to-target-filename ()
@@ -166,7 +154,7 @@
     (save-excursion
       (goto-char (point-min))
       ;; first line in email could be some hidden line containing NO to field
-      (setq str (my-buffer-str)))
+      (setq str (util/buffer-str)))
     ;; (message "str=%s" str)
     (if (string-match "^Subject: \\(.+\\)" str)
         (setq rlt (match-string 1 str)))
@@ -186,7 +174,7 @@
        (t
         (setq cmd (format "curl -L %s > %s.%s"  url (w3mext-subject-to-target-filename) (file-name-extension url)))
         (kill-new cmd)
-        (my-pclip cmd)
+        (util/set-clip cmd)
         (message "%s => clipboard/kill-ring" cmd))))))
 
 (with-eval-after-load 'w3m

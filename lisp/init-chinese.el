@@ -6,7 +6,7 @@
   (interactive)
 
   ;; load IME when needed, less memory footprint
-  (my-ensure 'pyim)
+  (util/ensure 'pyim)
 
   ;; some guys don't use evil-mode at all
   (cond
@@ -32,30 +32,31 @@
     ;; NOT evil-mode
     (toggle-input-method))))
 
-(defun my-evil-insert-state-hack (orig-func &rest args)
+(defun inc0n/evil-insert-state-hack (orig-func &rest args)
   "Notify user IME status."
   (apply orig-func args)
   (if current-input-method (message "IME on!")))
-(advice-add 'evil-insert-state :around #'my-evil-insert-state-hack)
+(advice-add 'evil-insert-state :around #'inc0n/evil-insert-state-hack)
 
 (global-set-key (kbd "C-\\") 'evil-toggle-input-method)
 ;; }}
 
 ;; {{ pyim
-(defvar my-pyim-directory "~/.eim"
+(defvar inc0n/pyim-directory "~/.eim"
   "The directory containing pyim dictionaries.")
 
-(defvar my-pyim-enable-wubi-dict nil
+(defvar inc0n/pyim-enable-wubi-dict nil
   "Use Pinyin dictionary for Pyim IME.")
 
 (with-eval-after-load 'pyim
   ;; use western punctuation
-  (setq pyim-punctuation-dict nil)
+  ;; (setq pyim-punctuation-dict nil)
+  (setq pyim-page-length 9)
 
   (setq default-input-method "pyim")
 
   (cond
-   (my-pyim-enable-wubi-dict
+   (inc0n/pyim-enable-wubi-dict
     ;; load wubi dictionary
     (let* ((dir (file-name-directory
                  (locate-library "pyim-wbdict.el")))
@@ -80,8 +81,8 @@
 
     ;; automatically load pinyin dictionaries "*.pyim" under "~/.eim/"
     ;; `directory-files-recursively' requires Emacs 25
-    (let* ((files (and (file-exists-p my-pyim-directory)
-                       (directory-files-recursively my-pyim-directory "\.pyim$")))
+    (let* ((files (and (file-exists-p inc0n/pyim-directory)
+                       (directory-files-recursively inc0n/pyim-directory "\.pyim$")))
            disable-basedict)
       (when (and files (> (length files) 0))
         (setq pyim-dicts
@@ -163,12 +164,12 @@
     (advice-add 'calendar-mark-holidays :around #'cal-china-x-mark-holidays)
     (calendar args)))
 
-(defun my-calendar-exit-hack (&optional arg)
+(defun inc0n/calendar-exit-hack (&optional arg)
   "Clean the cal-chinese-x setup."
   (advice-remove 'calendar-mark-holidays #'cal-china-x-mark-holidays))
-(advice-add 'calendar-exit :before #'my-calendar-exit-hack)
+(advice-add 'calendar-exit :before #'inc0n/calendar-exit-hack)
 
-(defconst my-chinese-pinyin-order-hash
+(defconst inc0n/chinese-pinyin-order-hash
   #s(hash-table size 30 test equal data (
 "一" 375
 "乙" 381
@@ -2671,7 +2672,7 @@
 "囊" 220
 "罐" 110)))
 
-(defun my-chinese-compare (w1 w2)
+(defun inc0n/chinese-compare (w1 w2)
   "Compare Chinese word W2 and W3 by pinyin."
   (let ((i 0)
         (max-len (min (length w1) (length w2)))
@@ -2680,8 +2681,8 @@
         rlt)
 
     (while (and (not break) (< i max-len))
-      (setq v1 (gethash (substring-no-properties w1 i (1+ i)) my-chinese-pinyin-order-hash 9999))
-      (setq v2 (gethash (substring-no-properties w2 i (1+ i)) my-chinese-pinyin-order-hash 9999))
+      (setq v1 (gethash (substring-no-properties w1 i (1+ i)) inc0n/chinese-pinyin-order-hash 9999))
+      (setq v2 (gethash (substring-no-properties w2 i (1+ i)) inc0n/chinese-pinyin-order-hash 9999))
       (unless (eq v1 v2)
         (setq rlt (< v1 v2))
         (setq break t))
@@ -2693,10 +2694,10 @@
      (t
       rlt))))
 
-(defun my-chinese-sort-word-list (word-list)
+(defun inc0n/chinese-sort-word-list (word-list)
   (when word-list
-    (sort word-list #'my-chinese-compare)))
+    (sort word-list #'inc0n/chinese-compare)))
 
-;; (message "test: %s" (my-chinese-sort-word-list '("小明" "小红" "张三" "李四" "王二" "大李" "古力娜扎" "迪丽热巴")))
+;; (message "test: %s" (inc0n/chinese-sort-word-list '("小明" "小红" "张三" "李四" "王二" "大李" "古力娜扎" "迪丽热巴")))
 ;; }}
 (provide 'init-chinese)

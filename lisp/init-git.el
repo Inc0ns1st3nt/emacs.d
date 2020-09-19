@@ -15,21 +15,21 @@
 
 ;; ;; {{ Solution 3: setup vc-handled-backends per project
 ;; (setq vc-handled-backends ())
-;; (defun my-setup-develop-environment ()
+;; (defun inc0n/setup-develop-environment ()
 ;;   (interactive)
 ;;   (cond
-;;    ((string-match-p (file-truename my-emacs-d) (file-name-directory (buffer-file-name))
+;;    ((string-match-p (file-truename inc0n/emacs-d) (file-name-directory (buffer-file-name))
 ;;     (setq vc-handled-backends '(Git)))
 ;;    (t (setq vc-handled-backends nil)))))
-;; (add-hook 'java-mode-hook 'my-setup-develop-environment)
-;; (add-hook 'emacs-lisp-mode-hook 'my-setup-develop-environment)
-;; (add-hook 'org-mode-hook 'my-setup-develop-environment)
-;; (add-hook 'js2-mode-hook 'my-setup-develop-environment)
-;; (add-hook 'js-mode-hook 'my-setup-develop-environment)
-;; (add-hook 'javascript-mode-hook 'my-setup-develop-environment)
-;; (add-hook 'web-mode-hook 'my-setup-develop-environment)
-;; (add-hook 'c++-mode-hook 'my-setup-develop-environment)
-;; (add-hook 'c-mode-hook 'my-setup-develop-environment)
+;; (add-hook 'java-mode-hook 'inc0n/setup-develop-environment)
+;; (add-hook 'emacs-lisp-mode-hook 'inc0n/setup-develop-environment)
+;; (add-hook 'org-mode-hook 'inc0n/setup-develop-environment)
+;; (add-hook 'js2-mode-hook 'inc0n/setup-develop-environment)
+;; (add-hook 'js-mode-hook 'inc0n/setup-develop-environment)
+;; (add-hook 'javascript-mode-hook 'inc0n/setup-develop-environment)
+;; (add-hook 'web-mode-hook 'inc0n/setup-develop-environment)
+;; (add-hook 'c++-mode-hook 'inc0n/setup-develop-environment)
+;; (add-hook 'c-mode-hook 'inc0n/setup-develop-environment)
 ;; ;; }}
 
 ;; {{ git-gutter
@@ -95,7 +95,7 @@ Show the diff between current working code and git head."
 
 ;; }}
 
-(defun my-git-commit-id ()
+(defun inc0n/git-commit-id ()
   "Select commit id from current branch."
   (let* ((git-cmd "git --no-pager log --date=short --pretty=format:'%h|%ad|%s|%an'")
          (collection (nonempty-lines (shell-command-to-string git-cmd)))
@@ -103,20 +103,20 @@ Show the diff between current working code and git head."
     (when item
       (car (split-string item "|" t)))))
 
-(defun my-git-show-commit-internal ()
+(defun inc0n/git-show-commit-internal ()
   "Show git commit."
-  (let* ((id (my-git-commit-id)))
+  (let* ((id (inc0n/git-commit-id)))
     (when id
       (shell-command-to-string (format "git show %s" id)))))
 
-(defun my-git-show-commit ()
+(defun inc0n/git-show-commit ()
   "Show commit using ffip."
   (interactive)
-  (let* ((ffip-diff-backends '(("Show git commit" . my-git-show-commit-internal))))
+  (let* ((ffip-diff-backends '(("Show git commit" . inc0n/git-show-commit-internal))))
     (ffip-show-diff 0)))
 
 ;; {{ git-timemachine
-(defun my-git-timemachine-show-selected-revision ()
+(defun inc0n/git-timemachine-show-selected-revision ()
   "Show last (current) revision of file."
   (interactive)
   (let* ((collection (mapcar (lambda (rev)
@@ -131,11 +131,11 @@ Show the diff between current working code and git head."
                           (setq rev (cdr rev)))
                         (git-timemachine-show-revision rev)))))
 
-(defun my-git-timemachine ()
+(defun inc0n/git-timemachine ()
   "Open git snapshot with the selected version."
   (interactive)
-  (my-ensure 'git-timemachine)
-  (git-timemachine--start #'my-git-timemachine-show-selected-revision))
+  (util/ensure 'git-timemachine)
+  (git-timemachine--start #'inc0n/git-timemachine-show-selected-revision))
 ;; }}
 
 (defun git-get-current-file-relative-path ()
@@ -181,7 +181,7 @@ Show the diff between current working code and git head."
       (message "DONE! git add %s" filename))))
 
 ;; {{ goto next/previous hunk
-(defun my-goto-next-hunk (arg)
+(defun inc0n/goto-next-hunk (arg)
   "Goto next hunk."
   (interactive "p")
   (if (memq major-mode '(diff-mode))
@@ -192,7 +192,7 @@ Show the diff between current working code and git head."
       (forward-line -1)
       (git-gutter:next-hunk arg))))
 
-(defun my-goto-previous-hunk (arg)
+(defun inc0n/goto-previous-hunk (arg)
   "Goto previous hunk."
   (interactive "p")
   (if (memq major-mode '(diff-mode))
@@ -205,7 +205,7 @@ Show the diff between current working code and git head."
 ;; }}
 
 ;; {{
-(defun my-git-extract-based (target lines)
+(defun inc0n/git-extract-based (target lines)
   "Extract based version from TARGET."
   (let* (based (i 0) break)
     (while (and (not break) (< i (length lines)))
@@ -224,12 +224,12 @@ Show the diff between current working code and git head."
                                                          " +")))))
     based))
 
-(defun my-git-rebase-interactive (&optional user-select-branch)
+(defun inc0n/git-rebase-interactive (&optional user-select-branch)
   "Rebase interactively on the closest branch or tag in git log output.
 If USER-SELECT-BRANCH is not nil, rebase on the tag or branch selected by user."
   (interactive "P")
   (let* ((cmd "git --no-pager log --decorate --oneline -n 1024")
-         (lines (my-lines-from-command-output cmd))
+         (lines (util/lines-from-command-output cmd))
          (targets (delq nil
                         (mapcar (lambda (e)
                                   (when (and (string-match "^[a-z0-9]+ (\\([^()]+\\)) " e)
@@ -242,10 +242,10 @@ If USER-SELECT-BRANCH is not nil, rebase on the tag or branch selected by user."
       (message "No tag or branch is found to base on."))
      ((or (not user-select-branch)) (eq (length targets) 1)
       ;; select the closest/only tag or branch
-      (setq based (my-git-extract-based (nth 0 targets) lines)))
+      (setq based (inc0n/git-extract-based (nth 0 targets) lines)))
      (t
       ;; select the one tag or branch
-      (setq based (my-git-extract-based (completing-read "Select based: " targets)
+      (setq based (inc0n/git-extract-based (completing-read "Select based: " targets)
                                         lines))))
 
     ;; start git rebase
@@ -254,7 +254,7 @@ If USER-SELECT-BRANCH is not nil, rebase on the tag or branch selected by user."
 ;; }}
 
 ;; {{ git-gutter use ivy
-(defun my-reshape-git-gutter (gutter)
+(defun inc0n/reshape-git-gutter (gutter)
   "Re-shape gutter for `ivy-read'."
   (let* ((linenum-start (aref gutter 3))
          (linenum-end (aref gutter 4))
@@ -280,11 +280,11 @@ If USER-SELECT-BRANCH is not nil, rebase on the tag or branch selected by user."
                   target-linenum target-line)
           target-linenum)))
 
-(defun my-goto-git-gutter ()
+(defun inc0n/goto-git-gutter ()
   (interactive)
   (if git-gutter:diffinfos
       (ivy-read "git-gutters:"
-                (mapcar 'my-reshape-git-gutter git-gutter:diffinfos)
+                (mapcar 'inc0n/reshape-git-gutter git-gutter:diffinfos)
                 :action (lambda (e)
                           (unless (numberp e) (setq e (cdr e)))
                           (goto-line e)))
@@ -292,20 +292,20 @@ If USER-SELECT-BRANCH is not nil, rebase on the tag or branch selected by user."
 
 ;; }}
 
-(defun my-git-find-file-in-commit (&optional arg)
+(defun inc0n/git-find-file-in-commit (&optional arg)
   "Find file in previous commit with ARG.
 If ARG is 1, find file in previous commit."
   (interactive "P")
-  (my-ensure 'magit)
-  (let* ((rev (concat "HEAD" (if (eq arg 1) "^")))
+  (util/ensure 'magit)
+  (let* ((rev (concat "HEAD" (and (eq arg 1) "^")))
          (prompt (format "Find file from commit %s" rev))
-         (cmd (my-git-files-in-rev-command rev arg))
-         (default-directory (my-git-root-dir))
-         (file (completing-read prompt (my-lines-from-command-output cmd))))
+         (cmd (inc0n/git-files-in-rev-command rev arg))
+         (default-directory (inc0n/git-root-dir))
+         (file (completing-read prompt (util/lines-from-command-output cmd))))
     (when file
       (find-file file))))
 
-(defun my-git-log-trace-definition ()
+(defun inc0n/git-log-trace-definition ()
   "Similar to `magit-log-trace-definition' but UI is simpler.
 If multi-lines are selected, trace the definition of line range.
 If only one line is selected, use current selection as function name to look up.
@@ -315,8 +315,8 @@ If nothing is selected, use the word under cursor as function name to look up."
     (let* ((range-or-func (cond
                            ((region-active-p)
                             (cond
-                             ((my-is-in-one-line (region-beginning) (region-end))
-                              (format ":%s" (my-selected-str)))
+                             ((util/in-one-line-p (region-beginning) (region-end))
+                              (format ":%s" (util/selected-str)))
                              (t
                               (format "%s,%s"
                                       (line-number-at-pos (region-beginning))
@@ -333,7 +333,7 @@ If nothing is selected, use the word under cursor as function name to look up."
                                     (line-number-at-pos (1- (region-end)))))
         (setq cmd (format "git log -L%s:%s" range-or-func (file-truename buffer-file-name))))
       ;; (message cmd)
-      (my-ensure 'find-file-in-project)
+      (util/ensure 'find-file-in-project)
       (ffip-show-content-in-diff-mode (shell-command-to-string cmd)))))
 
 (with-eval-after-load 'vc-msg-git
