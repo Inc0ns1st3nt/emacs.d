@@ -11,10 +11,10 @@
    ((= n 1)
     ;; grep references of current web component
     ;; component could be inside styled-component like `const c = styled(Comp1)`
-    (let* ((fb (file-name-base buffer-file-name)))
+    (let ((fb (file-name-base buffer-file-name)))
       (when (string= "index" fb)
         (setq fb (file-name-base (directory-file-name (file-name-directory (directory-file-name buffer-file-name))))))
-        (counsel-etags-grep (format "(<%s( *$| [^ ])|styled\\\(%s\\))" fb fb))))
+      (counsel-etags-grep (format "(<%s( *$| [^ ])|styled\\\(%s\\))" fb fb))))
    ((= n 2)
     ;; grep web component attribute name
     (counsel-etags-grep (format "^ *%s[=:]" (or (thing-at-point 'symbol)
@@ -30,21 +30,21 @@
     ;; grep Chinese using pinyinlib.
     ;; In ivy filter, trigger key must be pressed before filter chinese
     (util/ensure 'pinyinlib)
-    (let* ((counsel-etags-convert-grep-keyword
-            (lambda (keyword)
-              (if (and keyword (> (length keyword) 0))
-                  (pinyinlib-build-regexp-string keyword t)
-                keyword))))
+    (let ((counsel-etags-convert-grep-keyword
+           (lambda (keyword)
+             (if (and keyword (> (length keyword) 0))
+                 (pinyinlib-build-regexp-string keyword t)
+               keyword))))
       (counsel-etags-grep)))))
 
 ;; {{ message buffer things
 (defun inc0n/search-backward-prompt (n)
   "Search backward for N prompt.
 Return the line beginning of prompt line."
-  (let* (rlt
-         (first-line-end-pos (save-excursion
-                               (goto-char (point-min))
-                               (line-end-position))))
+  (let (rlt
+        (first-line-end-pos (save-excursion
+                              (goto-char (point-min))
+                              (line-end-position))))
     (save-excursion
       (while (and (> (line-beginning-position) first-line-end-pos)
                   (> n 0))
@@ -57,43 +57,34 @@ Return the line beginning of prompt line."
 (defun inc0n/erase-one-visible-buffer (buf-name &optional n)
   "Erase the content of visible buffer with BUF-NAME.
 Keep latest N cli program output if it's not nil."
-  (let* ((original-window (get-buffer-window))
-         (target-window (get-buffer-window buf-name))
-         beg)
-    (cond
-     ((not target-window)
-      (message "Buffer %s is not visible!" buf-name))
-     (t
+  (let ((original-window (get-buffer-window))
+        (target-window (get-buffer-window buf-name))
+        beg)
+    (if (not target-window)
+        (message "Buffer %s is not visible!" buf-name)
       (select-window target-window)
-      (let* ((inhibit-read-only t))
+      (let ((inhibit-read-only t))
         (util/ensure 'evil-matchit-terminal)
-        (when (and n (> n 0) (fboundp 'evilmi-prompt-line-p))
+        (when (and n (> n 0)
+                   (fboundp 'evilmi-prompt-line-p))
           ;; skip current prompt line
           (forward-line -2)
           (setq beg (inc0n/search-backward-prompt n)))
-        (cond
-         (beg
-          (delete-region (point-min) beg))
-         (t
-          (erase-buffer))))
-      (select-window original-window)))))
+        (if beg
+            (delete-region (point-min) beg)
+          (erase-buffer)))
+      (select-window original-window))))
 
 (defun inc0n/erase-visible-buffer (&optional n)
   "Erase the content of the *Messages* buffer.
 N specifies the buffer to erase."
   (interactive "P")
-  (cond
-   ((null n)
-    (inc0n/erase-one-visible-buffer "*Messages*"))
-
-   ((eq 1 n)
-    (inc0n/erase-one-visible-buffer "*shell*"))
-
-   ((eq 2 n)
-    (inc0n/erase-one-visible-buffer "*Javascript REPL*"))
-
-   ((eq 3 n)
-    (inc0n/erase-one-visible-buffer "*eshell*"))))
+  (inc0n/erase-one-visible-buffer
+   (cond
+    ((null n) "*Messages*")
+    ((eq 1 n) "*shell*")
+    ((eq 2 n) "*Javascript REPL*")
+    ((eq 3 n) "*eshell*"))))
 
 (defun inc0n/erase-current-buffer (&optional n)
   "Erase current buffer even it's read-only.
@@ -174,26 +165,11 @@ If USE-INDIRECT-BUFFER is not nil, use `indirect-buffer' to hold the widen conte
    (t (error "Please select a region to narrow to"))))
 ;; }}
 
-(defun inc0n/swiper (&optional other-source)
-  "Search current file.
-If OTHER-SOURCE is 1, get keyword from clipboard.
-If OTHER-SOURCE is 2, get keyword from `kill-ring'."
-  (interactive "P")
-  (let* ((keyword (cond
-                   ((eq 1 other-source)
-                    (cliphist-select-item))
-                   ((eq 2 other-source)
-                    (inc0n/select-from-kill-ring 'identity))
-                   ((region-active-p)
-                    (utils/selected-str/deactivate)))))
-    ;; `swiper--re-builder' read from `ivy-re-builders-alist'
-    ;; more flexible
-    (counsel-grep-or-swiper keyword)))
-
 (with-eval-after-load 'cliphist
   (defun cliphist-routine-before-insert-hack (&optional arg)
     (util/delete-selected-region))
-  (advice-add 'cliphist-routine-before-insert :before #'cliphist-routine-before-insert-hack))
+  (advice-add 'cliphist-routine-before-insert
+              :before #'cliphist-routine-before-insert-hack))
 
 ;; {{ Write backup files to its own directory
 ;; @see https://www.gnu.org/software/emacs/manual/html_node/tramp/Auto_002dsave-and-Backup.html
@@ -241,14 +217,14 @@ If OTHER-SOURCE is 2, get keyword from `kill-ring'."
 
 ;; NO tool bar, scroll-bar
 (when window-system
-  (and (fboundp 'scroll-bar-mode) (not (eq scroll-bar-mode -1))
+  (and (fboundp 'scroll-bar-mode)
        (scroll-bar-mode -1))
-  (and (fboundp 'tool-bar-mode) (not (eq tool-bar-mode -1))
+  (and (fboundp 'tool-bar-mode)
        (tool-bar-mode -1))
   (and (fboundp 'horizontal-scroll-bar-mode)
        (horizontal-scroll-bar-mode -1)))
 ;; no menu bar
-(and (fboundp 'menu-bar-mode) (not (eq menu-bar-mode -1))
+(and (fboundp 'menu-bar-mode)
      (menu-bar-mode -1))
 ;; }}
 

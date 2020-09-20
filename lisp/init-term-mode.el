@@ -19,14 +19,12 @@ EVENT is ignored."
 ;; `bash-completion-tokenize' can handle garbage output of "complete -p"
 (defun inc0n/bash-completion-tokenize-hack (orig-fun &rest args)
   "Original code extracts tokens line by line of output of \"complete -p\"."
-  (let* ((beg (nth 0 args))
-         (end (nth 1 args)))
-    (cond
-     ((not (string-match-p "^complete " (buffer-substring beg end)))
-      ;; filter out some weird lines
-      nil)
-     (t
-      (apply orig-fun args)))))
+  (let ((beg (nth 0 args))
+        (end (nth 1 args)))
+    (and
+     ;; filter out some weird lines
+     (string-match-p "^complete " (buffer-substring beg end))
+     (apply orig-fun args))))
 (advice-add 'bash-completion-tokenize :around #'inc0n/bash-completion-tokenize-hack)
 
 (defun shell-mode-hook-setup ()
@@ -35,21 +33,21 @@ EVENT is ignored."
   (add-hook 'completion-at-point-functions #'native-complete-at-point nil t)
   (setq-local company-backends '((company-files company-native-complete)))
   ;; `company-native-complete' is better than `completion-at-point'
-  (local-set-key (kbd "TAB") 'company-complete)
+  (local-set-key (kbd "TAB") #'company-complete)
   ;; try to kill buffer when exit shell
   (let* ((proc (get-buffer-process (current-buffer)))
          (shell (file-name-nondirectory (car (process-command proc)))))
     ;; Don't waste time on dumb shell which `shell-write-history-on-exit' is binding to
     (unless (string-match shell-dumb-shell-regexp shell)
       (set-process-sentinel proc #'inc0n/kill-process-buffer-when-exit))))
-(add-hook 'shell-mode-hook 'shell-mode-hook-setup)
+(add-hook 'shell-mode-hook #'shell-mode-hook-setup)
 ;; }}
 
 (defun eshell-mode-hook-setup ()
   "Set up `eshell-mode'."
   (local-set-key (kbd "C-c C-y") 'hydra-launcher/body)
   (local-set-key (kbd "M-n") 'counsel-esh-history))
-(add-hook 'eshell-mode-hook 'eshell-mode-hook-setup)
+(add-hook 'eshell-mode-hook #'eshell-mode-hook-setup)
 
 ;; {{ @see http://emacs-journey.blogspot.com.au/2012/06/improving-ansi-term.html
 (advice-add 'term-sentinel :after #'inc0n/kill-process-buffer-when-exit)
@@ -60,7 +58,7 @@ EVENT is ignored."
 ;; utf8
 (defun inc0n/term-use-utf8 ()
   (set-buffer-process-coding-system 'utf-8-unix 'utf-8-unix))
-(add-hook 'term-exec-hook 'inc0n/term-use-utf8)
+(add-hook 'term-exec-hook #'inc0n/term-use-utf8)
 ;; }}
 
 ;; {{ hack counsel-browser-history
@@ -71,18 +69,19 @@ EVENT is ignored."
   (apply orig-func args)
   (setq var/comint-full-input nil))
 (advice-add 'counsel-shell-history :around #'inc0n/counsel-shell-history-hack)
+
 (defun inc0n/ivy-history-contents-hack (orig-func &rest args)
-  (let* ((rlt (apply orig-func args))
-         (input var/comint-full-input))
-    (when (and input (not (string= input "")))
-      ;; filter shell history with current input
-      (setq rlt
-            (delq nil (mapcar
-                       `(lambda (s)
-                          (if (string-match (regexp-quote ,input) s) s))
-                       rlt))))
-    (when (and rlt (> (length rlt) 0)))
-    rlt))
+  (let ((rlt (apply orig-func args))
+        (input var/comint-full-input))
+    (if (and input (not (string-empty-p input)))
+        ;; filter shell history with current input
+        (delq nil (mapcar
+                   (lambda (s)
+                     (if (string-match (regexp-quote input) s)
+                         s
+                       nil))
+                   rlt))
+      rlt)))
 (advice-add 'ivy-history-contents :around #'inc0n/ivy-history-contents-hack)
 ;; }}
 
@@ -92,13 +91,13 @@ EVENT is ignored."
   ;; Github prompt is like "Password for 'https://user@github.com/':"
   (setq comint-password-prompt-regexp
         (format "%s\\|^ *Password for .*: *$" comint-password-prompt-regexp))
-  (add-hook 'comint-output-filter-functions 'comint-watch-for-password-prompt))
+  (add-hook 'comint-output-filter-functions #'comint-watch-for-password-prompt))
 (defun comint-mode-hook-setup ()
   ;; look up shell command history
-  (local-set-key (kbd "M-n") 'counsel-shell-history)
+  (local-set-key (kbd "M-n") #'counsel-shell-history)
   ;; Don't show trailing whitespace in REPL.
-  (local-set-key (kbd "M-;") 'comment-dwim))
-(add-hook 'comint-mode-hook 'comint-mode-hook-setup)
+  (local-set-key (kbd "M-;") #'comment-dwim))
+(add-hook 'comint-mode-hook #'comint-mode-hook-setup)
 ;; }}
 
 (provide 'init-term-mode)

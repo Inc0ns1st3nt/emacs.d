@@ -8,9 +8,9 @@
       (format
        ";; %s\n\n"
        (replace-regexp-in-string
-        "\n" "\n;; " ; comment each line
+        "\n" "\n;; "                    ; comment each line
         (replace-regexp-in-string
-         "\\(\n$\\|\\|\\[m *\\|\\[[0-9][0-9]m *\\)" ""    ; remove trailing linebreak
+         "\\(\n$\\|\\|\\[m *\\|\\[[0-9][0-9]m *\\)" "" ; remove trailing linebreak
          (shell-command-to-string fortune-prog)))))
      (t
       (concat ";; Happy hacking "
@@ -38,8 +38,7 @@
 (require 'gambit)
 (add-hook 'inferior-scheme-mode-hook 'gambit-inferior-mode)
 
-;;; gerbil setup
-;;
+;; gerbil setup
 (let* ((gerbil-home (getenv "GERBIL_HOME"))
        (gerbil-program-name (concat gerbil-home "/bin/gxi")))
   ;; gerbil mode
@@ -52,7 +51,6 @@
 (push '(".ss$" . gerbil-mode) auto-mode-alist)
 
 ;; elisp
-
 (defun set-up-hippie-expand-for-elisp ()
   "Locally set `hippie-expand' completion functions for use with Emacs Lisp."
   (make-local-variable 'hippie-expand-try-functions-list)
@@ -103,6 +101,7 @@
   (setq slime-lisp-implementations
         '((sbcl ("/usr/bin/sbcl"))))
   (slime))
+
 
 ;; gerbil tag table
 

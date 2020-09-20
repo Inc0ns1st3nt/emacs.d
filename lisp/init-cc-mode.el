@@ -50,7 +50,7 @@
   (add-to-list 'imenu-generic-expression '(nil "^DEFUN *(\"\\([a-zA-Z0-9-]+\\)" 1))
 
   ;; make a #define be left-aligned
-  (setq c-electric-pound-behavior (quote (alignleft))))
+  (setq c-electric-pound-behavior '(alignleft)))
 
 ;; donot use c-mode-common-hook or cc-mode-hook because many major-modes use this hook
 (defun c-mode-common-hook-setup ()
@@ -58,15 +58,7 @@
     (inc0n/common-cc-mode-setup)
     (unless (or (derived-mode-p 'java-mode) (derived-mode-p 'groovy-mode))
       (inc0n/c-mode-setup))
-
-    ;; gtags (GNU global) stuff
-    (when (and (executable-find "global")
-               ;; `man global' to figure out why
-               (not (string-match-p "GTAGS not found"
-                                    (shell-command-to-string "global -p"))))
-      ;; emacs 24.4+ will set up eldoc automatically.
-      ;; so below code is NOT needed.
-      (eldoc-mode 1))))
+    (eldoc-mode 1)))
 (add-hook 'c-mode-common-hook 'c-mode-common-hook-setup)
 
 (provide 'init-cc-mode)

@@ -57,20 +57,20 @@
               visible-bell nil)
 
 ;; @see http://www.emacswiki.org/emacs/SavePlace
-(cond
- ((fboundp 'save-place-mode)
-  (save-place-mode 1))
- (t
-  (require 'saveplace)
-  (setq-default save-place t)))
+(if (fboundp 'save-place-mode)
+     (save-place-mode 1)
+   (require 'saveplace)
+   (setq-default save-place t))
 
 ;; {{ find-file-in-project (ffip)
 (with-eval-after-load 'find-file-in-project
   (defun inc0n/search-git-reflog-code ()
-    (let* ((default-directory (inc0n/git-root-dir)))
-      (ffip-shell-command-to-string (format "git --no-pager reflog --date=short -S\"%s\" -p"
-                                            (read-string "Regex: ")))))
-  (push 'inc0n/search-git-reflog-code ffip-diff-backends)
+    (let ((default-directory
+            (inc0n/git-root-dir)))
+      (ffip-shell-command-to-string
+       (format "git --no-pager reflog --date=short -S\"%s\" -p"
+               (read-string "Regex: ")))))
+  (push #'inc0n/search-git-reflog-code ffip-diff-backends)
   (setq ffip-match-path-instead-of-filename t))
 
 (defun neotree-project-dir ()
@@ -89,18 +89,19 @@
 ;; {{ gradle
 (defun inc0n/run-gradle-in-shell (cmd)
   (interactive "sEnter a string:")
-  (let* ((root-dir (locate-dominating-file default-directory
-                                           "build.gradle")))
-    (if root-dir
-        (let* ((default-directory root-dir))
-          (shell-command (concat "gradle " cmd "&"))))))
+  (when-let ((root-dir
+              (locate-dominating-file default-directory "build.gradle")))
+    (let ((default-directory root-dir))
+      (shell-command (concat "gradle " cmd "&")))))
 ;; }}
 
 ;; {{ dictionary setup
-(defun inc0n/lookup-dict-org ()
-  (interactive)
-  (dictionary-new-search (cons (util/use-selected-string-or-ask "Input word for dict.org:")
-                               dictionary-default-dictionary)))
+(defalias 'inc0n/lookup-dict-org
+  (util/warp-interactive-search
+   (lambda (default-value)
+     (dictionary-new-search
+      (cons (util/use-selected-string-or-ask "Input word for dict.org: " default-value)
+            dictionary-default-dictionary)))))
 ;; }}
 
 ;; {{ bookmark
@@ -117,7 +118,8 @@
 
 ;; @see http://blog.binchen.org/posts/effective-code-navigation-for-web-development.html
 ;; don't let the cursor go into minibuffer prompt
-(setq minibuffer-prompt-properties (quote (read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt)))
+(setq minibuffer-prompt-properties
+      '(read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt))
 
 (global-set-key (kbd "M-x") 'counsel-M-x)
 (global-set-key (kbd "C-x C-m") 'counsel-M-x)
@@ -168,7 +170,7 @@ This function can be re-used by other major modes after compilation."
     (unless (derived-mode-p 'js2-mode)
       (subword-mode 1))
 
-    (setq-default electric-pair-inhibit-predicate 'inc0n/electric-pair-inhibit)
+    (setq-default electric-pair-inhibit-predicate #'inc0n/electric-pair-inhibit)
     (electric-pair-mode 1)
 
     ;; eldoc, show API doc in minibuffer echo area
@@ -176,14 +178,14 @@ This function can be re-used by other major modes after compilation."
     ;; show trailing spaces in a programming mod
     (setq show-trailing-whitespace t)))
 
-(add-hook 'prog-mode-hook 'generic-prog-mode-hook-setup)
+(add-hook 'prog-mode-hook #'generic-prog-mode-hook-setup)
 ;; some major-modes NOT inherited from prog-mode
-(add-hook 'css-mode-hook 'generic-prog-mode-hook-setup)
+(add-hook 'css-mode-hook #'generic-prog-mode-hook-setup)
 
 ;; {{ display long lines in truncated style (end line with $)
 (defun truncate-lines-setup ()
   (toggle-truncate-lines 1))
-(add-hook 'grep-mode-hook 'truncate-lines-setup)
+(add-hook 'grep-mode-hook #'truncate-lines-setup)
 ;; (add-hook 'org-mode-hook 'truncate-lines-setup)
 ;; }}
 
@@ -191,8 +193,8 @@ This function can be re-used by other major modes after compilation."
 ;; mode (org-mode for example), this will make the exported document
 ;; ugly!
 ;; (add-hook 'markdown-mode-hook 'turn-on-auto-fill)
-(add-hook 'change-log-mode-hook 'turn-on-auto-fill)
-(add-hook 'cc-mode-hook 'turn-on-auto-fill)
+(add-hook 'change-log-mode-hook #'turn-on-auto-fill)
+(add-hook 'cc-mode-hook #'turn-on-auto-fill)
 
 ;; some project prefer tab, so be it
 ;; @see http://stackoverflow.com/questions/69934/set-4-space-indent-in-emacs-in-text-mode
@@ -220,7 +222,7 @@ This function can be re-used by other major modes after compilation."
 ;;a no-op function to bind to if you want to set a keystroke to null
 (defun void () "this is a no-op" (interactive))
 
-(defalias 'list-buffers 'ibuffer)
+(defalias 'list-buffers #'ibuffer)
 
 (defun inc0n/download-subtitles ()
   (interactive)
@@ -236,9 +238,9 @@ This function can be re-used by other major modes after compilation."
 (defun add-pwd-into-load-path ()
   "add current directory into load-path, useful for elisp developers"
   (interactive)
-  (let* ((dir (expand-file-name default-directory)))
-    (if (not (memq dir load-path))
-        (add-to-list 'load-path dir))
+  (let ((dir (expand-file-name default-directory)))
+    (when (not (memq dir load-path))
+      (add-to-list 'load-path dir))
     (message "Directory added into load-path:%s" dir)))
 
 (setq system-time-locale "C")
@@ -277,17 +279,18 @@ This function can be re-used by other major modes after compilation."
 ;; {{ popup functions
 (defun inc0n/which-file ()
   "Return current file name for Yasnippets."
-  (if (buffer-file-name) (format "%s:" (file-name-nondirectory (buffer-file-name)))
+  (if (buffer-file-name)
+      (format "%s:" (file-name-nondirectory (buffer-file-name)))
     ""))
 
 (defun inc0n/which-function ()
   "Return current function name."
-
   (util/ensure 'imenu)
   ;; @see http://stackoverflow.com/questions/13426564/how-to-force-a-rescan-in-imenu-by-a-function
-  (let* ((imenu-create-index-function (if (inc0n/use-tags-as-imenu-function-p)
-                                          'counsel-etags-imenu-default-create-index-function
-                                        imenu-create-index-function)))
+  (let ((imenu-create-index-function
+         (if (inc0n/use-tags-as-imenu-function-p)
+             'counsel-etags-imenu-default-create-index-function
+           imenu-create-index-function)))
     ;; clean the imenu cache
     (setq imenu--index-alist nil)
     (imenu--make-index-alist t)
@@ -296,38 +299,14 @@ This function can be re-used by other major modes after compilation."
 (defun popup-which-function ()
   "Popup which function message."
   (interactive)
-  (let* ((msg (inc0n/which-function)))
+  (let ((msg (inc0n/which-function)))
     (when msg
       (popup-tip msg)
       (copy-yank-str msg))))
 ;; }}
 
-;; {{ music
-(defun mpc-which-song ()
-  (interactive)
-  (let* ((msg (car (nonempty-lines (shell-command-to-string "mpc")))))
-    (message msg)
-    (copy-yank-str msg)))
-
-(defun mpc-next-prev-song (&optional prev)
-  (interactive)
-  (message (car (nonempty-lines (shell-command-to-string
-                                 (concat "mpc "
-                                         (if prev "prev" "next")))))))
-
-(defun lyrics()
-  "Prints the lyrics for the current song"
-  (interactive)
-  (let* ((song (shell-command-to-string "lyrics")))
-    (if (equal song "")
-        (message "No lyrics - Opening browser.")
-      (switch-to-buffer (create-file-buffer "Lyrics"))
-      (insert song)
-      (goto-line 0))))
-;; }}
-
 (local-require 'ace-pinyin)
-(ace-pinyin-global-mode +1)
+(ace-pinyin-global-mode 1)
 
 ;; {{ avy, jump between texts, like easymotion in vim
 ;; @see http://emacsredux.com/blog/2015/07/19/ace-jump-mode-is-dead-long-live-avy/ for more tips
@@ -365,8 +344,8 @@ This function can be re-used by other major modes after compilation."
   ;; (message "f1=%s f2=%s" f1 f2)
   ;; in emacs-lisp-mode, the '^' from "^abde" has list of faces:
   ;;   (font-lock-negation-char-face font-lock-string-face)
-  (if (listp f1) (setq f1 (nth 1 f1)))
-  (if (listp f2) (setq f2 (nth 1 f2)))
+  (when (listp f1) (setq f1 (nth 1 f1)))
+  (when (listp f2) (setq f2 (nth 1 f2)))
 
   (or (eq f1 f2)
       ;; C++ comment has different font face for limit and content
@@ -376,32 +355,31 @@ This function can be re-used by other major modes after compilation."
 
 (defun font-face-at-point-similar-p (font-face-list)
   "Test if font face at point is similar to any font in FONT-FACE-LIST."
-  (let* ((f (get-text-property (point) 'face))
-         rlt)
-    (dolist (ff font-face-list)
-      (if (font-face-is-similar f ff) (setq rlt t)))
-    rlt))
+  (cl-loop with f = (get-text-property (point) 'face)
+           for ff in font-face-list
+           when (font-face-is-similar f ff)
+           return t
+           finally (return nil)))
 
 ;; {{
 (defun goto-edge-by-comparing-font-face (&optional step)
   "Goto either the begin or end of string/comment/whatever.
 If step is -1, go backward."
   (interactive "P")
-  (let* ((cf (get-text-property (point) 'face))
-         (p (point))
-         rlt
-         found
-         end)
-    (unless step (setq step 1)) ;default value
-    (setq end (if (> step 0) (point-max) (point-min)))
-    (while (and (not found) (not (= end p)))
-      (if (not (font-face-is-similar (get-text-property p 'face) cf))
-          (setq found t)
-        (setq p (+ p step))))
-    (if found (setq rlt (- p step))
-      (setq rlt p))
-    ;; (message "rlt=%s found=%s" rlt found)
-    (goto-char rlt)))
+  (let ((step (or step 1))
+        (cf (get-text-property (point) 'face)))
+    (cl-labels ((aux
+                 (p end)
+                 (cond ((= p end) p)
+                       ((font-face-is-similar (get-text-property p 'face) cf)
+                        (- p step))
+                       (t (aux (+ p step) end)))))
+      (prog1 (aux (point)
+                  (if (> step 0)
+                      (point-max)
+                    (point-min)))
+        ;; (message "rlt=%s found=%s" rlt found)
+        (goto-char rlt)))))
 ;; }}
 
 (defun inc0n/minibuffer-setup-hook ()
@@ -423,37 +401,34 @@ If step is -1, go backward."
 ;; Press "q" in evil-mode or "C-c C-c" to exit the diff output buffer
 (defun diff-region-format-region-boundary (b e)
   "Make sure lines are selected and B is less than E"
-  (let* (tmp rlt)
-    ;; swap b e, make sure b < e
-    (when (> b e)
-      (setq tmp b)
+  ;; swap b e, make sure b < e
+  (when (> b e)
+    (let ((tmp b))
       (setq b e)
-      (set e tmp))
-
-    ;; select lines
-    (save-excursion
-      ;; Another workaround for evil-visual-line bug:
-      ;; In evil-mode, if we use hotkey V or `M-x evil-visual-line` to select line,
-      ;; the (line-beginning-position) of the line which is after the last selected
-      ;; line is always (region-end)! Don't know why.
-      (if (and (> e b)
+      (set e tmp)))
+  ;; select lines
+  (save-excursion
+    ;; Another workaround for evil-visual-line bug:
+    ;; In evil-mode, if we use hotkey V or `M-x evil-visual-line` to select line,
+    ;; the (line-beginning-position) of the line which is after the last selected
+    ;; line is always (region-end)! Don't know why.
+    (when (and (> e b)
                (save-excursion (goto-char e) (= e (line-beginning-position)))
                (boundp 'evil-state) (eq evil-state 'visual))
-          (setq e (1- e)))
-      (goto-char b)
-      (setq b (line-beginning-position))
-      (goto-char e)
-      (setq e (line-end-position)))
-    (setq rlt (list b e))
-    rlt))
+      (setq e (1- e)))
+    (goto-char b)
+    (setq b (line-beginning-position))
+    (goto-char e)
+    (setq e (line-end-position)))
+  (list b e))
 
-(defmacro diff-region-open-diff-output (content buffer-name)
-  `(let ((rlt-buf (get-buffer-create ,buffer-name)))
+(defun diff-region-open-diff-output (content buffer-name)
+  (let ((rlt-buf (get-buffer-create buffer-name)))
     (save-current-buffer
       (switch-to-buffer-other-window rlt-buf)
       (set-buffer rlt-buf)
       (erase-buffer)
-      (insert ,content)
+      (insert content)
       ;; `ffip-diff-mode' is more powerful than `diff-mode'
       (ffip-diff-mode)
       (goto-char (point-min)))))
@@ -462,10 +437,10 @@ If step is -1, go backward."
   "Select a region to compare."
   (interactive)
   (when (region-active-p)
-    (let* (tmp buf)
+    (let ((tmp (diff-region-format-region-boundary (region-beginning)
+                                                   (region-end)))
+          (buf (get-buffer-create "*Diff-regionA*")))
       ;; select lines
-      (setq tmp (diff-region-format-region-boundary (region-beginning) (region-end)))
-      (setq buf (get-buffer-create "*Diff-regionA*"))
       (save-current-buffer
         (set-buffer buf)
         (erase-buffer))
@@ -476,23 +451,22 @@ If step is -1, go backward."
   "Compare current region with the region set by `diff-region-tag-selected-as-a'.
 If no region is selected, `kill-ring' or clipboard is used instead."
   (interactive)
-  (let* (rlt-buf
-         diff-output
-         tmp
-         ;; file A
-         (fa (make-temp-file (expand-file-name "diff-region"
-                                               (or small-temporary-file-directory
-                                                   temporary-file-directory))))
-         ;; file B
-         (fb (make-temp-file (expand-file-name "diff-region"
-                                               (or small-temporary-file-directory
-                                                   temporary-file-directory)))))
-    (when (and fa (file-exists-p fa) fb (file-exists-p fb))
+  (let (;; file A
+        (fa (make-temp-file (expand-file-name "diff-region"
+                                              (or small-temporary-file-directory
+                                                  temporary-file-directory))))
+        ;; file B
+        (fb (make-temp-file (expand-file-name "diff-region"
+                                              (or small-temporary-file-directory
+                                                  temporary-file-directory)))))
+    (when (and fa (file-exists-p fa)
+               fb (file-exists-p fb))
       (cond
        ((region-active-p)
         ;; text from selected region
-        (setq tmp (diff-region-format-region-boundary (region-beginning) (region-end)))
-        (write-region (car tmp) (cadr tmp) fb))
+        (let ((tmp
+               (diff-region-format-region-boundary (region-beginning) (region-end))))
+          (write-region (car tmp) (cadr tmp) fb)))
        (t
         ;; text from `kill-ring' or clipboard
         (let* ((choice (completing-read "Since no region selected, compare text in:"
@@ -510,38 +484,40 @@ If no region is selected, `kill-ring' or clipboard is used instead."
         (write-region (point-min) (point-max) fa))
       ;; diff NOW!
       ;; show the diff output
-      (cond
-       ((string= (setq diff-output (shell-command-to-string (format "%s -Nabur %s %s" diff-command fa fb))) "")
-        (message "Two regions are SAME!"))
-       ((executable-find "git")
-        (util/ensure 'magit)
-        (magit-diff-setup nil (list "--no-index" "--indent-heuristic" "--histogram")
-                          nil (list (magit-convert-filename-for-git
-                                     (expand-file-name fa))
-                                    (magit-convert-filename-for-git
-                                     (expand-file-name fb))))
-        (ffip-diff-mode))
-       (t
-        (diff-region-open-diff-output diff-output
-                                      "*Diff-region-output*")))
+      (let ((diff-output
+             (shell-command-to-string (format "%s -Nabur %s %s" diff-command fa fb))))
+        (cond
+         ((string-empty-p diff-output)
+          (message "Two regions are SAME!"))
+         ((executable-find "git")
+          (util/ensure 'magit)
+          (magit-diff-setup nil (list "--no-index" "--indent-heuristic" "--histogram")
+                            nil (list (magit-convert-filename-for-git
+                                       (expand-file-name fa))
+                                      (magit-convert-filename-for-git
+                                       (expand-file-name fb))))
+          (ffip-diff-mode))
+         (t
+          (diff-region-open-diff-output diff-output
+                                        "*Diff-region-output*"))))
       ;; clean the temporary files
-      (if (and fa (file-exists-p fa))
-          (delete-file fa))
-      (if (and fb (file-exists-p fb))
-          (delete-file fb)))))
+      (when (and fa (file-exists-p fa))
+        (delete-file fa))
+      (when (and fb (file-exists-p fb))
+        (delete-file fb)))))
 ;; }}
 
 ;; {{ cliphist.el
 (setq cliphist-use-ivy t)
-(defun inc0n/select-cliphist-item (num str)
-  (util/set-clip str))
-(setq cliphist-select-item-callback 'inc0n/select-cliphist-item)
+(setq cliphist-select-item-callback
+      (lambda (num str)
+        (util/set-clip str)))
 ;; }}
 
 (defun extract-list-from-package-json ()
   "Extract package list from package.json."
   (interactive)
-  (let* ((str (util/use-selected-string-or-ask)))
+  (let ((str (util/use-selected-string-or-ask)))
     (message "inc0n/select-cliphist-item called => %s" str)
     (setq str (replace-regexp-in-string ":.*$\\|\"" "" str))
     ;; join lines
@@ -552,7 +528,7 @@ If no region is selected, `kill-ring' or clipboard is used instead."
 (defun inc0n/insert-absolute-path()
   "Relative path to full path."
   (interactive)
-  (let* ((str (util/use-selected-string-or-ask "Input relative path:"))
+  (let* ((str (util/use-selected-string-or-ask "Input relative path: "))
          (path (file-truename str)))
     (copy-yank-str path)
     (message "%s => clipboard & yank ring" path)))
@@ -560,7 +536,7 @@ If no region is selected, `kill-ring' or clipboard is used instead."
 (defun inc0n/insert-relative-path()
   "Full path to relative path."
   (interactive)
-  (let* ((str (util/use-selected-string-or-ask "Input absolute path:"))
+  (let* ((str (util/use-selected-string-or-ask "Input absolute path: "))
          (path (file-relative-name str)))
     (copy-yank-str path)
     (message "%s => clipboard & yank ring" path)))
@@ -588,10 +564,10 @@ If no region is selected, `kill-ring' or clipboard is used instead."
   "Create extended regex from first N items of `kill-ring'."
   (interactive "p")
   (when (and kill-ring (> (length kill-ring) 0))
-    (if (> n (length kill-ring))
-        (setq n (length kill-ring)))
-    (let* ((rlt (mapconcat 'identity (subseq kill-ring 0 n) "|")))
-      (setq rlt (replace-regexp-in-string "(" "\\\\(" rlt))
+    (when (> n (length kill-ring))
+      (setq n (length kill-ring)))
+    (let* ((rlt (mapconcat 'identity (subseq kill-ring 0 n) "|"))
+           (rlt (replace-regexp-in-string "(" "\\\\(" rlt)))
       (copy-yank-str rlt)
       (message (format "%s => kill-ring&clipboard" rlt)))))
 ;; }}
@@ -605,8 +581,8 @@ If no region is selected, `kill-ring' or clipboard is used instead."
          (total-hours 0)
          (lines (nonempty-lines str)))
     (dolist (l lines)
-      (if (string-match " \\([0-9][0-9.]*\\)h[ \t]*$" l)
-          (setq total-hours (+ total-hours (string-to-number (match-string 1 l))))))
+      (when (string-match " \\([0-9][0-9.]*\\)h[ \t]*$" l)
+        (setq total-hours (+ total-hours (string-to-number (match-string 1 l))))))
     (message "total-hours=%s" total-hours)))
 
 ;; {{ emmet (auto-complete html tags)
@@ -622,8 +598,8 @@ If no region is selected, `kill-ring' or clipboard is used instead."
 (defun sgml-mode-hook-setup ()
   "sgml/html mode setup."
   ;; let web-mode handle indentation by itself since it does not derive from `sgml-mode'
-  (setq-local indent-region-function 'sgml-pretty-print))
-(add-hook 'sgml-mode-hook 'sgml-mode-hook-setup)
+  (setq-local indent-region-function #'sgml-pretty-print))
+(add-hook 'sgml-mode-hook #'sgml-mode-hook-setup)
 
 
 ;; {{ xterm
@@ -632,7 +608,7 @@ If no region is selected, `kill-ring' or clipboard is used instead."
   (unless window-system
     ;; Mouse in a terminal (Use shift to paste with middle button)
     (xterm-mouse-mode 1)))
-(add-hook 'after-make-frame-functions 'run-after-make-frame-hooks)
+(add-hook 'after-make-frame-functions #'run-after-make-frame-hooks)
 ;; }}
 
 ;; flymake
@@ -651,7 +627,7 @@ If no region is selected, `kill-ring' or clipboard is used instead."
   (save-excursion
     (goto-char (point-min))
     (save-match-data
-      (let* (search-result)
+      (let (search-result)
         (while
             (and (setq search-result (re-search-forward "\\(attach\\|pdf\\|file\\|screen ?shot\\)" nil t))
                  (inc0n/message-current-line-cited-p)))
@@ -671,7 +647,7 @@ If no region is selected, `kill-ring' or clipboard is used instead."
     (unless
         (y-or-n-p "The message suggests that you may want to attach something, but no attachment is found. Send anyway?")
       (error "It seems that an attachment is needed, but none was found. Aborting sending."))))
-(add-hook 'message-send-hook 'inc0n/message-pre-send-check-attachment)
+(add-hook 'message-send-hook #'inc0n/message-pre-send-check-attachment)
 
 ;; }}
 
@@ -683,28 +659,27 @@ If no region is selected, `kill-ring' or clipboard is used instead."
 (defun minibuffer-inactive-mode-hook-setup ()
   ;; Make `try-expand-dabbrev' from `hippie-expand' work in mini-buffer.
   ;; @see `he-dabbrev-beg', so we need re-define syntax for '/'.
-  (set-syntax-table (let* ((table (make-syntax-table)))
+  (set-syntax-table (let ((table (make-syntax-table)))
                       (modify-syntax-entry ?/ "." table)
                       table)))
-(add-hook 'minibuffer-inactive-mode-hook 'minibuffer-inactive-mode-hook-setup)
+(add-hook 'minibuffer-inactive-mode-hook #'minibuffer-inactive-mode-hook-setup)
 
 ;; {{ vc-msg
 (defun vc-msg-hook-setup (vcs-type commit-info)
   ;; copy commit id to clipboard
   (util/set-clip (plist-get commit-info :id)))
-(add-hook 'vc-msg-hook 'vc-msg-hook-setup)
+(add-hook 'vc-msg-hook #'vc-msg-hook-setup)
 
 (defun vc-msg-show-code-setup ()
   "Use `ffip-diff-mode' instead of `diff-mode'."
   (util/ensure 'find-file-in-project)
   (ffip-diff-mode))
-
-(add-hook 'vc-msg-show-code-hook 'vc-msg-show-code-setup)
+(add-hook 'vc-msg-show-code-hook #'vc-msg-show-code-setup)
 ;; }}
 
 ;; {{ eacl - emacs auto complete line(s)
-(global-set-key (kbd "C-x C-l") 'eacl-complete-line)
-(global-set-key (kbd "C-c ;") 'eacl-complete-multiline)
+(global-set-key (kbd "C-x C-l") #'eacl-complete-line)
+(global-set-key (kbd "C-c ;") #'eacl-complete-multiline)
 (with-eval-after-load 'eacl
   ;; not interested in untracked files in git repository
   (setq eacl-git-grep-untracked nil))
@@ -752,8 +727,8 @@ If no region is selected, `kill-ring' or clipboard is used instead."
 
 ;; wgrep and rgrep, inspired by http://oremacs.com/2015/01/27/inc0n/refactoring-workflow/
 (with-eval-after-load 'wgrep
-  '(define-key grep-mode-map
-     (kbd "C-c C-c") 'wgrep-finish-edit))
+  (define-key grep-mode-map
+    (kbd "C-c C-c") 'wgrep-finish-edit))
 
 ;; {{ https://www.emacswiki.org/emacs/EmacsSession better than "desktop.el" or "savehist".
 ;; Any global variable matching `session-globals-regexp' is saved *automatically*.
@@ -767,12 +742,12 @@ If no region is selected, `kill-ring' or clipboard is used instead."
                                 file-name-history
                                 search-ring
                                 regexp-search-ring))
-(add-hook 'after-init-hook 'session-initialize)
+(add-hook 'after-init-hook #'session-initialize)
 ;; }}
 
 ;; {{
 (defun adoc-imenu-index ()
-  (let* ((patterns '((nil "^=\\([= ]*[^=\n\r]+\\)" 1))))
+  (let ((patterns '((nil "^=\\([= ]*[^=\n\r]+\\)" 1))))
     (save-excursion
       (imenu--generic-function patterns))))
 
@@ -780,7 +755,7 @@ If no region is selected, `kill-ring' or clipboard is used instead."
   ;; Don't wrap lines because there is table in `adoc-mode'.
   (setq truncate-lines t)
   (setq imenu-create-index-function 'adoc-imenu-index))
-(add-hook 'adoc-mode-hook 'adoc-mode-hook-setup)
+(add-hook 'adoc-mode-hook #'adoc-mode-hook-setup)
 ;; }}
 
 (with-eval-after-load 'compile
@@ -804,15 +779,14 @@ If the shell is already opened in some buffer, switch to that buffer."
          (buf (get-buffer buf-name))
          (wins (window-list))
          current-frame-p)
-
     (cond
      ;; A shell buffer is already opened
      ((buffer-live-p buf)
       (dolist (win wins)
-        (when (string= (buffer-name (window-buffer win)) buf-name)
-          (when (window-live-p win)
-            (setq current-frame-p t)
-            (select-window win))))
+        (when (and (string= (buffer-name (window-buffer win)) buf-name)
+                   (window-live-p win))
+          (setq current-frame-p t)
+          (select-window win)))
       (unless current-frame-p
         (switch-to-buffer buf)))
      ;; Linux
@@ -863,10 +837,10 @@ If the shell is already opened in some buffer, switch to that buffer."
   "Insert the current date. With prefix-argument, use ISO format. With
    two prefix arguments, write out the day and month name."
   (interactive "P")
-  (let* ((format (cond
-                  ((not prefix) "%d.%m.%Y")
-                  ((equal prefix '(4)) "%Y-%m-%d")
-                  ((equal prefix '(16)) "%d %B %Y"))))
+  (let ((format (cond
+                 ((not prefix) "%d.%m.%Y")
+                 ((equal prefix '(4)) "%Y-%m-%d")
+                 ((equal prefix '(16)) "%d %B %Y"))))
     (insert (format-time-string format))))
 
 ;;compute the length of the marked region
@@ -882,7 +856,7 @@ If the shell is already opened in some buffer, switch to that buffer."
   (switch-to-buffer "*ASCII*")
   (erase-buffer)
   (insert (format "ASCII characters up to number %d.\n" 254))
-  (let* ((i 0))
+  (let ((i 0))
     (while (< i 254)
       (setq i (+ i 1))
       (insert (format "%4d %c\n" i i))))
@@ -914,7 +888,7 @@ Then insert it as a local file link in `org-mode'."
   "Copy the file name or file path from dired into clipboard.
 Press \"w\" to copy file name.
 Press \"C-u 0 w\" to copy full path."
-  (let* ((str (current-kill 0)))
+  (let ((str (current-kill 0)))
     (util/set-clip str)
     (message "%s => clipboard" str)))
 (advice-add 'dired-copy-filename-as-kill :after #'inc0n/dired-copy-filename-as-kill-hack)
@@ -923,42 +897,37 @@ Press \"C-u 0 w\" to copy full path."
 (defun vc-rename-file-and-buffer ()
   "Rename the current buffer and file it is visiting."
   (interactive)
-  (let* ((filename (buffer-file-name)))
-    (cond
-     ((not (and filename (file-exists-p filename)))
-      (message "Buffer is not visiting a file!"))
-     (t
-      (let* ((new-name (read-file-name "New name: " filename)))
-        (cond
-         ((vc-backend filename) (vc-rename-file filename new-name))
-         (t
+  (let ((filename (buffer-file-name)))
+    (if (not (and filename (file-exists-p filename)))
+        (message "Buffer is not visiting a file!")
+      (let ((new-name (read-file-name "New name: " filename)))
+        (if (vc-backend filename)
+            (vc-rename-file filename new-name)
           (rename-file filename new-name t)
           (rename-buffer new-name)
           (set-visited-file-name new-name)
-          (set-buffer-modified-p nil))))))))
+          (set-buffer-modified-p nil))))))
 
 (defun vc-copy-file-and-rename-buffer ()
   "Copy the current buffer and file it is visiting.
 If the old file is under version control, the new file is added into
 version control automatically."
   (interactive)
-  (let* ((filename (buffer-file-name)))
-    (cond
-     ((not (and filename (file-exists-p filename)))
-      (message "Buffer is not visiting a file!"))
-     (t
-      (let* ((new-name (read-file-name "New name: " filename)))
+  (let ((filename (buffer-file-name)))
+    (if (not (and filename (file-exists-p filename)))
+        (message "Buffer is not visiting a file!")
+      (let ((new-name (read-file-name "New name: " filename)))
         (copy-file filename new-name t)
         (rename-buffer new-name)
         (set-visited-file-name new-name)
         (set-buffer-modified-p nil)
         (when (vc-backend filename)
-          (vc-register)))))))
+          (vc-register))))))
 
 (defun toggle-env-http-proxy ()
   "Set/unset the environment variable http_proxy used by w3m."
   (interactive)
-  (let* ((proxy "http://127.0.0.1:8000"))
+  (let ((proxy "http://127.0.0.1:8000"))
     (cond
      ((string= (getenv "http_proxy") proxy)
       (setenv "http_proxy" "")
@@ -1000,14 +969,15 @@ Including indent-buffer, which should not be called automatically on save."
 (with-eval-after-load 'epg
   (defun inc0n/epg--start-hack (orig-func &rest args)
     "Make `epg--start' not able to find gpg-agent."
-    (let* ((agent (getenv "GPG_AGENT_INFO")))
+    (let ((agent (getenv "GPG_AGENT_INFO")))
       (setenv "GPG_AGENT_INFO" nil)
       (apply orig-func args)
       (setenv "GPG_AGENT_INFO" agent)))
   (advice-add 'epg--start :around #'inc0n/epg--start-hack)
 
-  (unless (string-match-p "^gpg (GnuPG) 1.4"
-                          (shell-command-to-string (format "%s --version" epg-gpg-program)))
+  (unless (string-match-p
+           "^gpg (GnuPG) 1.4"
+           (shell-command-to-string (format "%s --version" epg-gpg-program)))
 
     ;; "apt-get install pinentry-tty" if using emacs-nox
     ;; Create `~/.gnupg/gpg-agent.conf' which has one line
@@ -1018,8 +988,10 @@ Including indent-buffer, which should not be called automatically on save."
 ;; {{ show current function name in `mode-line'
 (defun inc0n/which-func-update-hack (orig-func &rest args)
   "`which-function-mode' scanning makes Emacs unresponsive in big buffer."
-  (unless (buffer-too-big-p) (apply orig-func args)))
+  (unless (buffer-too-big-p)
+    (apply orig-func args)))
 (advice-add 'which-func-update :around #'inc0n/which-func-update-hack)
+
 (with-eval-after-load 'which-function
   (add-to-list 'which-func-modes 'org-mode))
 (which-function-mode 1)
@@ -1047,9 +1019,9 @@ Including indent-buffer, which should not be called automatically on save."
 		   (forward-word)
 		   (forward-char -1)
 		   (sdcv-search-input (thing-at-point 'word))))
-  (local-set-key (kbd "w") 'mybigword-pronounce-word)
-  (local-set-key (kbd ";") 'avy-goto-char-2))
-(add-hook 'nov-mode-hook 'nov-mode-hook-setup)
+  (local-set-key (kbd "w") #'mybigword-pronounce-word)
+  (local-set-key (kbd ";") #'avy-goto-char-2))
+(add-hook 'nov-mode-hook #'nov-mode-hook-setup)
 ;; }}
 
 ;; {{ octave
@@ -1057,8 +1029,9 @@ Including indent-buffer, which should not be called automatically on save."
   "Set up of `octave-mode'."
   (abbrev-mode 1)
   (auto-fill-mode 1)
-  (if (eq window-system 'x) (font-lock-mode 1)))
-(add-hook 'octave-mode-hook 'octave-mode-hook-setup)
+  (when (eq window-system 'x)
+    (font-lock-mode 1)))
+(add-hook 'octave-mode-hook #'octave-mode-hook-setup)
 ;; }}
 
 ;; {{ wgrep setup
@@ -1071,7 +1044,7 @@ Including indent-buffer, which should not be called automatically on save."
 ;; {{ edit-server
 (defun edit-server-start-hook-setup ()
   "Some web sites actually pass html to edit server."
-  (let* ((url (buffer-name)))
+  (let ((url (buffer-name)))
     (cond
      ((string-match "github.com" url)
       (markdown-mode))
@@ -1086,7 +1059,7 @@ Including indent-buffer, which should not be called automatically on save."
       ;; unfortunately, after submit comment once, page need be refreshed.
       (replace-regexp "<br data-text=\"true\">" "")))))
 
-(add-hook 'edit-server-start-hook 'edit-server-start-hook-setup)
+(add-hook 'edit-server-start-hook #'edit-server-start-hook-setup)
 (when (require 'edit-server nil t)
   (setq edit-server-new-frame nil)
   (edit-server-start))
@@ -1106,25 +1079,25 @@ Including indent-buffer, which should not be called automatically on save."
 
 ;; {{ Answer Yes/No programmically when asked by `y-or-n-p'
 (defvar inc0n/default-yes-no-answers nil
-    "Usage: (setq inc0n/default-yes-no-answers '((t . \"question1\") (t . \"question2\")))).")
+  "Usage: (setq inc0n/default-yes-no-answers '((t . \"question1\") (t . \"question2\")))).")
 (defun inc0n/y-or-n-p-hack (orig-func &rest args)
   "Answer yes or no automatically for some questions."
-  (let* ((prompt (car args))
-         rlt)
+  (let ((prompt (car args)))
     (cond
      ((and inc0n/default-yes-no-answers
            (listp inc0n/default-yes-no-answers))
-      (let* ((i 0) found cand)
+      (let ((i 0) found cand rlt)
         (while (and (setq cand (nth i inc0n/default-yes-no-answers))
                     (not found))
           (when (string-match-p (cdr cand) prompt)
             (setq found t)
             (setq rlt (car cand)))
           (setq i (1+ i)))
-        (unless found (setq rlt (apply orig-func args)))))
+        (if found
+            rlt
+          (apply orig-func args))))
      (t
-      (setq rlt (apply orig-func args))))
-    rlt))
+      (apply orig-func args)))))
 (advice-add 'y-or-n-p :around #'inc0n/y-or-n-p-hack)
 ;; }}
 
@@ -1142,47 +1115,46 @@ Including indent-buffer, which should not be called automatically on save."
 (defun inc0n/fetch-subtitles (&optional video-file)
   "Fetch subtitles of VIDEO-FILE.
 See https://github.com/RafayGhafoor/Subscene-Subtitle-Grabber."
-  (let* ((cmd-prefix "subgrab -l EN"))
+  (let ((cmd-prefix "subgrab -l EN"))
     (when inc0n/fetch-subtitles-proxy
-      (setq cmd-prefix (format "http_proxy=%s https_proxy=%s %s"
-                               inc0n/fetch-subtitles-proxy
-                               inc0n/fetch-subtitles-proxy
-                               cmd-prefix)))
-    (cond
-     (video-file
-      (let* ((default-directory (file-name-directory video-file)))
-        (shell-command (format "%s -m \"%s\" &"
-                               cmd-prefix
-                               (file-name-base video-file)))))
-     (t
-      (shell-command (format "%s --dir . &" cmd-prefix))))))
+      (setq cmd-prefix
+            (format "http_proxy=%s https_proxy=%s %s"
+                    inc0n/fetch-subtitles-proxy
+                    inc0n/fetch-subtitles-proxy
+                    cmd-prefix)))
+    (if video-file
+        (let ((default-directory (file-name-directory video-file)))
+          (shell-command
+           (format "%s -m \"%s\" &"
+                   cmd-prefix
+                   (file-name-base video-file))))
+      (shell-command (format "%s --dir . &" cmd-prefix)))))
 ;; }}
 
 (defvar inc0n/sdcv-org-head-level 2)
 ;; {{ use sdcv dictionary to find big word definition
 (defun inc0n/sdcv-format-bigword (word zipf)
   "Format WORD and ZIPF using sdcv dictionary."
-  (let* (rlt def)
-    (local-require 'sdcv)
-    ;; 2 level org format
-    (condition-case nil
-        (progn
-          (setq def (sdcv-search-witch-dictionary word sdcv-dictionary-complete-list))
-          (setq def (replace-regexp-in-string "^-->.*" "" def))
-          (setq def (replace-regexp-in-string "[\n\r][\n\r]+" "" def))
-          (setq rlt (format "%s %s (%s)\n%s\n"
-                            (make-string inc0n/sdcv-org-head-level ?*)
-                            word
-                            zipf
-                            def)))
-      (error nil))
-    rlt))
+  (local-require 'sdcv)
+  ;; 2 level org format
+  (condition-case nil
+      (let* ((def
+              (sdcv-search-witch-dictionary word sdcv-dictionary-complete-list))
+             (def (replace-regexp-in-string "^-->.*" "" def))
+             (def (replace-regexp-in-string "[\n\r][\n\r]+" "" def)))
+        (format "%s %s (%s)\n%s\n"
+                (make-string inc0n/sdcv-org-head-level ?*)
+                word
+                zipf
+                def))
+    (error nil)))
 
 (defun inc0n/lookup-big-word-definition-in-buffer ()
   "Look up big word definitions."
   (interactive)
   (local-require 'mybigword)
-  (let* ((mybigword-default-format-function 'inc0n/sdcv-format-bigword))
+  (let ((mybigword-default-format-function
+         #'inc0n/sdcv-format-bigword))
     (mybigword-show-big-words-from-current-buffer)))
 ;; }}
 

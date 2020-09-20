@@ -206,6 +206,9 @@ If N is nil, use `ivy-mode' to browse `kill-ring'."
   ;; @see https://github.com/abo-abo/swiper/issues/828
   (setq ivy-display-style 'fancy))
 
+(defun inc0n/swiper ()
+  (counsel-grep-or-swiper (util/thing-at-point)))
+
 ;; {{ swiper&ivy-mode
 (global-set-key (kbd "C-s") 'inc0n/swiper)
 ;; }}
@@ -295,6 +298,7 @@ If N is nil, use `ivy-mode' to browse `kill-ring'."
   (let* ((company-backends '(company-ctags))
          (company-ctags-fuzzy-match-p t))
     (counsel-company)))
+
 
 (defun counsel-ag-thing-at-point ()
   (interactive)

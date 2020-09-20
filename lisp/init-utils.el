@@ -200,16 +200,24 @@ If N is nil, use `ivy-mode' to browse `kill-ring'."
   (prog1 (util/selected-str)
     (deactivate-mark)))
 
-(defun util/use-selected-string-or-ask (&optional hint)
+(defun util/use-selected-string-or-ask (&optional hint default-string)
   "Use selected region or ask for input.
 If HINT is empty, use symbol at point."
-  (cond
-   ((region-active-p)
-    (util/selected-str))
-   ((or (not hint) (string= "" hint))
-    (thing-at-point 'symbol))
-   (t
-    (read-string hint))))
+  (if (or (not (stringp hint))
+          (string-empty-p hint))
+      (util/thing-at-point)
+    (read-string hint "" nil (if (stringp default-string)
+                                 default-string
+                                 ""))))
+
+(defun util/thing-at-point ()
+  "get thing at point.
+If region is active get region string.
+Else use thing-at-point to get current string 'symbol."
+  (cond ((region-active-p)
+         (util/selected-str))
+        ((char-equal ?\  (char-after)) "")
+        (t (thing-at-point 'symbol t))))
 
 (defun delete-this-file ()
   "Delete the current file, and kill the buffer."
@@ -336,6 +344,8 @@ If STEP is 1,  search in forward direction, or else in backward direction."
         (forward-char step))
       (point))))
 
+;;
+
 (defun util/comint-current-input-region ()
   "Region of current shell input."
   (cons (process-mark (get-buffer-process (current-buffer)))
@@ -351,5 +361,21 @@ If STEP is 1,  search in forward direction, or else in backward direction."
   "Get current input in shell."
   (let ((region (util/comint-current-input-region)))
     (string-trim (buffer-substring-no-properties (car region) (cdr region)))))
+
+;;
+
+(defun util/warp-interactive-search (proc)
+  "warp proc with argumented procedure
+If X is 1, get init-input from clipboard.
+If X is 2, get init-input from kill-ring'.
+Else get init-input from `ivy-thing-at-point'"
+  (lambda (&optional x)
+    (interactive "P")
+    (let ((input (cond
+                  ((eq 1 x) (cliphist-select-item))
+                  ((eq 2 x) (inc0n/select-from-kill-ring 'identity))
+                  (t (util/selected-str)))))
+      (funcall proc input))))
+
 
 (provide 'init-utils)

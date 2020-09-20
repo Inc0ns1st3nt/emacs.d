@@ -557,7 +557,7 @@ If INCLUSIVE is t, the text object is inclusive."
   "cc" 'evilnc-copy-and-comment-lines
   "cp" 'inc0n/evilnc-comment-or-uncomment-paragraphs
   "ct" 'evilnc-comment-or-uncomment-html-tag ; evil-nerd-commenter v3.3.0 required
-  "ic" 'inc0n/imenu-comments
+  "ic" 'counsel-imenu-comments
   ;; {{ window move
   ;; "wh" 'evil-window-left
   ;; "wl" 'evil-window-right
@@ -577,7 +577,12 @@ If INCLUSIVE is t, the text object is inclusive."
   "gg" 'inc0n/counsel-git-grep ; quickest grep should be easy to press
   "gd" 'ffip-show-diff-by-description   ;find-file-in-project 5.3.0+
   "gt" 'inc0n/evil-goto-definition      ; "gt" is occupied by evil
+  ;; git
   "gl" 'inc0n/git-log-trace-definition ; find history of a function or range
+  "ga" 'git-add-current-file
+  "gc" 'git-checkout-current-file
+  "g=" 'git-gutter:popup-hunk
+
   "sh" 'inc0n/select-from-search-text-history
   "rjs" 'run-js
   "jsr" 'js-send-region
@@ -683,11 +688,8 @@ If INCLUSIVE is t, the text object is inclusive."
   "vf" 'vc-rename-file-and-buffer
   "vc" 'vc-copy-file-and-rename-buffer
   "xv" 'vc-next-action                  ; 'C-x v v' in original
-  "va" 'git-add-current-file
-  "vk" 'git-checkout-current-file
   "vg" 'vc-annotate                     ; 'C-x v g' in original
   "vv" 'vc-msg-show
-  "v=" 'git-gutter:popup-hunk
   "hh" 'cliphist-paste-item
   "yu" 'cliphist-select-item
   "ih" 'inc0n/goto-git-gutter           ; use ivy-mode
@@ -879,14 +881,6 @@ If INCLUSIVE is t, the text object is inclusive."
                          (inc0n/current-line-html-p paragraph-region))))))
     (if html-p (evilnc-comment-or-uncomment-html-paragraphs num)
       (evilnc-comment-or-uncomment-paragraphs num))))
-
-(defun inc0n/imenu-comments ()
-  "Imenu display comments."
-  (interactive)
-  (util/ensure 'counsel)
-  (when (fboundp 'evilnc-imenu-create-index-function)
-    (let ((imenu-create-index-function 'evilnc-imenu-create-index-function))
-      (counsel-imenu))))
 ;; }}
 
 ;; {{ `evil-matchit'
@@ -954,7 +948,7 @@ If INCLUSIVE is t, the text object is inclusive."
     (suspend-frame))))
 
 ;; press ",xx" to expand region
-;; then press "char" to contract, "x" to expand
+;; then press "c" to contract, "x" to expand
 (with-eval-after-load 'evil
   ;; evil re-assign "M-." to `evil-repeat-pop-next' which I don't use actually.
   ;; Restore "M-." to original binding command

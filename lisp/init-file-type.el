@@ -13,14 +13,14 @@
                "\\.mailcap$")
 ;; }}
 
-
 ;; {{ lisp like language
 ;; racket
 (add-auto-mode 'lisp-mode "\\.rkt\\'")
+(add-auto-mode 'gerbil-mode "\\.ss\\'")
 (add-auto-mode 'emacs-lisp-mode
                "\\.emacs-project\\'"
                "archive-contents\\'"
-               "\\.emacs\\.bmk\\'" )
+               "\\.emacs\\.bmk\\'")
 ;; }}
 
 ;; {{ ruby
