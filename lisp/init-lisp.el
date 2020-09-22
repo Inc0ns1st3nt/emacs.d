@@ -48,7 +48,7 @@
   (add-to-list 'tags-table-list (concat inc0n/gerbil-home "/src/TAGS"))
   (setq scheme-program-name gerbil-program-name))
 
-(push '(".ss$" . gerbil-mode) auto-mode-alist)
+(add-auto-mode 'gerbil-mode "\\.ss$")
 
 ;; elisp
 (defun set-up-hippie-expand-for-elisp ()
@@ -65,7 +65,7 @@
     (rainbow-delimiters-mode t)
     (set-up-hippie-expand-for-elisp)
     (checkdoc-minor-mode 1)))
-(add-hook 'emacs-lisp-mode-hook 'elisp-mode-hook-setup)
+(add-hook 'emacs-lisp-mode-hook #'elisp-mode-hook-setup)
 
 ;; ----------------------------------------------------------------------------
 ;; Enable desired features for all lisp modes

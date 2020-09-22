@@ -45,8 +45,7 @@ For example, could be \"---author=MyName\"")
          ;; two weeks is a sprint, minus weekend and days for sprint review and test
          (cmd (format "git --no-pager log %s --name-status --since=\"10 days ago\" --pretty=format:"
                       inc0n/git-recent-files-extra-options))
-         (lines (util/lines-from-command-output cmd))
-         rlt)
+         (lines (util/lines-from-command-output cmd)))
     (when lines
       (dolist (l lines)
         (let ((items (split-string l "[ \t]+" l)))
@@ -56,8 +55,7 @@ For example, could be \"---author=MyName\"")
                       (if (file-exists-p file)
                           (acons file (file-truename file) acc)
                         acc)))
-                  (cdr items)))))
-    rlt))
+                  (cdr items)))))))
 
 (defun inc0n/counsel-recentf (&optional n)
   "Find a file on `recentf-list'.
@@ -65,26 +63,32 @@ If N is 1, only list files in current project.
 If N is 2, list files in my recent 20 commits."
   (interactive "P")
   (util/ensure 'recentf)
-  (unless n (setq n 0))
+  (unless n (setq n 0)) ;; default value
   (recentf-mode 1)
-  (let* ((files (mapcar #'substring-no-properties recentf-list))
-         (root-dir (if (ffip-project-root) (file-truename (ffip-project-root))))
-         (hint "Recent files: "))
+  (let ((files (mapcar #'substring-no-properties recentf-list))
+        (root-dir (if (ffip-project-root) (file-truename (ffip-project-root))))
+        (hint "Recent files: "))
     (cond
      ((and (eq n 1) root-dir)
       (setq hint (format "Recent files in %s: " root-dir))
-      (setq files (delq nil (delete-dups (mapcar (lambda (f) (path-in-directory-p f root-dir)) files)))))
+      (setq files (delq nil
+                        (delete-dups
+                         (mapcar (lambda (f) (path-in-directory-p f root-dir))
+                                 files)))))
      ((eq n 2)
-      (setq hint (format "Files in recent Git commits: "))
+      (setq hint "Files in recent Git commits: ")
       (setq files (inc0n/git-recent-files))))
 
     (ivy-read hint
               files
-              :initial-input (if (region-active-p) (util/selected-str))
+              :initial-input (if (region-active-p)
+                                 (util/selected-str))
               :action (lambda (f)
-                        (if (consp f) (setq f (cdr f)))
                         (with-ivy-window
-                          (find-file f)))
+                          (find-file
+                           (if (consp f)
+                               (cdr f)
+                             f))))
               :caller 'counsel-recentf)))
 
 ;; grep by author is bad idea. Too slow
@@ -118,7 +122,7 @@ If N is 2, list files in my recent 20 commits."
                                    bookmark-alist)))
             :action #'bookmark-jump))
 
-(defun counsel-insert-bash-history ()
+(defun counsel-insert-from-bash-history ()
   "Yank one command from the bash history."
   (interactive)
   (shell-command "history -r")          ; reload history
@@ -136,15 +140,16 @@ If N is 2, list files in my recent 20 commits."
 If N is not nil, only list directories in current project."
   (interactive "P")
   (unless recentf-mode (recentf-mode 1))
-  (let* ((cands (delete-dups
-                 (append inc0n/dired-directory-history
-                         (mapcar 'file-name-directory recentf-list)
-                         ;; fasd history
-                         (if (executable-find "fasd")
-                             (nonempty-lines (shell-command-to-string "fasd -ld"))))))
-         (root-dir (if (ffip-project-root) (file-truename (ffip-project-root)))))
+  (let ((cands (delete-dups
+                (append inc0n/dired-directory-history
+                        (mapcar 'file-name-directory recentf-list)
+                        ;; fasd history
+                        (if (executable-find "fasd")
+                            (nonempty-lines (shell-command-to-string "fasd -ld"))))))
+        (root-dir (if (ffip-project-root) (file-truename (ffip-project-root)))))
     (when (and n root-dir)
-      (setq cands (delq nil (mapcar (lambda (f) (path-in-directory-p f root-dir)) cands))))
+      (setq cands
+            (delq nil (mapcar (lambda (f) (path-in-directory-p f root-dir)) cands))))
     (ivy-read "directories:" cands :action 'dired)))
 
 (defun ivy-occur-grep-mode-hook-setup ()
@@ -156,23 +161,24 @@ If N is not nil, only list directories in current project."
   ;; turn on wgrep right now
   ;; (ivy-wgrep-change-to-wgrep-mode) ; doesn't work, don't know why
   (local-set-key (kbd "RET") #'ivy-occur-press-and-switch))
-(add-hook 'ivy-occur-grep-mode-hook 'ivy-occur-grep-mode-hook-setup)
+(add-hook 'ivy-occur-grep-mode-hook #'ivy-occur-grep-mode-hook-setup)
 
 (defun inc0n/counsel-git-grep (&optional level)
   "Git grep in project.  If LEVEL is not nil, grep files in parent commit."
   (interactive "P")
-  (let* ((str (if (region-active-p) (util/selected-str))))
+  (let ((str (if (region-active-p)
+                 (util/selected-str))))
     (cond
      (level
       (unless str
         (setq str (util/use-selected-string-or-ask "Grep keyword: ")))
       (when str
-        (let* ((default-directory (inc0n/git-root-dir))
-               ;; C-u 1 command to grep files in HEAD
-               (cmd-opts (concat (inc0n/git-files-in-rev-command "HEAD" (1- level))
-                                 " | xargs -I{} "
-                                 "git --no-pager grep -n --no-color -I -e \"%s\" -- {}"))
-               (cmd (format cmd-opts str)))
+        (let ((default-directory (inc0n/git-root-dir))
+              ;; C-u 1 command to grep files in HEAD
+              (cmd-opts (concat (inc0n/git-files-in-rev-command "HEAD" (1- level))
+                                " | xargs -I{} "
+                                "git --no-pager grep -n --no-color -I -e \"%s\" -- {}"))
+              (cmd (format cmd-opts str)))
           (ivy-read "git grep in commit: "
                     (util/lines-from-command-output cmd)
                     :caller 'counsel-etags-grep
@@ -201,7 +207,7 @@ If N is nil, use `ivy-mode' to browse `kill-ring'."
   "Switch to another buffer."
   (interactive)
   (util/ensure 'ivy)
-  (let* ((this-command 'ivy-switch-buffer))
+  (let ((this-command 'ivy-switch-buffer))
     (ivy-read "Switch to buffer: " 'internal-complete-buffer
               :matcher #'ivy-switch-buffer-matcher-pinyin
               :preselect (buffer-name (other-buffer (current-buffer)))
@@ -228,7 +234,7 @@ If N is nil, use `ivy-mode' to browse `kill-ring'."
 ;; {{  C-o f to toggle case sensitive, @see https://github.com/abo-abo/swiper/issues/1104
 (defun re-builder-extended-pattern (str)
   "Build regex compatible with pinyin from STR."
-  (let* ((len (length str)))
+  (let ((len (length str)))
     (cond
      ;; do nothing
      ((<= (length str) 0))
@@ -270,7 +276,7 @@ If N is nil, use `ivy-mode' to browse `kill-ring'."
    ((inc0n/use-tags-as-imenu-function-p)
     ;; see code of `inc0n/use-tags-as-imenu-function-p'. Currently we only use ctags for imenu
     ;; in typescript because `lsp-mode' is too damn slow
-    (let* ((imenu-create-index-function 'counsel-etags-imenu-default-create-index-function))
+    (let ((imenu-create-index-function #'counsel-etags-imenu-default-create-index-function))
       (counsel-imenu)))
    (t
     (counsel-imenu))))
@@ -305,10 +311,9 @@ If N is nil, use `ivy-mode' to browse `kill-ring'."
   "Input code from company backend using fuzzy matching."
   (interactive)
   (company-abort)
-  (let* ((company-backends '(company-ctags))
-         (company-ctags-fuzzy-match-p t))
+  (let ((company-backends '(company-ctags))
+        (company-ctags-fuzzy-match-p t))
     (counsel-company)))
-
 
 (defun counsel-ag-thing-at-point ()
   (interactive)

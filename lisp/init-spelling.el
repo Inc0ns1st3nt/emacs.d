@@ -52,7 +52,7 @@
 
   (defun inc0n/flyspell-highlight-incorrect-region-hack (orig-func &rest args)
     "Don't mark doublon (double words) as typo."
-    (destructuring-bind (beg end poss)
+    (cl-destructuring-bind (beg end poss)
         args
       (when (or inc0n/flyspell-check-doublon (not (eq 'doublon poss)))
         (apply orig-func args))))

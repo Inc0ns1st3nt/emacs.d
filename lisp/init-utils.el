@@ -260,11 +260,10 @@ Else use thing-at-point to get current string 'symbol."
   (interactive)
   (let ((f (buffer-file-name)))
     (or (not load-user-customized-major-mode-hook)
-        (or
-         ;; file does not exist at all
-         ;; org-babel edit inline code block need calling hook
-         (null f)
-         (not (string= f cached-normal-file-full-path)))
+        ;; file does not exist at all
+        ;; org-babel edit inline code block need calling hook
+        (null f)
+        ;; (string= f cached-normal-file-full-path)
         (or
          ;; file is create from temp directory
          (string-match (concat "^" temporary-file-directory) f)
@@ -272,8 +271,9 @@ Else use thing-at-point to get current string 'symbol."
          (and (string-match "\.html$" f)
               (file-exists-p (replace-regexp-in-string "\.html$" ".org" f)))
          force-buffer-file-temp-p)
-        (progn (setq cached-normal-file-full-path f)
-               nil))))
+        ;; (progn (setq cached-normal-file-full-path f)
+        ;;        nil)
+        )))
 
 (defvar inc0n/mplayer-extra-opts ""
   "Extra options for mplayer (ao or vo setup).  For example,
