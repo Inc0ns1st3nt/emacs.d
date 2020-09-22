@@ -5,7 +5,8 @@
 
 (defun inc0n/enable-yas-minor-mode ()
   "Enable `yas-minor-mode'."
-  (unless (is-buffer-file-temp) (yas-minor-mode 1)))
+  (unless (buffer-file-temp-p)
+    (yas-minor-mode 1)))
 
 (add-hook 'prog-mode-hook #'inc0n/enable-yas-minor-mode)
 (add-hook 'text-mode-hook #'inc0n/enable-yas-minor-mode)
@@ -33,33 +34,30 @@
   (yas-reload-all)
   (inc0n/enable-yas-minor-mode))
 
-(defun inc0n/yas-field-to-statement(str sep)
+(defun inc0n/yas-field-to-statement (str sep)
   "If STR=='a.b.c' and SEP=' && ', 'a.b.c' => 'a && a.b && a.b.c'"
-  (let ((a (split-string str "\\.")) rlt)
-    (mapconcat 'identity
-               (mapcar (lambda (elem)
-                         (cond
-                          (rlt
-                           (setq rlt (concat rlt "." elem)))
-                          (t
-                           (setq rlt elem)))) a)
-               sep)))
+  (mapconcat 'identity
+             (reduce (lambda (acc elm)
+                       (if acc
+                           (concat acc "." elm)
+                         elm))
+                     (split-string str "\\."))
+             sep))
 
 (defun inc0n/yas-get-first-name-from-to-field ()
-  (let ((rlt "AGENT_NAME") str)
-    (save-excursion
-      (goto-char (point-min))
-      ;; first line in email could be some hidden line containing NO to field
-      (setq str (util/buffer-str)))
+  (let ((str (save-excursion
+               (goto-char (point-min))
+               ;; first line in email could be some hidden line containing NO to field
+               (util/buffer-str))))
     ;; (message "str=%s" str)
     (if (string-match "^To: \"?\\([a-zA-Z]+\\)" str)
-        (setq rlt (capitalize (match-string 1 str))))
-    ;; (message "rlt=%s" rlt)
-    rlt))
+        (capitalize (match-string 1 str))
+      "AGENT_NAME")))
 
 (defun inc0n/yas-camelcase-to-string-list (str)
   "Convert camelcase STR into string list."
-  (let* ((old-case case-fold-search) rlt)
+  (let ((old-case case-fold-search)
+        rlt)
     (setq case-fold-search nil)
     (setq rlt (replace-regexp-in-string "\\([A-Z]+\\)" " \\1" str t))
     (setq rlt (replace-regexp-in-string "\\([A-Z]+\\)\\([A-Z][a-z]+\\)" "\\1 \\2" rlt t))
@@ -68,23 +66,23 @@
     (split-string rlt " ")))
 
 (defun inc0n/yas-camelcase-to-downcase (str)
-  (let* ((l (inc0n/yas-camelcase-to-string-list str))
-         (case-fold-search nil))
-    (mapconcat 'identity (mapcar (lambda (elem)
-                                   (if (string-match "^[A-Z]+$" elem)
-                                       elem
-                                     (downcase elem)))
-                                 l)
+  (let ((l (inc0n/yas-camelcase-to-string-list str))
+        (case-fold-search nil))
+    (mapconcat #'identity
+               (mapcar (lambda (elem)
+                         (if (string-match "^[A-Z]+$" elem)
+                             elem
+                           (downcase elem)))
+                       l)
                " ")))
 
 (defun inc0n/yas-escape-string (s)
-  (let* ((rlt (replace-regexp-in-string "'" "\\\\'" s)))
-    (setq rlt (replace-regexp-in-string "\"" "\\\\\"" rlt))
-    rlt))
+  (let ((rlt (replace-regexp-in-string "'" "\\\\'" s)))
+    (replace-regexp-in-string "\"" "\\\\\"" rlt)))
 
 (defun inc0n/read-n-from-kill-ring ()
-  (let* ((cands (subseq kill-ring 0 (min (read-number "fetch N `kill-ring'?" 1)
-                                         (length kill-ring)))))
+  (let ((cands (subseq kill-ring 0 (min (read-number "fetch N `kill-ring'?" 1)
+                                        (length kill-ring)))))
     (mapc (lambda (txt)
             (set-text-properties 0 (length txt) nil txt)
             txt)
@@ -92,21 +90,22 @@
 
 (defun inc0n/yas-get-var-list-from-kill-ring ()
   "Variable name is among the `kill-ring'.  Multiple major modes supported."
-  (let* ((top-kill-ring (inc0n/read-n-from-kill-ring))
-         rlt)
+  (let ((top-kill-ring (inc0n/read-n-from-kill-ring)))
     (cond
      ((memq major-mode '(js-mode javascript-mode js2-mode js3-mode rjsx-mode web-mode))
-      (setq rlt (mapconcat (lambda (i) (format "'%s=', %s" (inc0n/yas-escape-string i) i)) top-kill-ring ", ")))
+      (mapconcat (lambda (i)
+                   (format "'%s=', %s" (inc0n/yas-escape-string i) i))
+                 top-kill-ring
+                 ", "))
      ((memq major-mode '(emacs-lisp-mode lisp-interaction-mode))
-      (setq rlt (concat (mapconcat (lambda (i) (format "%s=%%s" i)) top-kill-ring ", ")
-                        "\" "
-                        (mapconcat (lambda (i) (format "%s" i)) top-kill-ring " "))))
+      (concat (mapconcat (lambda (i) (format "%s=%%s" i)) top-kill-ring ", ")
+              "\" "
+              (mapconcat (lambda (i) (format "%s" i)) top-kill-ring " ")))
      ((memq major-mode '(c-mode c++-mode))
-      (setq rlt (concat (mapconcat (lambda (i) (format "%s=%%s" i)) top-kill-ring ", ")
-                        "\\n\", "
-                        (mapconcat (lambda (i) (format "%s" i)) top-kill-ring ", "))))
-     (t (setq rlt "")))
-    rlt))
+      (concat (mapconcat (lambda (i) (format "%s=%%s" i)) top-kill-ring ", ")
+              "\\n\", "
+              (mapconcat (lambda (i) (format "%s" i)) top-kill-ring ", ")))
+     (t ""))))
 
 (with-eval-after-load 'yasnippet
   ;; http://stackoverflow.com/questions/7619640/emacs-latex-yasnippet-why-are-newlines-inserted-after-a-snippet
@@ -120,7 +119,7 @@
   ;; Thanks to capitaomorte for providing the trick.
   (defun inc0n/yas-insert-snippet-hack (orig-func &rest args)
     "Use `yas-completing-prompt' for `yas-prompt-functions' but only here..."
-    (let* ((yas-prompt-functions '(yas-completing-prompt)))
+    (let ((yas-prompt-functions '(yas-completing-prompt)))
       (apply orig-func args)))
   (advice-add 'yas-insert-snippet :around #'inc0n/yas-insert-snippet-hack)
 

@@ -214,10 +214,8 @@ If HINT is empty, use symbol at point."
   "get thing at point.
 If region is active get region string.
 Else use thing-at-point to get current string 'symbol."
-  (cond ((region-active-p)
-         (util/selected-str))
-        ((char-equal ?\  (char-after)) "")
-        (t (thing-at-point 'symbol t))))
+  (cond ((char-equal ?\  (char-after)) "")
+        (t (ivy-thing-at-point))))
 
 (defun delete-this-file ()
   "Delete the current file, and kill the buffer."
@@ -234,15 +232,14 @@ Else use thing-at-point to get current string 'symbol."
   (interactive "sNew name: ")
   (let ((name (buffer-name))
         (filename (buffer-file-name)))
-    (unless filename
-      (error "Buffer '%s' is not visiting a file!" name))
-    (if (get-buffer new-name)
-        (message "A buffer named '%s' already exists!" new-name)
-      (progn
-        (rename-file filename new-name 1)
-        (rename-buffer new-name)
-        (set-visited-file-name new-name)
-        (set-buffer-modified-p nil)))))
+    (cond ((not filename)
+           (message "Buffer '%s' is not visiting a file!" name))
+          ((get-buffer new-name)
+           (message "A buffer named '%s' already exists!" new-name))
+          (t (rename-file filename new-name 1)
+             (rename-buffer new-name)
+             (set-visited-file-name new-name)
+             (set-buffer-modified-p nil)))))
 
 (defvar load-user-customized-major-mode-hook t)
 (defvar cached-normal-file-full-path nil)
@@ -255,31 +252,28 @@ Else use thing-at-point to get current string 'symbol."
   (> (nth 7 (file-attributes file))
      (* 5000 64)))
 
-(defvar force-buffer-file-temp-p nil)
-(defun is-buffer-file-temp ()
+(defvar force-buffer-file-temp-p nil
+  "When non-nil buffer file will be treated as temp file")
+
+(defun buffer-file-temp-p ()
   "If (buffer-file-name) is nil or a temp file or HTML file converted from org file."
   (interactive)
   (let ((f (buffer-file-name)))
-    (cond
-     ((not load-user-customized-major-mode-hook)
-      t)
-     ((or
-       ;; file does not exist at all
-       ;; org-babel edit inline code block need calling hook
-       (not f)
-       (string= f cached-normal-file-full-path))
-      nil)
-     ((or
-       ;; file is create from temp directory
-       (string-match (concat "^" temporary-file-directory) f)
-       ;; file is a html file exported from org-mode
-       (and (string-match "\.html$" f)
-            (file-exists-p (replace-regexp-in-string "\.html$" ".org" f)))
-       force-buffer-file-temp-p)
-      t)
-     (t
-      (setq cached-normal-file-full-path f)
-      nil))))
+    (or (not load-user-customized-major-mode-hook)
+        (or
+         ;; file does not exist at all
+         ;; org-babel edit inline code block need calling hook
+         (null f)
+         (not (string= f cached-normal-file-full-path)))
+        (or
+         ;; file is create from temp directory
+         (string-match (concat "^" temporary-file-directory) f)
+         ;; file is a html file exported from org-mode
+         (and (string-match "\.html$" f)
+              (file-exists-p (replace-regexp-in-string "\.html$" ".org" f)))
+         force-buffer-file-temp-p)
+        (progn (setq cached-normal-file-full-path f)
+               nil))))
 
 (defvar inc0n/mplayer-extra-opts ""
   "Extra options for mplayer (ao or vo setup).  For example,

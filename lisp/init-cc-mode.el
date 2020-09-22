@@ -54,7 +54,7 @@
 
 ;; donot use c-mode-common-hook or cc-mode-hook because many major-modes use this hook
 (defun c-mode-common-hook-setup ()
-  (unless (is-buffer-file-temp)
+  (unless (buffer-file-temp-p)
     (inc0n/common-cc-mode-setup)
     (unless (or (derived-mode-p 'java-mode) (derived-mode-p 'groovy-mode))
       (inc0n/c-mode-setup))

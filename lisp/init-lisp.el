@@ -39,13 +39,13 @@
 (add-hook 'inferior-scheme-mode-hook 'gambit-inferior-mode)
 
 ;; gerbil setup
-(let* ((gerbil-home (getenv "GERBIL_HOME"))
-       (gerbil-program-name (concat gerbil-home "/bin/gxi")))
+(defvar inc0n/gerbil-home (getenv "GERBIL_HOME"))
+(let ((gerbil-program-name (concat inc0n/gerbil-home "/bin/gxi")))
   ;; gerbil mode
-  (add-to-list 'load-path (concat gerbil-home "/etc/"))
+  (add-to-list 'load-path (concat inc0n/gerbil-home "/etc/"))
   (autoload 'gerbil-mode "gerbil-mode" "Gerbil editing mode." t)
   ;; gerbil tags
-  (add-to-list 'tags-table-list (concat gerbil-home "/src/TAGS"))
+  (add-to-list 'tags-table-list (concat inc0n/gerbil-home "/src/TAGS"))
   (setq scheme-program-name gerbil-program-name))
 
 (push '(".ss$" . gerbil-mode) auto-mode-alist)
@@ -58,7 +58,7 @@
   (add-to-list 'hippie-expand-try-functions-list 'try-complete-lisp-symbol-partially t))
 
 (defun elisp-mode-hook-setup ()
-  (unless (is-buffer-file-temp)
+  (unless (buffer-file-temp-p)
     (util/ensure 'eldoc)
     (turn-on-eldoc-mode)
     (enable-paredit-mode)

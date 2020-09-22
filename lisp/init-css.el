@@ -10,7 +10,7 @@
 ;; node plugins can compile css into javascript
 ;; flymake-css is obsolete
 (defun css-mode-hook-setup ()
-  (unless (is-buffer-file-temp)
+  (unless (buffer-file-temp-p)
     (rainbow-mode 1)
     (counsel-css-imenu-setup)
     (setq imenu-create-index-function 'counsel-css--imenu-create-index-function)))
@@ -19,7 +19,7 @@
 ;; compile *.scss to *.css on the pot could break the project build
 (setq scss-compile-at-save nil)
 (defun scss-mode-hook-setup ()
-  (unless (is-buffer-file-temp)
+  (unless (buffer-file-temp-p)
     (setq imenu-create-index-function 'inc0n/css-imenu-make-index)))
 (add-hook 'scss-mode-hook #'scss-mode-hook-setup)
 

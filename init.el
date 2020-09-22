@@ -160,7 +160,6 @@
     ;; my personal setup, other major-mode specific setup need it.
     ;; It's dependent on *.el in `inc0n/site-lisp-dir'
     (require-init 'init-custom)))
-
 (setq gc-cons-threshold best-gc-cons-threshold)
 
 (when (require 'time-date nil t)

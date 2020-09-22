@@ -638,7 +638,7 @@ If INCLUSIVE is t, the text object is inclusive."
   "fs" 'ffip-save-ivy-last
   "fr" 'ffip-ivy-resume
   "fc" 'cp-ffip-ivy-last
-  "ss" 'counsel-ag-thing-at-point
+  "ss" 'counsel-rg-thing-at-point
   "hd" 'describe-function
   "hf" 'find-function
   "hk" 'describe-key

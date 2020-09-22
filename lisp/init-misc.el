@@ -159,7 +159,7 @@ This function can be re-used by other major modes after compilation."
 
   (company-ispell-setup)
 
-  (unless (is-buffer-file-temp)
+  (unless (buffer-file-temp-p)
 
     ;; @see http://xugx2007.blogspot.com.au/2007/06/benjamin-rutts-emacs-c-development-tips.html
     (setq compilation-finish-functions

@@ -2,6 +2,13 @@
 
 (ivy-mode 1) ; it enables ivy UI for `kill-buffer'
 
+(defun inc0n/rename-file (x)
+  (let ((new-path (counsel--find-file-1
+                   "Rename file to: " ""
+                   #'identity
+                   'counsel-find-file)))
+    (rename-file x new-path)))
+
 (with-eval-after-load 'counsel
   ;; automatically pick up cygwin cli tools for counsel
   (cond
@@ -20,7 +27,8 @@
      ("b" counsel-find-file-cd-bookmark-action "cd bookmark")
      ("x" counsel-find-file-extern "open externally")
      ("d" delete-file "delete")
-     ("r" counsel-find-file-as-root "open as root"))))
+     ("r" counsel-find-file-as-root "open as root")
+     ("c" inc0n/rename-file "change file name"))))
 
 ;; (setq ivy-use-virtual-buffers t) ; not good experience
 (global-set-key (kbd "C-x b") 'ivy-switch-buffer)
@@ -207,6 +215,7 @@ If N is nil, use `ivy-mode' to browse `kill-ring'."
   (setq ivy-display-style 'fancy))
 
 (defun inc0n/swiper ()
+  (interactive)
   (counsel-grep-or-swiper (util/thing-at-point)))
 
 ;; {{ swiper&ivy-mode
@@ -281,6 +290,7 @@ If N is nil, use `ivy-mode' to browse `kill-ring'."
         '((counsel-M-x . ivy--regex-fuzzy)
           (counsel-describe-function . ivy--regex-fuzzy)
           (counsel-ag . ivy--regex-plus)
+          (counsel-rg . ivy--regex-plus)
           (swiper . ivy--regex-plus)
           (t . ivy--regex-fuzzy))) ;; (t . re-builder-extended-pattern)
   ;; set actions when running C-x b
@@ -303,5 +313,9 @@ If N is nil, use `ivy-mode' to browse `kill-ring'."
 (defun counsel-ag-thing-at-point ()
   (interactive)
   (counsel-ag (ivy-thing-at-point)))
+
+(defun counsel-rg-thing-at-point ()
+  (interactive)
+  (counsel-rg (ivy-thing-at-point)))
 
 (provide 'init-ivy)

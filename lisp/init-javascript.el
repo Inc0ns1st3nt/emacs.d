@@ -36,7 +36,7 @@
   (local-require 'js-comint))
 
 (defun mo-js-mode-hook ()
-  (when (and (not (is-buffer-file-temp)) (not (derived-mode-p 'js2-mode)))
+  (when (and (not (buffer-file-temp-p)) (not (derived-mode-p 'js2-mode)))
     (inc0n/common-js-setup)
     (setq imenu-create-index-function 'mo-js-imenu-make-index)))
 (add-hook 'js-mode-hook 'mo-js-mode-hook)
@@ -229,7 +229,7 @@ Merge RLT and EXTRA-RLT, items in RLT has *higher* priority."
 ;; }}
 
 (defun inc0n/js2-mode-setup()
-  (unless (is-buffer-file-temp)
+  (unless (buffer-file-temp-p)
     (inc0n/common-js-setup)
     ;; if use node.js we need nice output
     (js2-imenu-extras-mode)

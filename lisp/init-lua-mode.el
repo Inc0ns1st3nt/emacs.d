@@ -2,7 +2,7 @@
 
 (defun inc0n/lua-mode-setup ()
   "Set up lua script."
-  (unless (is-buffer-file-temp)
+  (unless (buffer-file-temp-p)
     (setq-local imenu-generic-expression
                 '(("Variable" "^ *\\([a-zA-Z0-9_.]+\\) *= *{ *[^ ]*$" 1)
                   ("Function" "function +\\([^ (]+\\).*$" 1)
