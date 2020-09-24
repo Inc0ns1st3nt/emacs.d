@@ -175,6 +175,23 @@ Or region from `BEG' to `END'."
            (server-start))))
 (run-server)
 
+;; gambit
+(require 'gambit)
+(add-hook 'inferior-scheme-mode-hook 'gambit-inferior-mode)
+
+;; gerbil setup
+(defvar inc0n/gerbil-home (getenv "GERBIL_HOME"))
+(let ((gerbil-program-name (concat inc0n/gerbil-home "/bin/gxi")))
+  ;; gerbil mode
+  (add-to-list 'load-path (concat inc0n/gerbil-home "/etc/"))
+  (autoload 'gerbil-mode "gerbil-mode" "Gerbil editing mode." t)
+  ;; gerbil tags
+  (add-to-list 'tags-table-list (concat inc0n/gerbil-home "/src/TAGS"))
+  (setq scheme-program-name gerbil-program-name))
+
+(add-auto-mode 'gerbil-mode "\\.ss$")
+
+
 ;;; lsp setup
 (setq lsp-keymap-prefix "M-n")
 

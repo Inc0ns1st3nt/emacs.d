@@ -125,22 +125,22 @@
 (defun inc0n/get-popular-theme-name ()
   "Insert names of popular theme."
   (interactive)
-  (let ((buf
-         (url-retrieve-synchronously "http://melpa.org/download_counts.json" t t 30)))
-    (when buf
-      (pop-to-buffer buf)
-      (goto-char (point-min))
-      (search-forward "{")
-      (backward-char)                ; move cursor just before the "{"
+  (when-let
+      ((buf
+        (url-retrieve-synchronously "http://melpa.org/download_counts.json" t t 30)))
+    (pop-to-buffer buf)
+    (goto-char (point-min))
+    (search-forward "{")
+    (backward-char)                  ; move cursor just before the "{"
 
-      (when-let* ((pkgs (json-read))
-                  (names (inc0n/theme-packages pkgs)))
-        ;; insert theme package names
-        (erase-buffer)
-        (insert "{\n")
-        (insert (mapconcat (lambda (x) (format "  %s: %s" (car x) (cdr x)))
-                           names "\n"))
-        (insert "\n}")))))
+    (when-let* ((pkgs (json-read))
+                (names (inc0n/theme-packages pkgs)))
+      ;; insert theme package names
+      (erase-buffer)
+      (insert "{\n")
+      (insert (mapconcat (lambda (x) (format "  %s: %s" (car x) (cdr x)))
+                         names "\n"))
+      (insert "\n}"))))
 
 (provide 'init-theme)
 ;;; init-theme.el ends here

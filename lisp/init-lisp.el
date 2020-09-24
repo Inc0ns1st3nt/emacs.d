@@ -1,21 +1,18 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
 (defun show-scratch-buffer-message ()
-  (let* ((fortune-prog (or (executable-find "fortune-zh")
-                           (executable-find "fortune"))))
-    (cond
-     (fortune-prog
+  (if-let ((fortune-prog (or (executable-find "fortune-zh")
+                             (executable-find "fortune"))))
       (format
        ";; %s\n\n"
        (replace-regexp-in-string
         "\n" "\n;; "                    ; comment each line
         (replace-regexp-in-string
          "\\(\n$\\|\\|\\[m *\\|\\[[0-9][0-9]m *\\)" "" ; remove trailing linebreak
-         (shell-command-to-string fortune-prog)))))
-     (t
-      (concat ";; Happy hacking "
-              (or user-login-name "")
-              " - Emacs loves you!\n\n")))))
+         (shell-command-to-string fortune-prog))))
+    (concat ";; Happy hacking "
+            (or user-login-name "")
+            " - Emacs loves you!\n\n")))
 
 (setq-default initial-scratch-message (show-scratch-buffer-message))
 
@@ -25,30 +22,6 @@
 ;; paredit
 (with-eval-after-load 'paredit
   (diminish 'paredit-mode " Par"))
-
-(defvar paredit-minibuffer-commands '(eval-expression
-                                      pp-eval-expression
-                                      eval-expression-with-eldoc
-                                      ibuffer-do-eval
-                                      ibuffer-do-view-and-eval)
-  "Interactive commands for which paredit should be enabled in the minibuffer.")
-
-
-;; gambit
-(require 'gambit)
-(add-hook 'inferior-scheme-mode-hook 'gambit-inferior-mode)
-
-;; gerbil setup
-(defvar inc0n/gerbil-home (getenv "GERBIL_HOME"))
-(let ((gerbil-program-name (concat inc0n/gerbil-home "/bin/gxi")))
-  ;; gerbil mode
-  (add-to-list 'load-path (concat inc0n/gerbil-home "/etc/"))
-  (autoload 'gerbil-mode "gerbil-mode" "Gerbil editing mode." t)
-  ;; gerbil tags
-  (add-to-list 'tags-table-list (concat inc0n/gerbil-home "/src/TAGS"))
-  (setq scheme-program-name gerbil-program-name))
-
-(add-auto-mode 'gerbil-mode "\\.ss$")
 
 ;; elisp
 (defun set-up-hippie-expand-for-elisp ()
@@ -92,15 +65,15 @@
 
 (defun slime-gerbil ()
   (interactive)
-  (setq slime-lisp-implementations
-        '((gerbil-scheme ("gxi" "-:d-") :init gerbil-scheme-start-swank)))
-  (slime))
+  (let ((slime-lisp-implementations
+         '((gerbil-scheme ("gxi" "-:d-") :init gerbil-scheme-start-swank))))
+    (slime)))
 
 (defun slime-common-lisp ()
   (interactive)
-  (setq slime-lisp-implementations
-        '((sbcl ("/usr/bin/sbcl"))))
-  (slime))
+  (let ((slime-lisp-implementations
+         '((sbcl ("/usr/bin/sbcl")))))
+    (slime)))
 
 
 ;; gerbil tag table
