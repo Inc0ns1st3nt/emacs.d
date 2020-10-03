@@ -1,13 +1,10 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
-(defun inc0n/initialize-package ()
-  (unless nil ;package--initialized
-    ;; optimization, no need to activate all the packages so early
-    (setq package-enable-at-startup nil)
-    ;; @see https://www.gnu.org/software/emacs/news/NEWS.27.1
-    (package-initialize)))
-
-(inc0n/initialize-package)
+(unless nil ;; package--initialized
+  ;; optimization, no need to activate all the packages so early
+  (setq package-enable-at-startup nil)
+  ;; @see https://www.gnu.org/software/emacs/news/NEWS.27.1
+  (package-initialize))
 
 ;; List of visible packages from melpa-unstable (http://melpa.org).
 ;; Please add the package name into `melpa-include-packages'
@@ -107,7 +104,10 @@
     workgroups2
     zoutline
     company-c-headers
-    company-statistics)
+    company-statistics
+    ;;
+    face-up
+    racket-mode)
   "Packages to install from melpa-unstable.")
 
 (defvar melpa-stable-banned-packages nil
@@ -116,11 +116,10 @@
 ;; I don't use any packages from GNU ELPA because I want to minimize
 ;; dependency on 3rd party web site.
 (setq package-archives
-      '(
-        ;; uncomment below line if you need use GNU ELPA
+      '(;; uncomment below line if you need use GNU ELPA
         ;; ("gnu" . "https://elpa.gnu.org/packages/")
         ("melpa" . "https://melpa.org/packages/")
-        ("melpa-stable" . "https://stable.melpa.org/packages/")
+        ;; ("melpa-stable" . "https://stable.melpa.org/packages/")
 
         ;; Use either 163 or tsinghua mirror repository when official melpa
         ;; is slow or shutdown.
@@ -140,7 +139,7 @@
         ))
 
 (defvar inc0n/ask-elpa-mirror t)
-(when (and (not noninteractive) ; no popup in batch mode
+(when (and (not noninteractive)         ; no popup in batch mode
            inc0n/ask-elpa-mirror
            (not (file-exists-p (file-truename (concat inc0n/emacs-d "elpa"))))
            (yes-or-no-p "Switch to faster package repositories in China temporarily?
@@ -153,45 +152,20 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
 ;; (setq package-archives '(("myelpa" . "~/myelpa/")))
 
 ;; my local repository is always needed.
-(push (cons "localelpa" (concat inc0n/emacs-d "localelpa/")) package-archives)
+(push (cons "localelpa" (concat inc0n/emacs-d "localelpa/"))
+      package-archives)
 
 (defun inc0n/package-generate-autoloads-hack (pkg-desc pkg-dir)
   "Stop package.el from leaving open autoload files lying around."
-  (let* ((path (expand-file-name (concat
-                                  ;; pkg-desc is string in emacs 24.3.1,
-                                  (if (symbolp pkg-desc) (symbol-name pkg-desc) pkg-desc)
-                                  "-autoloads.el")
-                                 pkg-dir)))
+  (let ((path (expand-file-name (concat
+                                 ;; pkg-desc is string in emacs 24.3.1,
+                                 (if (symbolp pkg-desc) (symbol-name pkg-desc) pkg-desc)
+                                 "-autoloads.el")
+                                pkg-dir)))
     (with-current-buffer (find-file-existing path)
       (kill-buffer nil))))
-(advice-add 'package-generate-autoloads :after #'inc0n/package-generate-autoloads-hack)
-
-(defun inc0n/package--add-to-archive-contents-hack (orig-func &rest args)
-  "Some packages should be hidden."
-  (let* ((package (nth 0 args))
-         (archive (nth 1 args))
-         (pkg-name (car package))
-         (version (package--ac-desc-version (cdr package)))
-         (add-to-p t))
-    (cond
-     ((string= archive "melpa-stable")
-      (setq add-to-p
-            (not (memq pkg-name melpa-stable-banned-packages))))
-
-     ;; We still need use some unstable packages
-     ((string= archive "melpa")
-      (setq add-to-p
-            (or (member pkg-name melpa-include-packages)
-                ;; color themes are welcomed
-                (string-match-p "-theme" (format "%s" pkg-name))))))
-
-    (when inc0n/debug
-      (message "package name=%s version=%s package=%s" pkg-name version package))
-
-    (when add-to-p
-      ;; The package is visible through package manager
-      (apply orig-func args))))
-(advice-add 'package--add-to-archive-contents :around #'inc0n/package--add-to-archive-contents-hack)
+;; TODO - test behaviour
+;; (advice-add 'package-generate-autoloads :after #'inc0n/package-generate-autoloads-hack)
 
 ;; On-demand installation of packages
 (defun require-package (package &optional min-version no-refresh)
@@ -199,7 +173,8 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
   (cond
    ((package-installed-p package min-version)
     t)
-   ((or (assoc package package-archive-contents) no-refresh)
+   ((or (assoc package package-archive-contents)
+        no-refresh)
     (package-install package))
    (t
     (package-refresh-contents)
@@ -251,23 +226,21 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
 (require-package 'dsvn)
 (require-package 'git-timemachine)
 (require-package 'exec-path-from-shell)
-(require-package 'ivy)
-(require-package 'swiper)
-(require-package 'counsel) ; counsel => swiper => ivy
+
 (require-package 'find-file-in-project)
 (require-package 'counsel-bbdb)
-(require-package 'ibuffer-vc)
+
 (require-package 'command-log-mode)
 (require-package 'regex-tool)
 (require-package 'groovy-mode)
 (require-package 'emmet-mode)
-(require-package 'winum)
+
 (require-package 'session)
 (require-package 'unfill)
 (require-package 'w3m)
 (require-package 'counsel-gtags)
 (require-package 'buffer-move)
-(require-package 'ace-window)
+
 (require-package 'cmake-mode)
 (require-package 'cpputils-cmake)
 (require-package 'bbdb)
@@ -280,15 +253,8 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
 (require-package 'rjsx-mode)
 (require-package 'tagedit)
 (require-package 'git-link)
-(require-package 'cliphist)
-(require-package 'yasnippet)
-(require-package 'yasnippet-snippets)
-(require-package 'company)
-(require-package 'native-complete)
-(require-package 'company-native-complete)
-(require-package 'company-c-headers)
-(require-package 'company-statistics)
-(if *emacs26* (require-package 'lsp-mode))
+
+(require-package 'lsp-mode)
 (require-package 'elpy)
 (require-package 'legalese)
 (require-package 'simple-httpd)
@@ -315,7 +281,6 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
 (require-package 'undo-fu)
 (require-package 'counsel-css)
 (require-package 'auto-package-update)
-(require-package 'keyfreq)
 (require-package 'adoc-mode) ; asciidoc files
 (require-package 'shackle)
 (require-package 'toc-org)
@@ -342,10 +307,6 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
 ;; BTW, this setup uses MELPA only. So GNU ELPA GPG key is not used.
 (require-package 'gnu-elpa-keyring-update)
 ;; }}
-
-(when *emacs26*
-  ;; org => ppt, org v8.3 is required (Emacs 25 uses org v8.2)
-  (require-package 'org-re-reveal))
 
 (require-package 'magit)
 

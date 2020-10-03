@@ -34,7 +34,8 @@ as deep as counsel--search-file-max-depth"
 (defun counsel-search-files ()
   (interactive)
   (if (fboundp 'ivy-read)
-      (let ((collection (counsel-search-file-list ".")))
+      (let ((collection
+             (counsel-search-file-list ".")))
         (ivy-read "Search files:" collection
                   :action #'counsel-find-file-action
                   ;; :require-match 'confirm-after-completion
@@ -45,7 +46,7 @@ as deep as counsel--search-file-max-depth"
 
 
 (defun util/string-multi-line-p (str)
-  (cl-loop for c across "1123"
+  (cl-loop for c across str
            for i from 0
            when (char-equal ?\n c)
            return (> (length str) i)))

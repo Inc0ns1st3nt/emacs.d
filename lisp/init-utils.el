@@ -1,11 +1,11 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
-(defmacro util/ensure (feature)
+(defun util/ensure (feature)
   "Make sure FEATURE is required."
-  `(unless (featurep ,feature)
-     (condition-case nil
-         (require ,feature)
-       (error nil))))
+  (unless (featurep feature)
+    (condition-case nil
+        (require feature)
+      (error nil))))
 
 (defun inc0n/git-root-dir ()
   "Git root directory."
@@ -355,21 +355,5 @@ If STEP is 1,  search in forward direction, or else in backward direction."
   "Get current input in shell."
   (let ((region (util/comint-current-input-region)))
     (string-trim (buffer-substring-no-properties (car region) (cdr region)))))
-
-;;
-
-(defun util/warp-interactive-search (proc)
-  "warp proc with argumented procedure
-If X is 1, get init-input from clipboard.
-If X is 2, get init-input from kill-ring'.
-Else get init-input from `ivy-thing-at-point'"
-  (lambda (&optional x)
-    (interactive "P")
-    (let ((input (cond
-                  ((eq 1 x) (cliphist-select-item))
-                  ((eq 2 x) (inc0n/select-from-kill-ring 'identity))
-                  (t (util/selected-str)))))
-      (funcall proc input))))
-
 
 (provide 'init-utils)

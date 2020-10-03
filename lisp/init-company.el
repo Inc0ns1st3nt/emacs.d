@@ -1,6 +1,12 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
-(add-hook 'after-init-hook 'global-company-mode)
+(require-package 'company)
+(require-package 'native-complete)
+(require-package 'company-native-complete)
+(require-package 'company-c-headers)
+(require-package 'company-statistics)
+
+(add-hook 'after-init-hook #'global-company-mode)
 
 (when (fboundp 'evil-declare-change-repeat)
   (mapc #'evil-declare-change-repeat
@@ -19,7 +25,8 @@
   (setq company-backends (delete 'company-ropemacs company-backends))
 
   ;; company-ctags is much faster out of box. No further optimiation needed
-  (unless (featurep 'company-ctags) (local-require 'company-ctags))
+  (unless (featurep 'company-ctags)
+    (local-require 'company-ctags))
   (company-ctags-auto-setup)
 
   ;; (setq company-backends (delete 'company-capf company-backends))
@@ -73,11 +80,6 @@
       (apply orig-func args))))
   (advice-add 'company-ispell-available :around #'inc0n/company-ispell-available-hack))
 
-(defun inc0n/add-ispell-to-company-backends ()
-  "Add ispell to the last of `company-backends'."
-  (setq company-backends
-        (add-to-list 'company-backends 'company-ispell)))
-
 ;; {{ setup company-ispell
 (defun toggle-company-ispell ()
   "Toggle company-ispell."
@@ -87,25 +89,26 @@
     (setq company-backends (delete 'company-ispell company-backends))
     (message "company-ispell disabled"))
    (t
-    (inc0n/add-ispell-to-company-backends)
+    (add-to-list 'company-backends 'company-ispell)
     (message "company-ispell enabled!"))))
 
 (defun company-ispell-setup ()
   ;; @see https://github.com/company-mode/company-mode/issues/50
   (when (boundp 'company-backends)
     (make-local-variable 'company-backends)
-    (inc0n/add-ispell-to-company-backends)
+    (add-to-list 'company-backends 'company-ispell)
     ;; @see https://github.com/redguardtoo/emacs.d/issues/473
-    (cond
-     ((and (boundp 'ispell-alternate-dictionary)
-           ispell-alternate-dictionary)
-      (setq company-ispell-dictionary ispell-alternate-dictionary))
-     (t
-       (setq company-ispell-dictionary (file-truename (concat inc0n/emacs-d "misc/english-words.txt")))))))
+    (setq company-ispell-dictionary
+          (cond
+           ((and (boundp 'ispell-alternate-dictionary)
+                 ispell-alternate-dictionary)
+            ispell-alternate-dictionary)
+           (t
+            (file-truename (concat inc0n/emacs-d "misc/english-words.txt")))))))
 
 ;; message-mode use company-bbdb.
 ;; So we should NOT turn on company-ispell
-(add-hook 'org-mode-hook 'company-ispell-setup)
+(add-hook 'org-mode-hook #'company-ispell-setup)
 ;; }}
 
 (provide 'init-company)

@@ -3,6 +3,8 @@
 ;; some cool org tricks
 ;; @see http://emacs.stackexchange.com/questions/13820/inline-verbatim-and-code-with-quotes-in-org-mode
 
+(require-package 'org-re-reveal)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Org clock
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -28,10 +30,6 @@
 
   (define-key org-clock-mode-line-map [header-line mouse-2] 'org-clock-goto)
   (define-key org-clock-mode-line-map [header-line mouse-1] 'org-clock-menu))
-
-;; {{ org2nikola set up
-(setq org2nikola-output-root-directory "~/.config/nikola")
-;; }}
 
 (defun org-op-on-tree-and-subtree (procedure)
   "Call procedure on the tree and its subtree or tree in region"
@@ -98,10 +96,7 @@ ARG is ignored."
   ;; }}
 
   (util/ensure 'org-clock)
-
-  ;; org-re-reveal requires org 8.3 while Emacs 25 uses org 8.2
-  (when *emacs26*
-    (util/ensure 'org-re-reveal))
+  (util/ensure 'org-re-reveal)
 
   ;; odt export
   (add-to-list 'org-export-backends 'odt)
@@ -115,17 +110,8 @@ ARG is ignored."
     (interactive "P")
     (org-agenda arg "n"))
 
-
-  (defun inc0n/org-open-at-point-hack (orig-func &rest args)
-    "\"C-u M-x org-open-at-point\" to open link with `browse-url-generic-program'.
-It's value could be customized liked \"/usr/bin/firefox\".
-\"M-x org-open-at-point\" to open the url with embedded emacs-w3m."
-    (let ((browse-url-browser-function
-           ;; open with `browse-url-generic-program'
-           'browse-url-generic ;;'w3m-browse-url
-           ))
-      (apply orig-func args)))
-  (advice-add 'org-open-at-point :around #'inc0n/org-open-at-point-hack)
+  (setq-local browse-url-generic-program "firefox"
+              browse-url-generic-args '("--private-window"))
 
   (defun inc0n/org-publish-hack (orig-func &rest args)
     "Stop running `major-mode' hook when `org-publish'."
@@ -168,6 +154,13 @@ It's value could be customized liked \"/usr/bin/firefox\".
       (apply orig-func args)))
   (advice-add 'org-refile :around #'inc0n/org-refile-hack)
 
+  (defun log-todo-next-creation-date (&rest ignore)
+    "Log NEXT creation time in the property drawer under the key 'ACTIVATED'"
+    (when (and (string= (org-get-todo-state) "NEXT")
+               (not (org-entry-get nil "ACTIVATED")))
+      (org-entry-put nil "ACTIVATED" (format-time-string "[%Y-%m-%d]"))))
+  (add-hook 'org-after-todo-state-change-hook #'log-todo-next-creation-date)
+
   ;; {{ export org-mode in Chinese into PDF
   ;; @see http://freizl.github.io/posts/tech/2012-04-06-export-orgmode-file-in-Chinese.html
   ;; and you need install texlive-xetex on different platforms
@@ -201,32 +194,71 @@ It's value could be customized liked \"/usr/bin/firefox\".
         org-tags-column 80
 
         ;; Refile targets include this file and any file contributing to the agenda - up to 5 levels deep
-        org-refile-targets '((nil :maxlevel . 5) (org-agenda-files :maxlevel . 5))
+        org-refile-targets '(("projects.org" :regexp . "\\(?:\\(?:Note\\|Task\\)s\\)"))
         org-refile-use-outline-path 'file
         org-outline-path-complete-in-steps nil
-        org-todo-keywords '((sequence "TODO(t)" "STARTED(s)" "|" "DONE(d!/!)")
-                            (sequence "WAITING(w@/!)" "SOMEDAY(S)" "PROJECT(P@)" "|" "CANCELLED(c@/!)"))
+        org-todo-keywords '((sequence "TODO(t)" "NEXT(n)" "HOLD(h@/!)" "|" "DONE(d!/!)")
+                            (sequence "PROJECT(P@)" "|" "CANCELLED(c@/!)"))
         org-imenu-depth 9
         ;; @see http://irreal.org/blog/1
         org-src-fontify-natively t)
 
+  (global-set-key (kbd "C-c C-C") 'org-capture)
+  (setq org-directory "~/sources/org/")
   (setq org-capture-templates
-        `(("t" "todo" entry (file ,(concat org-directory "/refile.org"))
-           "* TODO %?\n  %i\n  %a")
-          ("r" "respond" entry (file ,(concat org-directory "/refile.org"))
-           "* NEXT Respond to %:from on %:subject\nSCHEDULED: %t\n%U\n%a\n")
-          ("n" "note" entry (file ,(concat org-directory "/note.org"))
-           "* %? :NOTE:\n%U\n%a\n")
-          ("j" "Journal" entry (file+datetree ,(concat org-directory "/diary.org"))
+        `(("t" "Todo" entry  (file "refile.org")
+           ,(concat "* TODO %?\n"
+                    "/Entered on/ %U"))
+          ("r" "Respond" entry (file "agenda.org")
+           ,(concat "* NEXT Respond to %:from on %:subject\n"
+                    "SCHEDULED: %t\n"
+                    "%U\n"
+                    "%a\n"))
+          ;; ("n" "note" entry (file "note.org")
+          ;;  "* %? :NOTE:\n%U\n%a\n")
+          ("n" "Note" entry  (file "notes.org")
+           ,(concat "* Note (%a)\n"
+                    "/Entered on/ %U\n" "\n" "%?"))
+          ("a" "Analysis" entry (file "analysis.org")
+           "* TODO %? [%<%Y-%m-%d %a>]\n")
+          ("d" "Diary" entry (file+datetree "diary.org")
            "* %?\n%U\n")
-          ("w" "org-protocol" entry (file ,(concat org-directory "/refile.org"))
-           "* TODO Review %c\n%U\n")
-          ("m" "Meeting" entry (file ,(concat org-directory "/refile.org"))
-           "* MEETING with %? :MEETING:\n%U")
-          ("p" "Phone call" entry (file ,(concat org-directory "/refile.org"))
-           "* PHONE %? :PHONE:\n%U")
-          ("h" "Habit" entry (file ,(concat org-directory "/refile.org"))
-           "* NEXT %?\n%U\n%a\nSCHEDULED: %(format-time-string \"%<<%Y-%m-%d %a .+1d/3d>>\")\n:PROPERTIES:\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:END:\n")))
-  (setq org-agenda-files (quote ("~/sources/org/"))))
+          ("e" "Event" entry (file+headline "agenda.org" "Future")
+           ,(concat "* %? :event:\n"
+                    "SCHEDULED: <%<%Y-%m-%d %a %H:00>>"))
+          ("m" "Meeting" entry  (file+headline "agenda.org" "Future")
+           ,(concat "* %? :meeting:\n"
+                    "<%<%Y-%m-%d %a %H:00>>"))
+          ;; ("p" "Phone call" entry (file "refile.org")
+          ;;  "* PHONE %? :PHONE:\n%U")
+          ;; ("h" "Habit" entry (file "refile.org")
+          ;;  "* NEXT %?\n%U\n%a\nSCHEDULED: %(format-time-string \"%<<%Y-%m-%d %a .+1d/3d>>\")\n:PROPERTIES:\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:END:\n")
+          ))
+  (setq org-agenda-files '("agenda.org" "analysis.org"
+                           "refile.org" "projects.org"
+                           "notes.org"))
+  (setq org-agenda-custom-commands
+        '(("g" "Get Things Done (GTD)"
+           ((agenda ""
+                    ((org-agenda-skip-function
+                      '(org-agenda-skip-entry-if 'deadline))
+                     (org-deadline-warning-days 0)))
+            (todo "NEXT"
+                  ((org-agenda-skip-function
+                    '(org-agenda-skip-entry-if 'deadline))
+                   (org-agenda-prefix-format "  %i %-12:c [%e] ")
+                   (org-agenda-overriding-header "\nTasks\n")))
+            (agenda nil
+                    ((org-agenda-entry-types '(:deadline))
+                     (org-agenda-format-date "")
+                     (org-deadline-warning-days 7)
+                     (org-agenda-skip-function
+                      '(org-agenda-skip-entry-if 'notregexp "\\* NEXT"))
+                     (org-agenda-overriding-header "\nDeadlines")))
+            (tags-todo "refile"
+                       ((org-agenda-prefix-format "  %?-12t% s")
+                        (org-agenda-overriding-header "\nTodo\n")))
+            (tags "CLOSED>=\"<today>\""
+                  ((org-agenda-overriding-header "\nCompleted today\n"))))))))
 
 (provide 'init-org)

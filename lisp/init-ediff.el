@@ -14,23 +14,22 @@ Also remove buffers whose binding files already merged in `buffer-list'."
   ;; associate simpler major mode with org file instead
   (add-auto-mode 'outline-mode "\\.org\\(_archive\\)?$")
 
-  (defmacro inc0n/ediff-command (cmd &optional no-arg)
-    `(lambda (&optional arg)
-       (interactive "P")
-       (let* ((w (get-buffer-window))
-              (p (get-buffer-window inc0n/ediff-panel-name)))
+  (defun inc0n/ediff-command (cmd &optional no-arg)
+    (lambda (&optional arg)
+      (interactive "P")
+      (let* ((w (get-buffer-window))
+             (p (get-buffer-window inc0n/ediff-panel-name)))
+        ;; go to panel window
+        (when p
+          (select-window p)
+          ;; execute ediff command, ignore any error
+          (condition-case e
+              (if no-arg (funcall cmd) (funcall cmd arg))
+            (error
+             (message "%s" (error-message-string e))))
 
-         ;; go to panel window
-         (when p
-           (select-window p)
-           ;; execute ediff command, ignore any error
-           (condition-case e
-               (if ,no-arg (funcall ,cmd) (funcall ,cmd arg))
-             (error
-              (message "%s" (error-message-string e))))
-
-           ;; back to original window
-           (select-window w)))))
+          ;; back to original window
+          (select-window w)))))
 
   (util/ensure 'ediff)
 
@@ -43,21 +42,18 @@ Also remove buffers whose binding files already merged in `buffer-list'."
                       (ediff-get-region-contents ediff-current-difference 'A ediff-control-buffer)
                       (ediff-get-region-contents ediff-current-difference 'B ediff-control-buffer))))
 
-  (inc0n/space-leader-def
+  (inc0n/comma-leader-def
     "a" (lambda () (interactive) (jump-to-register ?a))
     "t" (inc0n/ediff-command 'ediff-toggle-show-clashes-only t)
     "n" (inc0n/ediff-command (lambda (arg)
-                            (cond
-                             ((< ediff-current-difference (1- ediff-number-of-differences))
-                              (ediff-next-difference arg))
-                             (t
-                              (message "This is last difference!")))))
+                               (if (< ediff-current-difference
+                                      (1- ediff-number-of-differences))
+                                   (ediff-next-difference arg)
+                                 (message "This is last difference!"))))
     "p" (inc0n/ediff-command (lambda (arg)
-                            (cond
-                             ((> ediff-current-difference 0)
-                              (ediff-previous-difference arg))
-                             (t
-                              (message "This is first difference!")))))
+                               (if (> ediff-current-difference 0)
+                                   (ediff-previous-difference arg)
+                                 (message "This is first difference!"))))
     "r" (inc0n/ediff-command 'ediff-restore-diff-in-merge-buffer)
     ;; press "1-space-R" to revert without confirmation
     "R" (inc0n/ediff-command 'ediff-revert-buffers-then-recompute-diffs)
@@ -70,7 +66,8 @@ Also remove buffers whose binding files already merged in `buffer-list'."
   (defun ediff-startup-hook-setup ()
     ;; hide control panel if it's current buffer
     (when (string-match-p "\*Ediff Control Panel.*\*" (buffer-name))
-      (unless inc0n/ediff-panel-name (setq inc0n/ediff-panel-name (buffer-name)))
+      (unless inc0n/ediff-panel-name
+        (setq inc0n/ediff-panel-name (buffer-name)))
       ;; load color theme for merge
       (load-theme 'tao-yang t)
       ;; show only clashed area
@@ -82,6 +79,6 @@ Also remove buffers whose binding files already merged in `buffer-list'."
       ;; save the windows layout
       (window-configuration-to-register ?a)))
 
-  (add-hook 'ediff-startup-hook 'ediff-startup-hook-setup))
+  (add-hook 'ediff-startup-hook #'ediff-startup-hook-setup))
 
 (provide 'init-ediff)

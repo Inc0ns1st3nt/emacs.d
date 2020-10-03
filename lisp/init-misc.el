@@ -96,12 +96,12 @@
 ;; }}
 
 ;; {{ dictionary setup
-(defalias 'inc0n/lookup-dict-org
-  (util/warp-interactive-search
-   (lambda (default-value)
-     (dictionary-new-search
-      (cons (util/use-selected-string-or-ask "Input word for dict.org: " default-value)
-            dictionary-default-dictionary)))))
+(defun inc0n/lookup-dict-org ()
+  (interactive)
+  (dictionary-new-search
+   (cons (util/use-selected-string-or-ask "Input word for dict.org: "
+                                          (util/thing-at-point))
+         dictionary-default-dictionary)))
 ;; }}
 
 ;; {{ bookmark
@@ -374,12 +374,10 @@ If step is -1, go backward."
                        ((font-face-is-similar (get-text-property p 'face) cf)
                         (- p step))
                        (t (aux (+ p step) end)))))
-      (prog1 (aux (point)
-                  (if (> step 0)
-                      (point-max)
-                    (point-min)))
-        ;; (message "rlt=%s found=%s" rlt found)
-        (goto-char rlt)))))
+      (goto-char (aux (point)
+                      (if (> step 0)
+                          (point-max)
+                        (point-min)))))))
 ;; }}
 
 (defun inc0n/minibuffer-setup-hook ()
@@ -507,18 +505,10 @@ If no region is selected, `kill-ring' or clipboard is used instead."
         (delete-file fb)))))
 ;; }}
 
-;; {{ cliphist.el
-(setq cliphist-use-ivy t)
-(setq cliphist-select-item-callback
-      (lambda (num str)
-        (util/set-clip str)))
-;; }}
-
 (defun extract-list-from-package-json ()
   "Extract package list from package.json."
   (interactive)
   (let ((str (util/use-selected-string-or-ask)))
-    (message "inc0n/select-cliphist-item called => %s" str)
     (setq str (replace-regexp-in-string ":.*$\\|\"" "" str))
     ;; join lines
     (setq str (replace-regexp-in-string "[\r\n \t]+" " " str))

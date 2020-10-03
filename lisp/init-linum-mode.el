@@ -48,7 +48,7 @@
                         ;; don't show line number for certain file extensions
                         (should-use-minimum-resource)))
                'relative)))
-  (add-hook 'display-line-numbers-mode-hook 'display-line-numbers-mode-hook-setup)
+  (add-hook 'display-line-numbers-mode-hook #'display-line-numbers-mode-hook-setup)
   (global-display-line-numbers-mode t))
 
 (provide 'init-linum-mode)

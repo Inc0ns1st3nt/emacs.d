@@ -98,14 +98,14 @@ If no files marked, always operate on current line in dired-mode."
   (setq dired-dwim-target t)
 
   (util/ensure 'dired-x)
-  (util/ensure 'dired-aux)        ; for `dired-dwim-target-directory'
+  (util/ensure 'dired-aux)         ; for `dired-dwim-target-directory'
 
   (defun inc0n/dired-basename ()
     (file-name-base (car (dired-get-marked-files 'no-dir))))
 
   (defun inc0n/dired-guess-default-hack (orig-func &rest args)
     "Detect subtitles for mplayer."
-    (let* ((rlt (apply orig-func args)))
+    (let ((rlt (apply orig-func args)))
       (message "rlt=%s" rlt)
       (if (and (stringp rlt)
                (string-match-p "^mplayer -quiet" rlt))

@@ -11,9 +11,11 @@
    ((= n 1)
     ;; grep references of current web component
     ;; component could be inside styled-component like `const c = styled(Comp1)`
-    (let ((fb (file-name-base buffer-file-name)))
-      (when (string= "index" fb)
-        (setq fb (file-name-base (directory-file-name (file-name-directory (directory-file-name buffer-file-name))))))
+    (let ((fb (if (string= "index" fb)
+                  (file-name-base
+                   (directory-file-name
+                    (file-name-directory (directory-file-name buffer-file-name))))
+                (file-name-base buffer-file-name))))
       (counsel-etags-grep (format "(<%s( *$| [^ ])|styled\\\(%s\\))" fb fb))))
    ((= n 2)
     ;; grep web component attribute name
@@ -148,7 +150,7 @@ If USE-INDIRECT-BUFFER is not nil, use `indirect-buffer' to hold the widen conte
      (t (org-narrow-to-subtree))))
 
    ((derived-mode-p 'diff-mode)
-    (let* (b e)
+    (let (b e)
       (save-excursion
         ;; If the (point) is already beginning or end of file diff,
         ;; the `diff-beginning-of-file' and `diff-end-of-file' return nil
@@ -165,12 +167,6 @@ If USE-INDIRECT-BUFFER is not nil, use `indirect-buffer' to hold the widen conte
    (t (error "Please select a region to narrow to"))))
 ;; }}
 
-(with-eval-after-load 'cliphist
-  (defun cliphist-routine-before-insert-hack (&optional arg)
-    (util/delete-selected-region))
-  (advice-add 'cliphist-routine-before-insert
-              :before #'cliphist-routine-before-insert-hack))
-
 ;; {{ Write backup files to its own directory
 ;; @see https://www.gnu.org/software/emacs/manual/html_node/tramp/Auto_002dsave-and-Backup.html
 (defvar inc0n/binary-file-name-regexp "\\.\\(avi\\|wav\\|pdf\\|mp[34g]\\|mkv\\|exe\\|3gp\\|rmvb\\|rm\\)$"
@@ -183,6 +179,7 @@ If USE-INDIRECT-BUFFER is not nil, use `indirect-buffer' to hold the widen conte
 
 (when (not (file-exists-p (expand-file-name "~/.backups")))
   (make-directory (expand-file-name "~/.backups")))
+
 (setq backup-by-copying t ; don't clobber symlinks
       backup-directory-alist '(("." . "~/.backups"))
       delete-old-versions t

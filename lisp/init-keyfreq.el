@@ -1,6 +1,6 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
-(local-require 'keyfreq)
+(require-package 'keyfreq)
 
 (defun turnon-keyfreq-mode ()
   (interactive)

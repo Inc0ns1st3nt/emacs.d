@@ -1,5 +1,7 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
+(require-package 'racket-mode)
+
 (defun show-scratch-buffer-message ()
   (if-let ((fortune-prog (or (executable-find "fortune-zh")
                              (executable-find "fortune"))))
@@ -49,14 +51,21 @@
   (rainbow-delimiters-mode t)
   (turn-on-eldoc-mode))
 
-(let* ((hooks '(lisp-mode-hook
-                inferior-lisp-mode-hook
-                lisp-interaction-mode-hook
-                ;;
-                scheme-mode-hook
-                gerbil-mode-hook)))
+(let ((hooks '(lisp-mode-hook
+               racket-mode-hook
+               inferior-lisp-mode-hook
+               lisp-interaction-mode-hook
+               ;;
+               scheme-mode-hook
+               gerbil-mode-hook)))
   (dolist (hook hooks)
     (add-hook hook #'sanityinc/lisp-setup)))
+
+;; racket
+(with-eval-after-load 'racket-mode
+  (add-hook 'racket-mode-hook      #'racket-unicode-input-method-enable)
+  (add-hook 'racket-repl-mode-hook #'racket-unicode-input-method-enable)
+  (setq racket-images-system-viewer "feh"))
 
 ;; slime swank
 
@@ -74,7 +83,6 @@
   (let ((slime-lisp-implementations
          '((sbcl ("/usr/bin/sbcl")))))
     (slime)))
-
 
 ;; gerbil tag table
 

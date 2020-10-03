@@ -23,7 +23,7 @@
   (setq lazy-lock-defer-contextually t)
   (setq lazy-lock-defer-time 0)
 
-  ;make DEL take all previous whitespace with it
+  ;; make DEL take all previous whitespace with it
   (c-toggle-hungry-state 1)
 
   ;; indent
@@ -40,7 +40,8 @@
   ;; emacs-c-opening-corresponding-header-file
   (local-set-key (kbd "C-x C-o") 'ff-find-other-file)
 
-  (setq cc-search-directories '("." "/usr/include" "/usr/local/include/*" "../*/include" "$WXWIN/include"))
+  (setq cc-search-directories
+        '("." "/usr/include" "/usr/local/include/*" "../*/include" "$WXWIN/include"))
 
   ;; {{ @see https://github.com/redguardtoo/cpputils-cmake
   ;; In theory, you can write your own Makefile for `flyamke-mode' without cmake.
@@ -52,11 +53,12 @@
   ;; make a #define be left-aligned
   (setq c-electric-pound-behavior '(alignleft)))
 
-;; donot use c-mode-common-hook or cc-mode-hook because many major-modes use this hook
+;; don't use c-mode-common-hook or cc-mode-hook because many major-modes use this hook
 (defun c-mode-common-hook-setup ()
   (unless (buffer-file-temp-p)
     (inc0n/common-cc-mode-setup)
-    (unless (or (derived-mode-p 'java-mode) (derived-mode-p 'groovy-mode))
+    (unless (or (derived-mode-p 'java-mode)
+                (derived-mode-p 'groovy-mode))
       (inc0n/c-mode-setup))
     (eldoc-mode 1)))
 (add-hook 'c-mode-common-hook 'c-mode-common-hook-setup)

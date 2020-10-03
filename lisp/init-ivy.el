@@ -1,5 +1,9 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
+(require-package 'ivy)
+(require-package 'swiper)
+(require-package 'counsel) ; counsel => swiper => ivy
+
 (ivy-mode 1) ; it enables ivy UI for `kill-buffer'
 
 (defun inc0n/rename-file (x)
@@ -317,10 +321,10 @@ If N is nil, use `ivy-mode' to browse `kill-ring'."
 
 (defun counsel-ag-thing-at-point ()
   (interactive)
-  (counsel-ag (ivy-thing-at-point)))
+  (counsel-ag (util/thing-at-point)))
 
 (defun counsel-rg-thing-at-point ()
   (interactive)
-  (counsel-rg (ivy-thing-at-point)))
+  (counsel-rg (util/thing-at-point)))
 
 (provide 'init-ivy)

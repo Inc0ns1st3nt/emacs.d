@@ -1,31 +1,36 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
+(require-package 'yasnippet)
+(require-package 'yasnippet-snippets)
+
 ;; my private snippets, should be placed before enabling yasnippet
-(setq inc0n/yasnippets (expand-file-name "~/inc0n/yasnippets"))
+(defvar inc0n/yasnippets (expand-file-name "~/inc0n/yasnippets"))
 
 (defun inc0n/enable-yas-minor-mode ()
   "Enable `yas-minor-mode'."
   (unless (buffer-file-temp-p)
     (yas-minor-mode 1)))
 
-(add-hook 'prog-mode-hook #'inc0n/enable-yas-minor-mode)
-(add-hook 'text-mode-hook #'inc0n/enable-yas-minor-mode)
-;; {{ modes do NOT inherit from prog-mode
-(add-hook 'cmake-mode-hook #'inc0n/enable-yas-minor-mode)
-(add-hook 'web-mode-hook #'inc0n/enable-yas-minor-mode)
-(add-hook 'scss-mode-hook 'inc0n/enable-yas-minor-mode)
-;; }}
+(dolist (hook '(prog-mode-hook
+                text-mode-hook
+                ;; {{ modes do NOT inherit from prog-mode
+                cmake-mode-hook
+                web-mode-hook
+                scss-mode-hook
+                ;; }}
+                ))
+  (add-hook hook #'inc0n/enable-yas-minor-mode))
 
 (defun inc0n/yas-expand-from-trigger-key-hack (orig-func &rest args)
   "Tab key won't trigger yasnippet expand in org heading."
-  (cond
-   ;; skip yas expand in org heading
-   ((and (eq major-mode 'org-mode)
-         (string-match "^org-level-" (format "%S" (get-text-property (point) 'face))))
-    (org-cycle))
-   (t
-    (apply orig-func args))))
-(advice-add 'yas-expand-from-trigger-key :around #'inc0n/yas-expand-from-trigger-key-hack)
+  (if (and (eq major-mode 'org-mode)
+           (string-match "^org-level-"
+                         (format "%S" (get-text-property (point) 'face))))
+      ;; skip yas expand in org heading
+      (org-cycle)
+    (apply orig-func args)))
+(advice-add 'yas-expand-from-trigger-key
+            :around #'inc0n/yas-expand-from-trigger-key-hack)
 
 (defun inc0n/yas-reload-all ()
   "Compile and reload snippets.  Run the command after adding new snippets."
