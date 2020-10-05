@@ -253,8 +253,8 @@ If the character before and after CH is space or tab, CH is NOT slash"
   "gh" 'outline-up-heading
   "$" 'org-end-of-line ; smarter behaviour on headlines etc.
   "^" 'org-beginning-of-line ; ditto
-  "<" (org-op-on-tree-and-subtree #'org-do-demote)
-  ">" (org-op-on-tree-and-subtree #'org-do-promote) ; indent
+  "<" (org-op-on-tree-and-subtree #'org-do-promote)
+  ">" (org-op-on-tree-and-subtree #'org-do-demote) ; indent
   (kbd "TAB") 'org-cycle)
 
 (evil-declare-key 'normal markdown-mode-map
@@ -290,14 +290,15 @@ If the character before and after CH is space or tab, CH is NOT slash"
              (woman-mode . emacs)
              (sr-mode . emacs)
              (profiler-report-mode . emacs)
-             (dired-mode . emacs)
+             ;; (dired-mode . emacs)
              (compilation-mode . emacs)
              (speedbar-mode . emacs)
              (ivy-occur-mode . emacs)
              (ffip-file-mode . emacs)
              (ivy-occur-grep-mode . normal)
              (messages-buffer-mode . normal)
-             (js2-error-buffer-mode . emacs)))
+             (js2-error-buffer-mode . emacs)
+             (org-agenda-mode . normal)))
   (evil-set-initial-state (car p) (cdr p)))
 ;; }}
 
@@ -549,9 +550,16 @@ If INCLUSIVE is t, the text object is inclusive."
 
 ;; {{ Use `SPC` as leader key
 ;; all keywords arguments are still supported
+
+;; prevent space leader key overriden checkout
+;; https://github.com/noctuid/evil-guide#further-integrating-evil-and-emacs
+(with-eval-after-load 'dired-mode
+  (general-override-mode t))
+
 (general-create-definer inc0n/space-leader-def
   :prefix "SPC"
-  :states '(normal visual))
+  :states '(normal visual)
+  :keymaps 'override)
 
 ;; Please check "init-ediff.el" which contains `inc0n/space-leader-def' code too
 (inc0n/space-leader-def
@@ -577,8 +585,8 @@ If INCLUSIVE is t, the text object is inclusive."
   "bu" 'backward-up-list
   "bs" (lambda () (interactive) (goto-edge-by-comparing-font-face -1))
   ;; evilnc
-  "ci" 'evilnc-comment-or-uncomment-lines
-  "cl" 'evilnc-quick-comment-or-uncomment-to-the-line
+  "ci" 'evilnc-quick-comment-or-uncomment-to-the-line
+  "cl" 'evilnc-comment-or-uncomment-lines
   "cc" 'evilnc-copy-and-comment-lines
   "cp" 'inc0n/evilnc-comment-or-uncomment-paragraphs
   "ct" 'evilnc-comment-or-uncomment-html-tag ; evil-nerd-commenter v3.3.0 required
@@ -668,6 +676,7 @@ If INCLUSIVE is t, the text object is inclusive."
   "oa" 'counsel-org-agenda-headlines
   "oc" 'org-capture
   "og" 'org-agenda
+  "on" 'org-agenda-show-agenda-and-todo
   "op" 'compile
   "otl" 'org-toggle-link-display
 

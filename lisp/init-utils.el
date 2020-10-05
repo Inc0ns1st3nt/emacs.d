@@ -214,7 +214,8 @@ If HINT is empty, use symbol at point."
   "get thing at point.
 If region is active get region string.
 Else use thing-at-point to get current string 'symbol."
-  (cond ((char-equal ?\  (char-after)) "")
+  (cond ((and (not (= (point-max) (point)))
+              (char-equal ?\  (char-after))) "")
         (t (ivy-thing-at-point))))
 
 (defun delete-this-file ()

@@ -225,4 +225,9 @@ If USE-INDIRECT-BUFFER is not nil, use `indirect-buffer' to hold the widen conte
      (menu-bar-mode -1))
 ;; }}
 
+;; Startup
+(setq inhibit-splash-screen t)
+(org-agenda-list)
+(delete-other-windows)
+
 (provide 'init-essential)

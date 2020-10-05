@@ -24,19 +24,20 @@
   (defun sanityinc/hide-org-clock-from-header-line ()
     (setq-default header-line-format nil))
 
-  (add-hook 'org-clock-in-hook 'sanityinc/show-org-clock-in-header-line)
-  (add-hook 'org-clock-out-hook 'sanityinc/hide-org-clock-from-header-line)
-  (add-hook 'org-clock-cancel-hook 'sanityinc/hide-org-clock-from-header-line)
+  (add-hook 'org-clock-in-hook #'sanityinc/show-org-clock-in-header-line)
+  (add-hook 'org-clock-out-hook #'sanityinc/hide-org-clock-from-header-line)
+  (add-hook 'org-clock-cancel-hook #'sanityinc/hide-org-clock-from-header-line)
 
-  (define-key org-clock-mode-line-map [header-line mouse-2] 'org-clock-goto)
-  (define-key org-clock-mode-line-map [header-line mouse-1] 'org-clock-menu))
+  (define-key org-clock-mode-line-map [header-line mouse-2] #'org-clock-goto)
+  (define-key org-clock-mode-line-map [header-line mouse-1] #'org-clock-menu))
 
 (defun org-op-on-tree-and-subtree (procedure)
   "Call procedure on the tree and its subtree or tree in region"
   (lambda ()
+    (interactive)
     ;; fix edge case when heading at EOF and only has spaces as heading title
+    (beginning-of-line)
     (save-excursion
-      (beginning-of-line)
       (unless (or (region-active-p)
                   (let ((line (thing-at-point 'line t)))
                     (and (string-match-p "^\\*+ $" line) ;; is node only one spaced
@@ -49,11 +50,12 @@
 (with-eval-after-load 'org-mime
   (setq org-mime-export-options '(:section-numbers nil :with-author nil :with-toc nil))
   (defun org-mime-html-hook-setup ()
-    (org-mime-change-element-style "pre"
-                                   "color:#E6E1DC; background-color:#232323; padding:0.5em;")
+    (org-mime-change-element-style
+     "pre"
+     "color:#E6E1DC; background-color:#232323; padding:0.5em;")
     (org-mime-change-element-style "blockquote"
                                    "border-left: 2px solid gray; padding-left: 4px;"))
-  (add-hook 'org-mime-html-hook 'org-mime-html-hook-setup))
+  (add-hook 'org-mime-html-hook #'org-mime-html-hook-setup))
 ;; }}
 
 (defun org-mode-hook-setup ()
@@ -88,11 +90,12 @@ ARG is ignored."
     "Restore the window layout that was saved before `org-edit-special' is called."
     (when inc0n/org-src--saved-temp-window-config
       (set-window-configuration inc0n/org-src--saved-temp-window-config)
-      (setq inc0n/org-src--saved-temp-window-config nil)))
+      ;; (setq inc0n/org-src--saved-temp-window-config nil)
+      ))
 
   ;; org 9.3 do not restore windows layout when editing special element
-  (advice-add 'org-edit-special :before 'inc0n/org-edit-special)
-  (advice-add 'org-edit-src-exit :after 'inc0n/org-edit-src-exit)
+  (advice-add 'org-edit-special :before #'inc0n/org-edit-special)
+  (advice-add 'org-edit-src-exit :after #'inc0n/org-edit-src-exit)
   ;; }}
 
   (util/ensure 'org-clock)
@@ -126,10 +129,9 @@ ARG is ignored."
           (end-regexp "^[ \t]*#\\+end_\\(src\\|html\\|latex\\|example\\)")
           (case-fold-search t))
       (save-excursion
-        (if (re-search-backward begin-regexp nil t)
-            (let ((e (re-search-forward end-regexp nil t)))
-              (< (point) e))
-          nil))))
+        (and (re-search-backward begin-regexp nil t)
+             (< (point)
+                (re-search-forward end-regexp nil t))))))
 
   (defun inc0n/org-mode-flyspell-verify-hack (orig-func &rest args)
     "flyspell only uses `ispell-word'."
@@ -160,7 +162,7 @@ ARG is ignored."
                (not (org-entry-get nil "ACTIVATED")))
       (org-entry-put nil "ACTIVATED" (format-time-string "[%Y-%m-%d]"))))
   (add-hook 'org-after-todo-state-change-hook #'log-todo-next-creation-date)
-
+  
   ;; {{ export org-mode in Chinese into PDF
   ;; @see http://freizl.github.io/posts/tech/2012-04-06-export-orgmode-file-in-Chinese.html
   ;; and you need install texlive-xetex on different platforms
@@ -179,7 +181,7 @@ ARG is ignored."
         org-edit-timestamp-down-means-later t
         org-agenda-start-on-weekday nil
         org-agenda-span 14
-        org-agenda-include-diary t
+        ;; org-agenda-include-diary t
         org-agenda-window-setup 'current-window
         org-fast-tag-selection-single-key 'expert
         org-export-kill-product-buffer-when-displayed t
@@ -199,12 +201,19 @@ ARG is ignored."
         org-outline-path-complete-in-steps nil
         org-todo-keywords '((sequence "TODO(t)" "NEXT(n)" "HOLD(h@/!)" "|" "DONE(d!/!)")
                             (sequence "PROJECT(P@)" "|" "CANCELLED(c@/!)"))
-        org-imenu-depth 9
+        org-imenu-depth 5
         ;; @see http://irreal.org/blog/1
         org-src-fontify-natively t)
 
   (global-set-key (kbd "C-c C-C") 'org-capture)
-  (setq org-directory "~/sources/org/")
+
+  (setq org-directory "~/sources/org/agenda/")
+  (setq org-agenda-files (list (concat org-directory "agenda.org")
+                               (concat org-directory "analysis.org")
+                               (concat org-directory "refile.org")
+                               (concat org-directory "projects.org")
+                               (concat org-directory "notes.org")
+                               (concat org-directory "todo.org")))
   (setq org-capture-templates
         `(("t" "Todo" entry  (file "refile.org")
            ,(concat "* TODO %?\n"
@@ -234,31 +243,35 @@ ARG is ignored."
           ;; ("h" "Habit" entry (file "refile.org")
           ;;  "* NEXT %?\n%U\n%a\nSCHEDULED: %(format-time-string \"%<<%Y-%m-%d %a .+1d/3d>>\")\n:PROPERTIES:\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:END:\n")
           ))
-  (setq org-agenda-files '("agenda.org" "analysis.org"
-                           "refile.org" "projects.org"
-                           "notes.org"))
-  (setq org-agenda-custom-commands
-        '(("g" "Get Things Done (GTD)"
-           ((agenda ""
-                    ((org-agenda-skip-function
-                      '(org-agenda-skip-entry-if 'deadline))
-                     (org-deadline-warning-days 0)))
-            (todo "NEXT"
-                  ((org-agenda-skip-function
-                    '(org-agenda-skip-entry-if 'deadline))
-                   (org-agenda-prefix-format "  %i %-12:c [%e] ")
-                   (org-agenda-overriding-header "\nTasks\n")))
-            (agenda nil
-                    ((org-agenda-entry-types '(:deadline))
-                     (org-agenda-format-date "")
-                     (org-deadline-warning-days 7)
-                     (org-agenda-skip-function
-                      '(org-agenda-skip-entry-if 'notregexp "\\* NEXT"))
-                     (org-agenda-overriding-header "\nDeadlines")))
-            (tags-todo "refile"
-                       ((org-agenda-prefix-format "  %?-12t% s")
-                        (org-agenda-overriding-header "\nTodo\n")))
-            (tags "CLOSED>=\"<today>\""
-                  ((org-agenda-overriding-header "\nCompleted today\n"))))))))
+  ;; (setq org-agenda-custom-commands
+  ;;       '(("g" "Get Things Done (GTD)"
+  ;;          ((agenda ""
+  ;;                   ((org-agenda-skip-function
+  ;;                     '(org-agenda-skip-entry-if 'deadline))
+  ;;                    (org-deadline-warning-days 0)))
+  ;;           (todo "NEXT"
+  ;;                 ((org-agenda-skip-function
+  ;;                   '(org-agenda-skip-entry-if 'deadline))
+  ;;                  (org-agenda-prefix-format "  %i %-12:c [%e] ")
+  ;;                  (org-agenda-overriding-header "\nTasks\n")))
+  ;;           (agenda nil
+  ;;                   ((org-agenda-entry-types '(:deadline))
+  ;;                    (org-agenda-format-date "")
+  ;;                    (org-deadline-warning-days 7)
+  ;;                    (org-agenda-skip-function
+  ;;                     '(org-agenda-skip-entry-if 'notregexp "\\* NEXT"))
+  ;;                    (org-agenda-overriding-header "\nDeadlines")))
+  ;;           (tags-todo "refile"
+  ;;                      ((org-agenda-prefix-format "  %?-12t% s")
+  ;;                       (org-agenda-overriding-header "\nTodo\n")))
+  ;;           (tags "CLOSED>=\"<today>\""
+  ;;                 ((org-agenda-overriding-header "\nCompleted today\n")))))))
+  )
+
+(with-eval-after-load 'evil
+  (defun org-agenda-mode-setup ()
+    (message "setting up org agenda mode")
+    (evil-local-set-key 'normal (kbd "RET") 'org-agenda-show))
+  (add-hook 'org-agenda-mode-hook #'org-agenda-mode-setup))
 
 (provide 'init-org)

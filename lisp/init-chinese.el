@@ -51,7 +51,7 @@
 (with-eval-after-load 'pyim
   ;; use western punctuation
   ;; (setq pyim-punctuation-dict nil)
-  (setq pyim-page-length 9)
+  (setq pyim-page-length 8)
 
   (setq default-input-method "pyim")
 
