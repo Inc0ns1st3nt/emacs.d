@@ -22,9 +22,8 @@
 ;; :antialias=false
 ;; (set-face-attribute 'default nil :font "monaco" :height 120)
 
-;; https://emacs.stackexchange.com/questions/29289/my-change-to-the-default-font-size-reverts-at-startup
-(add-to-list 'default-frame-alist
-             '(font . "monaco-12"))
+;; (add-to-list 'default-frame-alist
+;;              '(font . "monaco-12"))
 
 (setq-default line-spacing 0)
 

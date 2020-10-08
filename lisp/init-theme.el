@@ -11,6 +11,7 @@
 (defvar theme/day 'doom-one-light)
 
 (defun load-theme-only (theme)
+  "unload all other theme before loading `theme'"
   (dolist (i custom-enabled-themes)
     (disable-theme i))
   (load-theme theme t))
@@ -39,6 +40,12 @@
         (load-theme-only theme/night)
       (load-theme-only theme/day))))
 
+(defun inc0n/toggle-day/night ()
+  (interactive)
+  (if (equal custom-enabled-themes (list theme/day))
+      (load-theme-only theme/night)
+    (load-theme-only theme/day)))
+
 ;;
 
 (defvar inc0n/favourite-color-themes nil
@@ -47,80 +54,27 @@
 ;; random color theme
 (defun inc0n/pickup-random-color-theme (themes)
   "Pickup random color theme from themes."
-  (interactive (or inc0n/favourite-color-themes
-                   (custom-available-themes)))
-  (let*
-      ((theme (nth (random (length available-themes)) themes))
-       (theme (symbol-name theme)))
+  (interactive
+   (or inc0n/favourite-color-themes
+       (custom-available-themes)))
+  (let ((theme
+         (nth (random (length available-themes)) themes)))
     (load-theme-only theme)
     (message "Color theme [%s] loaded." theme)))
-
-(defun random-healthy-color-theme (&optional join-dark-side)
-  "Random healthy color theme.  If JOIN-DARK-SIDE is t, use dark theme only."
-  (interactive "P")
-  (let* (themes
-         (hour (string-to-number (format-time-string "%H" (current-time))))
-         (prefer-light-p (and (not join-dark-side) (>= hour 9) (<= hour 19)) ))
-    (dolist (theme (custom-available-themes))
-      (let* ((light-theme-p
-              (or (and (string-match-p "light\\|bright\\|white" (symbol-name theme))
-                       (not (string-match-p "^base16-\\|^airline-\\|^doom=\\|^alect-" (symbol-name theme)))
-                       (not (member theme '(twilight
-                                            avk-darkblue-white
-                                            sanityinc-tomorrow-bright))))
-                  (member theme '(adwaita
-                                  aliceblue
-                                  bharadwaj
-                                  black-on-gray
-                                  blippblopp
-                                  emacs-21
-                                  emacs-nw
-                                  fischmeister
-                                  github
-                                  greiner
-                                  gtk-ide
-                                  high-contrast
-                                  jb-simple
-                                  kaolin-breeze
-                                  katester
-                                  leuven
-                                  marquardt
-                                  mccarthy
-                                  montz
-                                  occidental
-                                  oldlace
-                                  scintilla
-                                  sitaramv-nt
-                                  snowish
-                                  soft-stone
-                                  standard
-                                  tango
-                                  tango-plus
-                                  tangotango
-                                  tao-yang
-                                  vim-colors
-                                  whateveryouwant
-                                  wheat
-                                  xemacs
-                                  xp)))))
-        (when (if prefer-light-p light-theme-p (not light-theme-p))
-          (push theme themes))))
-    (inc0n/pickup-random-color-theme themes)))
 
 (defun inc0n/theme-packages (packages)
   "Get themes from PACKAGES."
   (cl-loop with top-num = 110
-           with i = 0
+           for i from 0
            for p in (sort packages
                           (lambda (a b)
                             (> (cdr a) (cdr b))))
            for name = (symbol-name (car p))
            when (and (string-match-p "-themes?$" name)
                      (< i top-num)
-                     (not (member name
-                                  '(color-theme smart-mode-line-powerline-theme))))
-           do (setq i (1+ i))
-           and collect p))
+                     (not (memq name
+                                '(color-theme smart-mode-line-powerline-theme))))
+           collect p))
 
 (defun inc0n/get-popular-theme-name ()
   "Insert names of popular theme."

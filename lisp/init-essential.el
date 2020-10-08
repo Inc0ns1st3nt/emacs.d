@@ -150,14 +150,13 @@ If USE-INDIRECT-BUFFER is not nil, use `indirect-buffer' to hold the widen conte
      (t (org-narrow-to-subtree))))
 
    ((derived-mode-p 'diff-mode)
-    (let (b e)
-      (save-excursion
-        ;; If the (point) is already beginning or end of file diff,
-        ;; the `diff-beginning-of-file' and `diff-end-of-file' return nil
-        (setq b (progn (diff-beginning-of-file) (point)))
-        (setq e (progn (diff-end-of-file) (point))))
-      (when (and b e (< b e))
-        (narrow-to-region-indirect-buffer-maybe b e use-indirect-buffer))))
+    (save-excursion
+      ;; If the (point) is already beginning or end of file diff,
+      ;; the `diff-beginning-of-file' and `diff-end-of-file' return nil
+      (let* ((b (progn (diff-beginning-of-file) (point)))
+             (e (progn (diff-end-of-file) (point))))
+        (when (and b e (< b e))
+          (narrow-to-region-indirect-buffer-maybe b e use-indirect-buffer)))))
 
    ((derived-mode-p 'prog-mode)
     (mark-defun)
@@ -202,32 +201,8 @@ If USE-INDIRECT-BUFFER is not nil, use `indirect-buffer' to hold the widen conte
 ;; (setq tramp-ssh-controlmaster-options "-o ControlMaster=auto -o ControlPath='tramp.%%C' -o ControlPersist=no")
 ;; }}
 
-;; {{ GUI frames
-;; Suppress GUI features
-(setq use-file-dialog nil)
-(setq use-dialog-box nil)
-(setq inhibit-startup-screen t)
-(setq inhibit-startup-echo-area-message t)
-
-;; Show a marker in the left fringe for lines not in the buffer
-(setq indicate-empty-lines t)
-
-;; NO tool bar, scroll-bar
-(when window-system
-  (and (fboundp 'scroll-bar-mode)
-       (scroll-bar-mode -1))
-  (and (fboundp 'tool-bar-mode)
-       (tool-bar-mode -1))
-  (and (fboundp 'horizontal-scroll-bar-mode)
-       (horizontal-scroll-bar-mode -1)))
-;; no menu bar
-(and (fboundp 'menu-bar-mode)
-     (menu-bar-mode -1))
-;; }}
-
 ;; Startup
-(setq inhibit-splash-screen t)
-(org-agenda-list)
+(org-agenda-show-agenda-and-todo)
 (delete-other-windows)
 
 (provide 'init-essential)

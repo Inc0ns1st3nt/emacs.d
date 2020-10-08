@@ -113,7 +113,11 @@ Text-Width: 70
   <x-color><param>#a626a4</param>(</x-color>require-init 'init-httpd t<x-color><param>#a626a4</param>)</x-color>
 
   ;; <x-color><param>#9ca0a4</param>projectile costs 7% startup time
+
 </x-color>
+
+  <x-color><param>#a626a4</param>(</x-color>require-init 'init-pdf t<x-color><param>#a626a4</param>)</x-color>
+
   ;; <x-color><param>#9ca0a4</param>don't play with color-theme in light weight mode
 </x-color>  ;; <x-color><param>#9ca0a4</param>color themes are already installed in `</x-color><x-color><param>#b751b6</param><x-color><param>#9ca0a4</param>init-elpa.el</x-color></x-color><x-color><param>#9ca0a4</param>'
 </x-color>  <x-color><param>#a626a4</param>(</x-color>require-init 'init-theme<x-color><param>#a626a4</param>)</x-color>
@@ -127,7 +131,7 @@ Text-Width: 70
   <x-color><param>#a626a4</param>(</x-color>require-init 'init-shackle t<x-color><param>#a626a4</param>)</x-color>
   <x-color><param>#a626a4</param>(</x-color>require-init 'init-dired t<x-color><param>#a626a4</param>)</x-color>
   <x-color><param>#a626a4</param>(</x-color>require-init 'init-writting t<x-color><param>#a626a4</param>)</x-color>
-  <x-color><param>#a626a4</param>(</x-color>require-init 'init-hydra<x-color><param>#a626a4</param>)</x-color>   ; <x-color><param>#9ca0a4</param>hotkey is required everywhere
+  ;; <x-color><param>#9ca0a4</param>(require-init 'init-hydra)  ; hotkey is required everywhere
 </x-color>  ;; <x-color><param>#9ca0a4</param>use evil mode (vi key binding)
 </x-color>  <x-color><param>#a626a4</param>(</x-color>require-init 'init-evil<x-color><param>#a626a4</param>)</x-color>    ; <x-color><param>#9ca0a4</param>init-evil dependent on init-clipboard
 </x-color>
@@ -159,19 +163,10 @@ Text-Width: 70
   <x-color><param>#a626a4</param>(</x-color>message <x-color><param>#50a14f</param>"Emacs startup time: %s milliseconds."</x-color>
            <x-color><param>#50a14f</param>(</x-color>format-time-string <x-color><param>#50a14f</param>"%3N"</x-color> <x-color><param>#da8548</param>(</x-color>time-since inc0n/emacs-load-start-time<x-color><param>#da8548</param>)</x-color><x-color><param>#50a14f</param>)</x-color><x-color><param>#a626a4</param>)</x-color><x-color><param>#4078f2</param>)</x-color>
 
-<x-color><param>#4078f2</param>(</x-color>custom-set-variables
- ;; <x-color><param>#9ca0a4</param>custom-set-variables was added by Custom.
-</x-color> ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(org-agenda-files nil))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(default ((t (:background nil)))))
- ;;; <x-color><param>#5C6370</param>Local Variables:
-</x-color>;;; <x-color><param>#5C6370</param>no-byte-compile: t
-</x-color>;;; <x-color><param>#5C6370</param>End:
-</x-color><x-color><param>#61AFEF</param>(</x-color>put 'erase-buffer 'disabled nil<x-color><param>#61AFEF</param>)</x-color>
+<x-color><param>#4078f2</param>(</x-color>evil-mode 1<x-color><param>#4078f2</param>)</x-color>
+
+
+ ;;; <x-color><param>#9ca0a4</param>Local Variables:
+</x-color>;;; <x-color><param>#9ca0a4</param>no-byte-compile: t
+</x-color>;;; <x-color><param>#9ca0a4</param>End:
+</x-color><x-color><param>#4078f2</param>(</x-color>put 'erase-buffer 'disabled nil<x-color><param>#4078f2</param>)</x-color>

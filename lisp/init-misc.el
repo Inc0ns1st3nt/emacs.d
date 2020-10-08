@@ -285,24 +285,20 @@ This function can be re-used by other major modes after compilation."
 
 (defun inc0n/which-function ()
   "Return current function name."
-  (util/ensure 'imenu)
   ;; @see http://stackoverflow.com/questions/13426564/how-to-force-a-rescan-in-imenu-by-a-function
-  (let ((imenu-create-index-function
-         (if (inc0n/use-tags-as-imenu-function-p)
-             'counsel-etags-imenu-default-create-index-function
-           imenu-create-index-function)))
-    ;; clean the imenu cache
-    (setq imenu--index-alist nil)
-    (imenu--make-index-alist t)
-    (which-function)))
+  (util/ensure 'imenu)
+  (let ((imenu-auto-rescan t)
+        (imenu-create-index-function (if (inc0n/use-tags-as-imenu-function-p)
+                                         'counsel-etags-imenu-default-create-index-function
+                                       imenu-create-index-function))
+        (imenu-auto-rescan-maxout (buffer-size)))
+    (imenu--make-index-alist t))
+  (which-function))
 
 (defun popup-which-function ()
   "Popup which function message."
   (interactive)
-  (let ((msg (inc0n/which-function)))
-    (when msg
-      (popup-tip msg)
-      (copy-yank-str msg))))
+  (popup-tip (inc0n/which-function)))
 ;; }}
 
 (local-require 'ace-pinyin)
@@ -403,7 +399,7 @@ If step is -1, go backward."
   (when (> b e)
     (let ((tmp b))
       (setq b e)
-      (set e tmp)))
+      (setq e tmp)))
   ;; select lines
   (save-excursion
     ;; Another workaround for evil-visual-line bug:

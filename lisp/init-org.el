@@ -60,7 +60,6 @@
 
 (defun org-mode-hook-setup ()
   (unless (buffer-file-temp-p)
-    (setq evil-auto-indent nil)
 
     ;; org-mime setup, run this command in org-file, than yank in `message-mode'
     (local-set-key (kbd "C-c M-o") 'org-mime-org-buffer-htmlize)
@@ -175,7 +174,8 @@ ARG is ignored."
   ;; }}
 
   ;; misc
-  (setq org-log-done t
+  (setq org-startup-with-latex-preview t
+        org-log-done t
         org-completion-use-ido t
         org-edit-src-content-indentation 0
         org-edit-timestamp-down-means-later t
@@ -243,30 +243,29 @@ ARG is ignored."
           ;; ("h" "Habit" entry (file "refile.org")
           ;;  "* NEXT %?\n%U\n%a\nSCHEDULED: %(format-time-string \"%<<%Y-%m-%d %a .+1d/3d>>\")\n:PROPERTIES:\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:END:\n")
           ))
-  ;; (setq org-agenda-custom-commands
-  ;;       '(("g" "Get Things Done (GTD)"
-  ;;          ((agenda ""
-  ;;                   ((org-agenda-skip-function
-  ;;                     '(org-agenda-skip-entry-if 'deadline))
-  ;;                    (org-deadline-warning-days 0)))
-  ;;           (todo "NEXT"
-  ;;                 ((org-agenda-skip-function
-  ;;                   '(org-agenda-skip-entry-if 'deadline))
-  ;;                  (org-agenda-prefix-format "  %i %-12:c [%e] ")
-  ;;                  (org-agenda-overriding-header "\nTasks\n")))
-  ;;           (agenda nil
-  ;;                   ((org-agenda-entry-types '(:deadline))
-  ;;                    (org-agenda-format-date "")
-  ;;                    (org-deadline-warning-days 7)
-  ;;                    (org-agenda-skip-function
-  ;;                     '(org-agenda-skip-entry-if 'notregexp "\\* NEXT"))
-  ;;                    (org-agenda-overriding-header "\nDeadlines")))
-  ;;           (tags-todo "refile"
-  ;;                      ((org-agenda-prefix-format "  %?-12t% s")
-  ;;                       (org-agenda-overriding-header "\nTodo\n")))
-  ;;           (tags "CLOSED>=\"<today>\""
-  ;;                 ((org-agenda-overriding-header "\nCompleted today\n")))))))
-  )
+  (push '("g" "Get Things Done (GTD)"
+          ((agenda ""
+                   ((org-agenda-skip-function
+                     '(org-agenda-skip-entry-if 'deadline))
+                    (org-deadline-warning-days 0)))
+           (todo "NEXT"
+                 ((org-agenda-skip-function
+                   '(org-agenda-skip-entry-if 'deadline))
+                  (org-agenda-prefix-format "  %i %-12:c [%e] ")
+                  (org-agenda-overriding-header "\nTasks\n")))
+           (agenda nil
+                   ((org-agenda-entry-types '(:deadline))
+                    (org-agenda-format-date "")
+                    (org-deadline-warning-days 7)
+                    (org-agenda-skip-function
+                     '(org-agenda-skip-entry-if 'notregexp "\\* NEXT"))
+                    (org-agenda-overriding-header "\nDeadlines")))
+           (tags-todo "refile"
+                      ((org-agenda-prefix-format "  %?-12t% s")
+                       (org-agenda-overriding-header "\nTodo\n")))
+           (tags "CLOSED>=\"<today>\""
+                 ((org-agenda-overriding-header "\nCompleted today\n")))))
+        org-agenda-custom-commands))
 
 (with-eval-after-load 'evil
   (defun org-agenda-mode-setup ()

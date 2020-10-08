@@ -21,9 +21,11 @@ If N is not nil, copy file name and line number."
   (interactive "P")
   (when buffer-file-name
     (let* ((filename (file-name-nondirectory buffer-file-name))
-           (s (if n (format "%s:%s" filename (line-number-at-pos)) filename)))
+           (s (if n
+                  (format "%s:%s" filename (line-number-at-pos))
+                filename)))
       (copy-yank-str s)
-      (message "%s => clipboard&kill-ring" s))))
+      (message "%s => clipboard & kill-ring" s))))
 
 (defun cp-ffip-ivy-last ()
   "Copy visible keys of `ivy-last' into `kill-ring' and clipboard."
@@ -91,7 +93,7 @@ If N is 4, rectangle paste. "
     (util/delete-selected-region)
 
     ;; paste after the cursor in evil normal state
-    (cond ((not n))                     ; do nothing
+    (cond ((null n))                     ; do nothing
           ((= 1 n)
            (insert (replace-regexp-in-string "^\\(+\\|-\\|@@ $\\)" "" str)))
           ((= 2 n)

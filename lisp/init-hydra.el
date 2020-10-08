@@ -20,7 +20,6 @@
 [_d_] Recent directory
 [_bh_] Bash history
 [_hr_] Dired CMD history
-[_hh_] Random theme
 [_ii_] Imenu
 [_q_] Quit
 "
@@ -30,7 +29,6 @@
   ("f" inc0n/counsel-recentf)
   ("d" counsel-recent-directory)
   ("bh" counsel-insert-from-bash-history)
-  ("hh" random-healthy-color-theme)
   ("ss" wg-create-workgroup)
   ("ii" counsel-imenu)
   ("ll" wg-open-workgroup)

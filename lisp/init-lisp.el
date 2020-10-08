@@ -51,15 +51,14 @@
   (rainbow-delimiters-mode t)
   (turn-on-eldoc-mode))
 
-(let ((hooks '(lisp-mode-hook
-               racket-mode-hook
-               inferior-lisp-mode-hook
-               lisp-interaction-mode-hook
-               ;;
-               scheme-mode-hook
-               gerbil-mode-hook)))
-  (dolist (hook hooks)
-    (add-hook hook #'sanityinc/lisp-setup)))
+(dolist (hook '(lisp-mode-hook
+                racket-mode-hook
+                inferior-lisp-mode-hook
+                lisp-interaction-mode-hook
+                ;;
+                scheme-mode-hook
+                gerbil-mode-hook))
+  (add-hook hook #'sanityinc/lisp-setup))
 
 ;; racket
 (with-eval-after-load 'racket-mode

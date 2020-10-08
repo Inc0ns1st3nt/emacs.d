@@ -54,8 +54,6 @@
   (setq company-auto-complete nil)
 
   ;; NOT to load company-mode for certain major modes.
-  ;; Ironic that I suggested this feature but I totally forgot it
-  ;; until two years later.
   ;; https://github.com/company-mode/company-mode/issues/29
   (setq company-global-modes
         '(not
