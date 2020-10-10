@@ -3,7 +3,7 @@
 # key: advice
 # contributor: Chen Bin <chenbin DOT sh AT gmail>
 # --
-(defun my-${1:$(yas/substr yas-text "[^ ]*")}-hack (&optional arg)
+(defun inc0n/${1:$(yas/substr yas-text "[^ ]*")}-hack (&optional arg)
    (message "arg=%s" arg)
    $0)
-(advice-add '${1:find-file} :before #'my-${1:$(yas/substr yas-text "[^ ]*")}-hack)
+(advice-add '${1:find-file} :before #'inc0n/${1:$(yas/substr yas-text "[^ ]*")}-hack)

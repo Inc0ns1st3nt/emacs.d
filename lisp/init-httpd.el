@@ -7,7 +7,6 @@
 (setq httpd-port 4444)
 (defun httpd-restart-now ()
   (interactive)
-  (httpd-stop)
   (httpd-start)
   (message "http://localhost:%d/ at %s restarted"
            httpd-port httpd-root))

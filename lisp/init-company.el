@@ -71,7 +71,7 @@
     (cond
      ((and (derived-mode-p 'prog-mode)
            (or (not (company-in-string-or-comment)) ; respect advice in `company-in-string-or-comment'
-               (not (evilnc-is-pure-comment (point))))) ; auto-complete in comment only
+               (not (evilnc-pure-comment-p (point))))) ; auto-complete in comment only
       ;; only use company-ispell in comment when coding
       nil)
      (t
@@ -97,12 +97,10 @@
     (add-to-list 'company-backends 'company-ispell)
     ;; @see https://github.com/redguardtoo/emacs.d/issues/473
     (setq company-ispell-dictionary
-          (cond
-           ((and (boundp 'ispell-alternate-dictionary)
-                 ispell-alternate-dictionary)
-            ispell-alternate-dictionary)
-           (t
-            (file-truename (concat inc0n/emacs-d "misc/english-words.txt")))))))
+          (if (and (boundp 'ispell-alternate-dictionary)
+                   ispell-alternate-dictionary)
+              ispell-alternate-dictionary
+            (file-truename (concat inc0n/emacs-d "misc/english-words.txt"))))))
 
 ;; message-mode use company-bbdb.
 ;; So we should NOT turn on company-ispell

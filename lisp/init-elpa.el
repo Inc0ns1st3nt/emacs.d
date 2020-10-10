@@ -44,37 +44,7 @@
     ;; swiper
     ;; }}
     wgrep
-    ;; {{ themes in melpa unstable
-    ample-theme
-    molokai-theme
-    spacemacs-theme
-    leuven-theme
-    sublime-themes
-    tangotango-theme
-    darkburn-theme
-    ujelly-theme
-    afternoon-theme
-    organic-green-theme
-    inkpot-theme
-    flatui-theme
-    hc-zenburn-theme
-    naquadah-theme
-    seti-theme
-    spacegray-theme
-    jazz-theme
-    espresso-theme
-    phoenix-dark-pink-theme
-    tango-plus-theme
-    twilight-theme
-    minimal-theme
-    noctilux-theme
-    soothe-theme
-    heroku-theme
-    hemisu-theme
-    badger-theme
-    distinguished-theme
-    tao-theme
-    ;; }}
+
     groovy-mode
     company ; I won't wait another 2 years for stable
     simple-httpd
@@ -260,7 +230,7 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
 (require-package 'simple-httpd)
 ;; (require-package 'git-gutter) ; use my patched version
 (require-package 'neotree)
-(require-package 'hydra)
+;; (require-package 'hydra)
 (require-package 'ivy-hydra) ; @see https://oremacs.com/2015/07/23/ivy-multiaction/
 (require-package 'web-mode)
 (require-package 'emms)
@@ -310,110 +280,7 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
 
 (require-package 'magit)
 
-;; install the most popular 100 themes
-(require-packages
- '(afternoon-theme
-   alect-themes
-   ample-theme
-   ample-zen-theme
-   anti-zenburn-theme
-   apropospriate-theme
-   atom-dark-theme
-   atom-one-dark-theme
-   badwolf-theme
-   base16-theme
-   birds-of-paradise-plus-theme
-   bubbleberry-theme
-   busybee-theme
-   cherry-blossom-theme
-   clues-theme
-   color-theme-sanityinc-solarized
-   color-theme-sanityinc-tomorrow
-   cyberpunk-theme
-   dakrone-theme
-   darkburn-theme
-   darkmine-theme
-   darkokai-theme
-   darktooth-theme
-   django-theme
-   doom-themes
-   dracula-theme
-   espresso-theme
-   exotica-theme
-   eziam-theme
-   fantom-theme
-   farmhouse-theme
-   flatland-theme
-   flatui-theme
-   gandalf-theme
-   gotham-theme
-   grandshell-theme
-   gruber-darker-theme
-   gruvbox-theme
-   hc-zenburn-theme
-   hemisu-theme
-   heroku-theme
-   inkpot-theme
-   ir-black-theme
-   jazz-theme
-   jbeans-theme
-   kaolin-themes
-   leuven-theme
-   light-soap-theme
-   lush-theme
-   madhat2r-theme
-   majapahit-theme
-   material-theme
-   moe-theme
-   molokai-theme
-   monochrome-theme
-   monokai-theme
-   mustang-theme
-   naquadah-theme
-   noctilux-theme
-   nord-theme
-   obsidian-theme
-   occidental-theme
-   oldlace-theme
-   omtose-phellack-theme
-   organic-green-theme
-   phoenix-dark-mono-theme
-   phoenix-dark-pink-theme
-   planet-theme
-   professional-theme
-   purple-haze-theme
-   railscasts-theme
-   rebecca-theme
-   reverse-theme
-   seti-theme
-   smyx-theme
-   soft-charcoal-theme
-   soft-morning-theme
-   soft-stone-theme
-   solarized-theme
-   soothe-theme
-   spacegray-theme
-   spacemacs-theme
-   srcery-theme
-   subatomic-theme
-   subatomic256-theme
-   sublime-themes
-   sunny-day-theme
-   tango-2-theme
-   tango-plus-theme
-   tangotango-theme
-   toxi-theme
-   twilight-anti-bright-theme
-   twilight-bright-theme
-   twilight-theme
-   ujelly-theme
-   underwater-theme
-   vscode-dark-plus-theme
-   white-sand-theme
-   zen-and-art-theme
-   zenburn-theme
-   zerodark-theme))
-;; }}
+(require-package 'doom-themes) ;; install theme
 
 ;; kill buffer without my confirmation
 (setq kill-buffer-query-functions (delq 'process-kill-buffer-query-function kill-buffer-query-functions))

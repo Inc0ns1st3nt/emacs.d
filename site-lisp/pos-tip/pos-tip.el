@@ -558,23 +558,23 @@ See `pos-tip-show' for details.
 
 Example:
 
-\(defface my-tooltip
+\(defface inc0n/tooltip
   '((t
      :background \"gray85\"
      :foreground \"black\"
      :inherit variable-pitch))
   \"Face for my tooltip.\")
 
-\(defface my-tooltip-highlight
+\(defface inc0n/tooltip-highlight
   '((t
      :background \"blue\"
      :foreground \"white\"
-     :inherit my-tooltip))
+     :inherit inc0n/tooltip))
   \"Face for my tooltip highlighted.\")
 
-\(let ((str (propertize \" foo \\n bar \\n baz \" 'face 'my-tooltip)))
-  (put-text-property 6 11 'face 'my-tooltip-highlight str)
-  (pos-tip-show-no-propertize str 'my-tooltip))"
+\(let ((str (propertize \" foo \\n bar \\n baz \" 'face 'inc0n/tooltip)))
+  (put-text-property 6 11 'face 'inc0n/tooltip-highlight str)
+  (pos-tip-show-no-propertize str 'inc0n/tooltip))"
   (unless window
     (setq window (selected-window)))
   (let* ((frame (window-frame window))

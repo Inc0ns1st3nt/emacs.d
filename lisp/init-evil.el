@@ -1,7 +1,5 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
-;; My frequently used commands are listed here
-
 ;; enable evil-mode
 (evil-mode 1)
 
@@ -57,7 +55,7 @@ And \"%\" key is also restored to `evil-jump-item'.")
 
   ;; generic
   (push '(?/ . ("/" . "/")) evil-surround-pairs-alist))
-(add-hook 'prog-mode-hook 'evil-surround-prog-mode-hook-setup)
+(add-hook 'prog-mode-hook #'evil-surround-prog-mode-hook-setup)
 ;; }}
 
 ;; {{ For example, press `viW*`
@@ -77,8 +75,8 @@ And \"%\" key is also restored to `evil-jump-item'.")
 ;; {{ define my own text objects, works on evil v1.0.9 using older method
 ;; @see http://stackoverflow.com/questions/18102004/emacs-evil-mode-how-to-create-a-new-text-object-to-select-words-with-any-non-sp
 (defmacro inc0n/evil-define-and-bind-text-object (key start-regex end-regex)
-  (let* ((inner-name (make-symbol "inner-name"))
-         (outer-name (make-symbol "outer-name")))
+  (let ((inner-name (make-symbol "inner-name"))
+        (outer-name (make-symbol "outer-name")))
     `(progn
        (evil-define-text-object ,inner-name (count &optional beg end type)
          (evil-select-paren ,start-regex ,end-regex beg end type count nil))
@@ -147,7 +145,7 @@ If the character before and after CH is space or tab, CH is NOT slash"
             (goto-char e)
             (let ((f
                    (inc0n/evil-path-search-forward-char
-                    'inc0n/evil-path-is-separator-char t)))
+                    #'inc0n/evil-path-is-separator-char t)))
               (and f (>= f b))))
       (list b (+ 1 f) (- e 1)))))
 
@@ -382,17 +380,18 @@ If the character before and after CH is space or tab, CH is NOT slash"
   (util/ensure 'counsel-etags)
   (ivy-read "Goto global evil marker: "
             evil-global-markers-history
-            :action (lambda (m)
-                      (when (string-match "\\`[A-Z]@\\(.*?\\):\\([0-9]+\\):\\(.*\\)\\'" m)
-                        (let ((file (match-string-no-properties 1 m))
-                              (linenum (match-string-no-properties 2 m)))
-                          ;; item's format is like '~/proj1/ab.el:39: (defun hello() )'
-                          (counsel-etags-push-marker-stack (point-marker))
-                          ;; open file, go to certain line
-                          (find-file file)
-                          (counsel-etags-forward-line linenum))
-                        ;; flash, Emacs v25 only API
-                        (xref-pulse-momentarily)))))
+            :action
+            (lambda (m)
+              (when (string-match "\\`[A-Z]@\\(.*?\\):\\([0-9]+\\):\\(.*\\)\\'" m)
+                (let ((file (match-string-no-properties 1 m))
+                      (linenum (match-string-no-properties 2 m)))
+                  ;; item's format is like '~/proj1/ab.el:39: (defun hello() )'
+                  (counsel-etags-push-marker-stack (point-marker))
+                  ;; open file, go to certain line
+                  (find-file file)
+                  (counsel-etags-forward-line linenum))
+                ;; flash, Emacs v25 only API
+                (xref-pulse-momentarily)))))
 ;; }}
 
 (local-require 'general)
@@ -452,7 +451,6 @@ If INCLUSIVE is t, the text object is inclusive."
 (define-key evil-inner-text-objects-map "i" #'inc0n/evil-inner-single-or-double-quote)
 ;; }}
 
-
 (defun inc0n/rename-thing-at-point ()
   "Rename thing at point."
   (interactive)
@@ -462,43 +460,11 @@ If INCLUSIVE is t, the text object is inclusive."
     ;; simple string search/replace in function scope
     (evilmr-replace-in-defun)))
 
-;; {{ use `,` as leader key
-(general-create-definer inc0n/comma-leader-def
-  :prefix ","
-  :states '(normal visual))
-
-(inc0n/comma-leader-def
-  "," 'evilnc-comment-operator
-  "m" 'counsel-M-x
-  ;;   "fu" 'paredit-forward-up
-  ;;   "m" 'evil-set-marker
-  ;;   "aw" 'ace-swap-window
-  ;;   "af" 'ace-maximize-window
-  ;;   ;;
-  ;;   "ti" 'fastdef-insert
-  ;;   "th" 'fastdef-insert-from-history
-
-  ;;   "jsr" 'js-send-region
-  ;;   "jsb" 'js-clear-send-buffer
-  ;;   "ls" 'highlight-symbol
-  ;;   "lq" 'highlight-symbol-query-replace
-  ;;   "ln" 'highlight-symbol-nav-mode ; use M-n/M-p to navigation between symbols
-  ;;   ;; toggle overview,  @see http://emacs.wordpress.com/2007/01/16/quick-and-dirty-code-folding/
-  ;;   ;; "wrn" 'httpd-restart-now
-  ;;   ;; "wrd" 'httpd-restart-at-default-directory
-  ;;   "bk" 'buf-move-up
-  ;;   "bj" 'buf-move-down
-  ;;   "bh" 'buf-move-left
-  ;;   "bl" 'buf-move-right
-  ;;   ;; "xx" 'er/expand-region
-  )
-;; }}
-
 ;; {{ Use `SPC` as leader key
 ;; all keywords arguments are still supported
 
-;; prevent space leader key overriden checkout
-;; https://github.com/noctuid/evil-guide#further-integrating-evil-and-emacs
+;; prevent space leader key overriden
+;; @see https://github.com/noctuid/evil-guide#further-integrating-evil-and-emacs
 (with-eval-after-load 'dired-mode
   (general-override-mode t))
 
@@ -528,7 +494,11 @@ If INCLUSIVE is t, the text object is inclusive."
   "bd" 'paredit-backward-down
   ;; "bu" 'paredit-backward-up
   "bu" 'backward-up-list
-  "bs" (lambda () (interactive) (goto-edge-by-comparing-font-face -1))
+  "bp" 'browse-url-at-point
+  ;;   "bk" 'buf-move-up
+  ;;   "bj" 'buf-move-down
+  ;;   "bh" 'buf-move-left
+  ;;   "bl" 'buf-move-right
   ;; evilnc
   "ci" 'evilnc-quick-comment-or-uncomment-to-the-line
   "cl" 'evilnc-comment-or-uncomment-lines
@@ -544,7 +514,6 @@ If INCLUSIVE is t, the text object is inclusive."
   ;;
   "cf" 'counsel-grep           ; grep current buffer
   "cg" 'counsel-git            ; find file
-  "cy" 'hydra-launcher/body
   ;;
   "da" 'diff-region-tag-selected-as-a
   "db" 'diff-region-compare-with-b
@@ -554,10 +523,10 @@ If INCLUSIVE is t, the text object is inclusive."
   "dl" 'inc0n/dired-redo-last-command
 
   "eb" 'eval-buffer
+  "ed" 'eval-defun
   "ee" 'eval-expression
   "ef" 'end-of-defun
   ;; "em" 'inc0n/erase-visible-buffer
-  "es" 'goto-edge-by-comparing-font-face
 
   "fn" 'cp-filename-of-current-buffer
   "fp" 'cp-fullpath-of-current-buffer
@@ -575,6 +544,7 @@ If INCLUSIVE is t, the text object is inclusive."
 
   "fa" 'flyspell-auto-correct-word
   "fb" 'flyspell-buffer
+  "fc" 'flyspell-correct-word-before-point
   "fe" 'flyspell-goto-next-error
   ;; "ft" 'counsel-etags-find-tag-at-point
 
@@ -591,25 +561,29 @@ If INCLUSIVE is t, the text object is inclusive."
   "hf" 'find-function
   "hk" 'describe-key
   "hv" 'describe-variable
-  ;;
-  "hg" 'hydra-git/body
 
   "ih" 'inc0n/goto-git-gutter           ; use ivy-mode
   "ii" 'inc0n/imenu-or-list-tag-in-current-file
   "ic" 'counsel-imenu-comments
   "ir" 'ivy-resume
+  "i SPC" 'just-one-space
 
   "jp" 'inc0n/print-json-path
   ;;
+  ;; TODO - transiant scroll other window
   "jj" 'scroll-other-window
   "kb" 'kill-buffer-and-window ;; "k" is preserved to replace "C-g"
   "kc" 'kill-ring-to-clipboard
 
   "lb" 'langtool-check-buffer
   "ll" 'langtool-goto-next-error
+  ;;   "ls" 'highlight-symbol
+  ;;   "lq" 'highlight-symbol-query-replace
+  ;;   "ln" 'highlight-symbol-nav-mode ; use M-n/M-p to navigation between symbols
 
   "mm" 'counsel-evil-goto-global-marker
   "mf" 'mark-defun
+
   "nh" 'inc0n/goto-next-hunk
   "ni" 'newline-and-indent
 
@@ -628,8 +602,8 @@ If INCLUSIVE is t, the text object is inclusive."
   "pp" 'inc0n/goto-previous-hunk
 
   "rb" 'evilmr-replace-in-buffer
-  "rt" 'counsel-etags-recent-tag
-  "rv" 'inc0n/rename-thing-at-point
+  "re" 'counsel-etags-recent-tag
+  "rt" 'inc0n/rename-thing-at-point
   "rjs" 'run-js
 
   "sr" 'scratch
@@ -663,6 +637,7 @@ If INCLUSIVE is t, the text object is inclusive."
   "xk" 'kill-buffer
   "xs" 'save-buffer
   "xc" 'counsel-M-x
+  ;; "xx" 'er/expand-region
   ;; "xo" 'ace-window
   ;; {{ window move
   "wh" 'evil-window-left
@@ -703,45 +678,47 @@ If INCLUSIVE is t, the text object is inclusive."
 
 ;; per-major-mode setup
 
-(general-create-definer inc0n/javascript-leader-def
-  :prefix "SPC"
-  :non-normal-prefix "M-SPC"
-  :states '(normal motion insert emacs)
-  :keymaps 'js2-mode-map)
+;; disables javascript leader key
+(when nil
+  (general-create-definer inc0n/javascript-leader-def
+    :prefix "SPC"
+    :non-normal-prefix "M-SPC"
+    :states '(normal motion insert emacs)
+    :keymaps 'js2-mode-map)
 
-(inc0n/javascript-leader-def
-  "de" 'js2-display-error-list
-  "nn" 'js2-next-error
-  "te" 'js2-mode-toggle-element
-  "tf" 'js2-mode-toggle-hide-functions
-  "jeo" 'js2r-expand-object
-  "jco" 'js2r-contract-object
-  "jeu" 'js2r-expand-function
-  "jcu" 'js2r-contract-function
-  "jea" 'js2r-expand-array
-  "jca" 'js2r-contract-array
-  "jwi" 'js2r-wrap-buffer-in-iife
-  "jig" 'js2r-inject-global-in-iife
-  "jev" 'js2r-extract-var
-  "jiv" 'js2r-inline-var
-  "jrv" 'js2r-rename-var
-  "jvt" 'js2r-var-to-this
-  "jag" 'js2r-add-to-globals-annotation
-  "jsv" 'js2r-split-var-declaration
-  "jss" 'js2r-split-string
-  "jef" 'js2r-extract-function
-  "jem" 'js2r-extract-method
-  "jip" 'js2r-introduce-parameter
-  "jlp" 'js2r-localize-parameter
-  "jtf" 'js2r-toggle-function-expression-and-declaration
-  "jao" 'js2r-arguments-to-object
-  "juw" 'js2r-unwrap
-  "jwl" 'js2r-wrap-in-for-loop
-  "j3i" 'js2r-ternary-to-if
-  "jlt" 'js2r-log-this
-  "jsl" 'js2r-forward-slurp
-  "jba" 'js2r-forward-barf
-  "jk" 'js2r-kill)
+  (inc0n/javascript-leader-def
+    "de" 'js2-display-error-list
+    "nn" 'js2-next-error
+    "te" 'js2-mode-toggle-element
+    "tf" 'js2-mode-toggle-hide-functions
+    "jeo" 'js2r-expand-object
+    "jco" 'js2r-contract-object
+    "jeu" 'js2r-expand-function
+    "jcu" 'js2r-contract-function
+    "jea" 'js2r-expand-array
+    "jca" 'js2r-contract-array
+    "jwi" 'js2r-wrap-buffer-in-iife
+    "jig" 'js2r-inject-global-in-iife
+    "jev" 'js2r-extract-var
+    "jiv" 'js2r-inline-var
+    "jrv" 'js2r-rename-var
+    "jvt" 'js2r-var-to-this
+    "jag" 'js2r-add-to-globals-annotation
+    "jsv" 'js2r-split-var-declaration
+    "jss" 'js2r-split-string
+    "jef" 'js2r-extract-function
+    "jem" 'js2r-extract-method
+    "jip" 'js2r-introduce-parameter
+    "jlp" 'js2r-localize-parameter
+    "jtf" 'js2r-toggle-function-expression-and-declaration
+    "jao" 'js2r-arguments-to-object
+    "juw" 'js2r-unwrap
+    "jwl" 'js2r-wrap-in-for-loop
+    "j3i" 'js2r-ternary-to-if
+    "jlt" 'js2r-log-this
+    "jsl" 'js2r-forward-slurp
+    "jba" 'js2r-forward-barf
+    "jk" 'js2r-kill))
 ;; }}
 
 (defun inc0n/evil-delete-hack (orig-func &rest args)
@@ -931,6 +908,8 @@ If INCLUSIVE is t, the text object is inclusive."
   ;; Cursor is always black because of evil.
   ;; Here is the workaround
   (setq evil-default-cursor t
-        evil-auto-indent t))
+        evil-auto-indent t
+        evil-buffer-regexps nil
+        evil-want-C-i-jump nil))
 
 (provide 'init-evil)

@@ -42,7 +42,7 @@ Also remove buffers whose binding files already merged in `buffer-list'."
                       (ediff-get-region-contents ediff-current-difference 'A ediff-control-buffer)
                       (ediff-get-region-contents ediff-current-difference 'B ediff-control-buffer))))
 
-  (inc0n/comma-leader-def
+  (inc0n/space-leader-def
     "a" (lambda () (interactive) (jump-to-register ?a))
     "t" (inc0n/ediff-command 'ediff-toggle-show-clashes-only t)
     "n" (inc0n/ediff-command (lambda (arg)

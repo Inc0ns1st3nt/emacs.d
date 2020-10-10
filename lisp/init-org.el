@@ -161,7 +161,7 @@ ARG is ignored."
                (not (org-entry-get nil "ACTIVATED")))
       (org-entry-put nil "ACTIVATED" (format-time-string "[%Y-%m-%d]"))))
   (add-hook 'org-after-todo-state-change-hook #'log-todo-next-creation-date)
-  
+
   ;; {{ export org-mode in Chinese into PDF
   ;; @see http://freizl.github.io/posts/tech/2012-04-06-export-orgmode-file-in-Chinese.html
   ;; and you need install texlive-xetex on different platforms
@@ -215,16 +215,16 @@ ARG is ignored."
                                (concat org-directory "notes.org")
                                (concat org-directory "todo.org")))
   (setq org-capture-templates
-        `(("t" "Todo" entry  (file "refile.org")
+        `(("t" "Todo" entry  (file "todo.org")
+           ,(concat "* TODO %U %?\n"))
+          ("s" "Schedule" entry (file+headline "agenda.org" "Future")
            ,(concat "* TODO %?\n"
-                    "/Entered on/ %U"))
+                    "SCHEDULED: %t"))
           ("r" "Respond" entry (file "agenda.org")
            ,(concat "* NEXT Respond to %:from on %:subject\n"
                     "SCHEDULED: %t\n"
                     "%U\n"
                     "%a\n"))
-          ;; ("n" "note" entry (file "note.org")
-          ;;  "* %? :NOTE:\n%U\n%a\n")
           ("n" "Note" entry  (file "notes.org")
            ,(concat "* Note (%a)\n"
                     "/Entered on/ %U\n" "\n" "%?"))
@@ -238,38 +238,44 @@ ARG is ignored."
           ("m" "Meeting" entry  (file+headline "agenda.org" "Future")
            ,(concat "* %? :meeting:\n"
                     "<%<%Y-%m-%d %a %H:00>>"))
+          ;; ("n" "note" entry (file "note.org")
+          ;;  "* %? :NOTE:\n%U\n%a\n")
           ;; ("p" "Phone call" entry (file "refile.org")
           ;;  "* PHONE %? :PHONE:\n%U")
           ;; ("h" "Habit" entry (file "refile.org")
           ;;  "* NEXT %?\n%U\n%a\nSCHEDULED: %(format-time-string \"%<<%Y-%m-%d %a .+1d/3d>>\")\n:PROPERTIES:\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:END:\n")
           ))
-  (push '("g" "Get Things Done (GTD)"
-          ((agenda ""
-                   ((org-agenda-skip-function
-                     '(org-agenda-skip-entry-if 'deadline))
-                    (org-deadline-warning-days 0)))
-           (todo "NEXT"
-                 ((org-agenda-skip-function
-                   '(org-agenda-skip-entry-if 'deadline))
-                  (org-agenda-prefix-format "  %i %-12:c [%e] ")
-                  (org-agenda-overriding-header "\nTasks\n")))
-           (agenda nil
-                   ((org-agenda-entry-types '(:deadline))
-                    (org-agenda-format-date "")
-                    (org-deadline-warning-days 7)
-                    (org-agenda-skip-function
-                     '(org-agenda-skip-entry-if 'notregexp "\\* NEXT"))
-                    (org-agenda-overriding-header "\nDeadlines")))
-           (tags-todo "refile"
-                      ((org-agenda-prefix-format "  %?-12t% s")
-                       (org-agenda-overriding-header "\nTodo\n")))
-           (tags "CLOSED>=\"<today>\""
-                 ((org-agenda-overriding-header "\nCompleted today\n")))))
-        org-agenda-custom-commands))
+  (setq org-agenda-custom-commands
+        '(("g" "Get Things Done (GTD)"
+           ((agenda ""
+                    ((org-agenda-skip-function
+                      '(org-agenda-skip-entry-if 'deadline))
+                     (org-deadline-warning-days 0)))
+            (todo "NEXT"
+                  ((org-agenda-skip-function
+                    '(org-agenda-skip-entry-if 'deadline))
+                   (org-agenda-prefix-format "  %i %-12:c [%e] ")
+                   (org-agenda-overriding-header "\nTasks\n")))
+            ;; (agenda nil
+            ;;         ((org-agenda-entry-types '(:deadline))
+            ;;          ;; (org-agenda-format-date "")
+            ;;          (org-deadline-warning-days 7)
+            ;;          (org-agenda-skip-function
+            ;;           '(org-agenda-skip-entry-if 'notregexp "\\* NEXT"))
+            ;;          (org-agenda-overriding-header "\nDeadlines")))
+            (tags-todo "TODO"
+                       ((org-agenda-prefix-format "  %?-12t% s")
+                        (org-agenda-overriding-header "\nTodo\n")))
+            (tags "CLOSED>=\"<today>\""
+                  ((org-agenda-overriding-header "\nCompleted today\n")))))
+          ("n" "Agenda and all TODOs"
+           ((agenda "")
+            (alltodo ""))))))
 
 (with-eval-after-load 'evil
   (defun org-agenda-mode-setup ()
-    (message "setting up org agenda mode")
+    (evil-mode 1)
+    (evil-normal-state)
     (evil-local-set-key 'normal (kbd "RET") 'org-agenda-show))
   (add-hook 'org-agenda-mode-hook #'org-agenda-mode-setup))
 

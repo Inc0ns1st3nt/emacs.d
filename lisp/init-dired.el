@@ -74,7 +74,14 @@ If no files marked, always operate on current line in dired-mode."
   (dired-hide-details-mode 1)
   (local-set-key  "e" 'inc0n/ediff-files)
   (local-set-key  "/" 'dired-isearch-filenames)
-  (local-set-key  "\\" 'diredext-exec-git-command-in-shell))
+  (local-set-key  "\\" 'diredext-exec-git-command-in-shell)
+  ;;
+  (local-set-key (kbd "h")
+    (lambda () (interactive) (find-alternate-file "..")))
+  (local-set-key (kbd "j") 'dired-next-line)
+  (local-set-key (kbd "k") 'dired-previous-line)
+  (local-set-key (kbd "l") 'dired-find-alternate-file)
+  (local-set-key (kbd "r") 'dired-do-redisplay))
 (add-hook 'dired-mode-hook #'dired-mode-hook-setup)
 
 ;; https://www.emacswiki.org/emacs/EmacsSession which is easier to use

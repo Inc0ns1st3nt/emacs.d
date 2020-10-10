@@ -39,8 +39,8 @@
 (setq-default buffers-menu-max-size 30
               case-fold-search t
               compilation-scroll-output t
-              ediff-split-window-function 'split-window-horizontally
-              ediff-window-setup-function 'ediff-setup-windows-plain
+              ediff-split-window-function #'split-window-horizontally
+              ediff-window-setup-function #'ediff-setup-windows-plain
               grep-highlight-matches t
               grep-scroll-output t
               indent-tabs-mode nil
@@ -76,13 +76,12 @@
 (defun neotree-project-dir ()
   "Open NeoTree using the git root."
   (interactive)
-  (let* ((project-dir (ffip-get-project-root-directory))
-         (file-name (buffer-file-name)))
-    (if project-dir
-        (progn
-          (neotree-dir project-dir)
-          (neotree-find file-name))
-      (message "Could not find git project root."))))
+  (if-let ((project-dir (ffip-get-project-root-directory))
+           (file-name (buffer-file-name)))
+      (progn
+        (neotree-dir project-dir)
+        (neotree-find file-name))
+    (message "Could not find git project root.")))
 ;; }}
 
 
@@ -96,19 +95,19 @@
 ;; }}
 
 ;; {{ dictionary setup
-(defun inc0n/lookup-dict-org ()
-  (interactive)
+(defun inc0n/lookup-dict-org (word)
+  (interactive (list (util/thing-at-point)))
   (dictionary-new-search
-   (cons (util/use-selected-string-or-ask "Input word for dict.org: "
-                                          (util/thing-at-point))
+   (cons (util/use-selected-string-or-ask "Input word for dict.org"
+                                          word)
          dictionary-default-dictionary)))
 ;; }}
 
 ;; {{ bookmark
 ;; use my own bookmark if it exists
 (with-eval-after-load 'bookmark
-  (if (file-exists-p (file-truename "~/.emacs.bmk"))
-      (setq bookmark-file (file-truename "~/.emacs.bmk"))))
+  (when (file-exists-p (file-truename "~/.emacs.bmk"))
+    (setq bookmark-file (file-truename "~/.emacs.bmk"))))
 ;; }}
 
 (defun lookup-doc-in-man ()
@@ -206,7 +205,7 @@ This function can be re-used by other major modes after compilation."
 (setq next-line-add-newlines nil)
 
 ;; @see http://stackoverflow.com/questions/4222183/emacs-how-to-jump-to-function-definition-in-el-file
-(global-set-key (kbd "C-h C-f") 'find-function)
+(global-set-key (kbd "C-h C-f") #'find-function)
 
 ;; {{ time format
 ;; If you want to customize time format, read document of `format-time-string'
@@ -219,14 +218,10 @@ This function can be re-used by other major modes after compilation."
 (display-time) ; show date in modeline
 ;; }}
 
-;;a no-op function to bind to if you want to set a keystroke to null
+;; a no-op function to bind to if you want to set a keystroke to null
 (defun void () "this is a no-op" (interactive))
 
 (defalias 'list-buffers #'ibuffer)
-
-(defun inc0n/download-subtitles ()
-  (interactive)
-  (shell-command "periscope.py -l en *.mkv *.mp4 *.avi &"))
 
 ;; {{ show email sent by `git send-email' in gnus
 (with-eval-after-load 'gnus
@@ -288,9 +283,10 @@ This function can be re-used by other major modes after compilation."
   ;; @see http://stackoverflow.com/questions/13426564/how-to-force-a-rescan-in-imenu-by-a-function
   (util/ensure 'imenu)
   (let ((imenu-auto-rescan t)
-        (imenu-create-index-function (if (inc0n/use-tags-as-imenu-function-p)
-                                         'counsel-etags-imenu-default-create-index-function
-                                       imenu-create-index-function))
+        (imenu-create-index-function
+         (if (inc0n/use-tags-as-imenu-function-p)
+             #'counsel-etags-imenu-default-create-index-function
+           imenu-create-index-function))
         (imenu-auto-rescan-maxout (buffer-size)))
     (imenu--make-index-alist t))
   (which-function))
@@ -316,68 +312,26 @@ This function can be re-used by other major modes after compilation."
 ;; use below commands to create dictionary
 ;; mkdir -p ~/.stardict/dic
 ;; # wordnet English => English
-;; curl http://abloz.com/huzheng/stardict-dic/dict.org/stardict-dictd_www.dict.org_wn-2.4.2.tar.bz2 | tar jx -C ~/.stardict/dic
+;; check out https://willschenk.com/articles/2020/getting_websters/
 ;; # Langdao Chinese => English
 ;; curl http://abloz.com/huzheng/stardict-dic/zh_CN/stardict-langdao-ec-gb-2.4.2.tar.bz2 | tar jx -C ~/.stardict/dic
-;;
-(setq sdcv-dictionary-simple-list '("朗道英汉字典5.0"))
-(setq sdcv-dictionary-complete-list '("WordNet"))
+(setq sdcv-dictionary-simple-list
+      '("Webster's Revised Unabridged Dictionary (1913)"))
+(setq sdcv-dictionary-complete-list
+      '("Webster's Revised Unabridged Dictionary (1913)"))
 ;; }}
 
 ;; ANSI-escape coloring in compilation-mode
 ;; {{ http://stackoverflow.com/questions/13397737/ansi-coloring-in-compilation-mode
-(ignore-errors
-  (require 'ansi-color)
+(when (require 'ansi-color nil t)
   (defun inc0n/colorize-compilation-buffer ()
     (when (eq major-mode 'compilation-mode)
       (ansi-color-apply-on-region compilation-filter-start (point-max))))
-  (add-hook 'compilation-filter-hook 'inc0n/colorize-compilation-buffer))
-;; }}
-
-;; @see http://emacs.stackexchange.com/questions/14129/which-keyboard-shortcut-to-use-for-navigating-out-of-a-string
-(defun font-face-is-similar (f1 f2)
-  "Font face F1 and F2 are similar or same."
-  ;; (message "f1=%s f2=%s" f1 f2)
-  ;; in emacs-lisp-mode, the '^' from "^abde" has list of faces:
-  ;;   (font-lock-negation-char-face font-lock-string-face)
-  (when (listp f1) (setq f1 (nth 1 f1)))
-  (when (listp f2) (setq f2 (nth 1 f2)))
-
-  (or (eq f1 f2)
-      ;; C++ comment has different font face for limit and content
-      ;; f1 or f2 could be a function object because of rainbow mode
-      (and (string-match "-comment-" (format "%s" f1))
-           (string-match "-comment-" (format "%s" f2)))))
-
-(defun font-face-at-point-similar-p (font-face-list)
-  "Test if font face at point is similar to any font in FONT-FACE-LIST."
-  (cl-loop with f = (get-text-property (point) 'face)
-           for ff in font-face-list
-           when (font-face-is-similar f ff)
-           return t
-           finally (return nil)))
-
-;; {{
-(defun goto-edge-by-comparing-font-face (&optional step)
-  "Goto either the begin or end of string/comment/whatever.
-If step is -1, go backward."
-  (interactive "P")
-  (let ((step (or step 1))
-        (cf (get-text-property (point) 'face)))
-    (cl-labels ((aux
-                 (p end)
-                 (cond ((= p end) p)
-                       ((font-face-is-similar (get-text-property p 'face) cf)
-                        (- p step))
-                       (t (aux (+ p step) end)))))
-      (goto-char (aux (point)
-                      (if (> step 0)
-                          (point-max)
-                        (point-min)))))))
+  (add-hook 'compilation-filter-hook #'inc0n/colorize-compilation-buffer))
 ;; }}
 
 (defun inc0n/minibuffer-setup-hook ()
-  (local-set-key (kbd "C-k") 'kill-line)
+  (local-set-key (kbd "C-k") #'kill-line)
   (subword-mode 1) ; enable subword movement in minibuffer
   (setq gc-cons-threshold most-positive-fixnum))
 
@@ -511,18 +465,18 @@ If no region is selected, `kill-ring' or clipboard is used instead."
     (copy-yank-str str)
     (message "%s => clipboard & yank ring" str)))
 
-(defun inc0n/insert-absolute-path()
+(defun inc0n/insert-absolute-path ()
   "Relative path to full path."
   (interactive)
-  (let* ((str (util/use-selected-string-or-ask "Input relative path: "))
+  (let* ((str (util/use-selected-string-or-ask "Input relative path"))
          (path (file-truename str)))
     (copy-yank-str path)
     (message "%s => clipboard & yank ring" path)))
 
-(defun inc0n/insert-relative-path()
+(defun inc0n/insert-relative-path ()
   "Full path to relative path."
   (interactive)
-  (let* ((str (util/use-selected-string-or-ask "Input absolute path: "))
+  (let* ((str (util/use-selected-string-or-ask "Input absolute path"))
          (path (file-relative-name str)))
     (copy-yank-str path)
     (message "%s => clipboard & yank ring" path)))
@@ -536,9 +490,9 @@ If no region is selected, `kill-ring' or clipboard is used instead."
 ;; {{ auto-save.el
 (local-require 'auto-save)
 (add-to-list 'auto-save-exclude 'file-too-big-p t)
-(setq auto-save-idle 2) ; 2 seconds
+(setq auto-save-idle 1) ; 1 seconds
 (auto-save-enable)
-(setq auto-save-slient t)
+(setq auto-save-slient nil)
 ;; }}
 
 ;; {{ csv
@@ -596,10 +550,6 @@ If no region is selected, `kill-ring' or clipboard is used instead."
     (xterm-mouse-mode 1)))
 (add-hook 'after-make-frame-functions #'run-after-make-frame-hooks)
 ;; }}
-
-;; flymake
-(with-eval-after-load 'flymake
-  (setq flymake-gui-warnings-enabled nil))
 
 ;; {{ check attachments
 (defun inc0n/message-current-line-cited-p ()
@@ -663,22 +613,8 @@ If no region is selected, `kill-ring' or clipboard is used instead."
 (add-hook 'vc-msg-show-code-hook #'vc-msg-show-code-setup)
 ;; }}
 
-;; {{ eacl - emacs auto complete line(s)
-(global-set-key (kbd "C-x C-l") #'eacl-complete-line)
-(global-set-key (kbd "C-c ;") #'eacl-complete-multiline)
-(with-eval-after-load 'eacl
-  ;; not interested in untracked files in git repository
-  (setq eacl-git-grep-untracked nil))
-;; }}
-
 ;; {{
 (local-require 'typewriter-mode)
-(defun toggle-typewriter ()
-  "Turn on/off typewriter."
-  (interactive)
-  (if (bound-and-true-p typewriter-mode)
-      (typewriter-mode -1)
-    (typewriter-mode 1)))
 ;; }}
 
 (with-eval-after-load 'grep
@@ -711,11 +647,6 @@ If no region is selected, `kill-ring' or clipboard is used instead."
   (define-key grep-mode-map
     (kbd "C-x C-q") 'wgrep-change-to-wgrep-mode))
 
-;; wgrep and rgrep, inspired by http://oremacs.com/2015/01/27/inc0n/refactoring-workflow/
-(with-eval-after-load 'wgrep
-  (define-key grep-mode-map
-    (kbd "C-c C-c") 'wgrep-finish-edit))
-
 ;; {{ https://www.emacswiki.org/emacs/EmacsSession better than "desktop.el" or "savehist".
 ;; Any global variable matching `session-globals-regexp' is saved *automatically*.
 (setq session-save-file (expand-file-name (concat inc0n/emacs-d ".session")))
@@ -746,11 +677,9 @@ If no region is selected, `kill-ring' or clipboard is used instead."
 
 (with-eval-after-load 'compile
   (defun inc0n/compile-hack (orig-func &rest args)
-    (cond
-     ((member major-mode '(octave-mode))
-      (octave-send-buffer))
-     (t
-      (apply orig-func args))))
+    (if (member major-mode '(octave-mode))
+        (octave-send-buffer)
+      (apply orig-func args)))
   (advice-add 'compile :around #'inc0n/compile-hack)
 
   (add-to-list 'compilation-error-regexp-alist-alist
@@ -782,10 +711,11 @@ If the shell is already opened in some buffer, switch to that buffer."
 ;; {{ emms
 (with-eval-after-load 'emms
   (emms-all)
+  (setq emms-source-file-default-directory "~/Music"
+        emms-info-asynchronously t
+        emms-show-format "♩♪ %s")
   (setq emms-player-list '(emms-player-mplayer-playlist
                            emms-player-mplayer
-                           emms-player-mpg321
-                           emms-player-ogg123
                            emms-player-vlc
                            emms-player-vlc-playlist)))
 ;; }}
@@ -805,13 +735,6 @@ If the shell is already opened in some buffer, switch to that buffer."
 (setq global-auto-revert-non-file-buffers t
       auto-revert-verbose nil)
 
-;;----------------------------------------------------------------------------
-;; Don't disable narrowing commands
-;;----------------------------------------------------------------------------
-(put 'narrow-to-region 'disabled nil)
-(put 'narrow-to-page 'disabled nil)
-(put 'narrow-to-defun 'disabled nil)
-
 ;; my screen is tiny, so I use minimum eshell prompt
 (with-eval-after-load 'eshell
   (setq eshell-prompt-function
@@ -829,7 +752,13 @@ If the shell is already opened in some buffer, switch to that buffer."
                  ((equal prefix '(16)) "%d %B %Y"))))
     (insert (format-time-string format))))
 
-;;compute the length of the marked region
+(defun inc0n/insert-timestamp ()
+  "Insert time stamps at current position."
+  (interactive)
+  (let ((current-date-time-format "%a %b %d %H:%M %Z %Y"))
+    (insert (format-time-string current-date-time-format (current-time)))))
+
+;; compute the length of the marked region
 (defun region-length ()
   "Length of a selected region."
   (interactive)
@@ -931,8 +860,9 @@ version control automatically."
 (put 'downcase-region 'disabled nil)
 (put 'upcase-region 'disabled nil)
 
-;; midnight mode purges buffers which haven't been displayed in 3 days
+;; midnight mode purges buffers which haven't been displayed in configured period
 (require 'midnight)
+(setq midnight-period (* 3600 24)) ;; 24 hours
 (setq midnight-mode t)
 
 (defun cleanup-buffer-safe ()
@@ -999,12 +929,12 @@ Including indent-buffer, which should not be called automatically on save."
 (defun nov-mode-hook-setup ()
   "Set up of `nov-mode'."
   (local-set-key (kbd "d")
-		 (lambda ()
-		   (interactive)
-		   ;; go to end of word to workaround `nov-mode' bug
-		   (forward-word)
-		   (forward-char -1)
-		   (sdcv-search-input (thing-at-point 'word))))
+		         (lambda ()
+		           (interactive)
+		           ;; go to end of word to workaround `nov-mode' bug
+		           (forward-word)
+		           (forward-char -1)
+		           (sdcv-search-input (thing-at-point 'word))))
   (local-set-key (kbd "w") #'mybigword-pronounce-word)
   (local-set-key (kbd ";") #'avy-goto-char-2))
 (add-hook 'nov-mode-hook #'nov-mode-hook-setup)
@@ -1022,6 +952,8 @@ Including indent-buffer, which should not be called automatically on save."
 
 ;; {{ wgrep setup
 (with-eval-after-load 'wgrep
+  (define-key grep-mode-map
+    (kbd "C-c C-c") 'wgrep-finish-edit)
   ;; save the change after wgrep finishes the job
   (setq wgrep-auto-save-buffer t)
   (setq wgrep-too-many-file-length 2024))
@@ -1056,10 +988,15 @@ Including indent-buffer, which should not be called automatically on save."
   (interactive)
   (browse-url-generic (concat "file://" (buffer-file-name))))
 
+(setq-default browse-url-generic-program "firefox")
+(setq-default browse-url-generic-args "--private-window")
+
 ;; {{ which-key-mode
 (local-require 'which-key)
 (setq which-key-allow-imprecise-window-fit t) ; performance
-(setq which-key-separator ":")
+(setq which-key-idle-delay 0.5)
+(setq which-key-separator " → ")
+(setq which-key-show-remaining-keys t)
 (which-key-mode 1)
 ;; }}
 
@@ -1095,6 +1032,10 @@ Including indent-buffer, which should not be called automatically on save."
 ;;}}
 
 ;; {{ fetch subtitles
+(defun inc0n/download-subtitles ()
+  (interactive)
+  (shell-command "periscope.py -l en *.mkv *.mp4 *.avi &"))
+
 (defvar inc0n/fetch-subtitles-proxy nil
   "http proxy to fetch subtitles, like http://127.0.0.1:8118 (privoxy).")
 
@@ -1115,33 +1056,6 @@ See https://github.com/RafayGhafoor/Subscene-Subtitle-Grabber."
                    cmd-prefix
                    (file-name-base video-file))))
       (shell-command (format "%s --dir . &" cmd-prefix)))))
-;; }}
-
-(defvar inc0n/sdcv-org-head-level 2)
-;; {{ use sdcv dictionary to find big word definition
-(defun inc0n/sdcv-format-bigword (word zipf)
-  "Format WORD and ZIPF using sdcv dictionary."
-  (local-require 'sdcv)
-  ;; 2 level org format
-  (condition-case nil
-      (let* ((def
-              (sdcv-search-witch-dictionary word sdcv-dictionary-complete-list))
-             (def (replace-regexp-in-string "^-->.*" "" def))
-             (def (replace-regexp-in-string "[\n\r][\n\r]+" "" def)))
-        (format "%s %s (%s)\n%s\n"
-                (make-string inc0n/sdcv-org-head-level ?*)
-                word
-                zipf
-                def))
-    (error nil)))
-
-(defun inc0n/lookup-big-word-definition-in-buffer ()
-  "Look up big word definitions."
-  (interactive)
-  (local-require 'mybigword)
-  (let ((mybigword-default-format-function
-         #'inc0n/sdcv-format-bigword))
-    (mybigword-show-big-words-from-current-buffer)))
 ;; }}
 
 ;; {{ use pdf-tools to view pdf

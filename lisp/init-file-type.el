@@ -127,4 +127,8 @@
 ;; roblox studio
 (add-auto-mode 'roblox-mode "\\.rbxlx\\'")
 ;; }}
+
+;;; arduino setup
+(add-auto-mode 'c-mode "\\.\\(pde\\|ino\\)$")
+
 (provide 'init-file-type)

@@ -175,7 +175,7 @@ If N is not nil, only list directories in current project."
     (cond
      (level
       (unless str
-        (setq str (util/use-selected-string-or-ask "Grep keyword: ")))
+        (setq str (util/use-selected-string-or-ask "Grep keyword")))
       (when str
         (let ((default-directory (inc0n/git-root-dir))
               ;; C-u 1 command to grep files in HEAD

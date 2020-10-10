@@ -139,20 +139,20 @@ is used to locate VCS root directory."
   "List of VCS plugins.
 A plugin is a `plist'.  Sample to add a new plugin:
 
-  (defun my-execute (file line &optional extra))
-  (defun my-format (info))
+  (defun inc0n/execute (file line &optional extra))
+  (defun inc0n/format (info))
   (add-to-list 'vc-msg-plugins
                '(:type \"git\"
-                 :execute my-execute
-                 :format my-format)
+                 :execute inc0n/execute
+                 :format inc0n/format)
 
 `vc-msg-show' finds correct VCS plugin and show commit message:
 
-  (popup-tip (my-format (my-execute buffer-file-name (line-number-at-pos)))).
+  (popup-tip (inc0n/format (inc0n/execute buffer-file-name (line-number-at-pos)))).
 
-The result of `my-execute' is blackbox outside of plugin.
-But if result is string, `my-execute' fails and returns error message.
-If result is nil, `my-execute' fails silently.
+The result of `inc0n/execute' is blackbox outside of plugin.
+But if result is string, `inc0n/execute' fails and returns error message.
+If result is nil, `inc0n/execute' fails silently.
 Please check `vc-msg-git-execute' and `vc-msg-git-format' for sample."
   :type '(repeat sexp))
 

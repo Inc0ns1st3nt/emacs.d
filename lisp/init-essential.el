@@ -202,7 +202,7 @@ If USE-INDIRECT-BUFFER is not nil, use `indirect-buffer' to hold the widen conte
 ;; }}
 
 ;; Startup
-(org-agenda-show-agenda-and-todo)
+(org-agenda nil "n")
 (delete-other-windows)
 
 (provide 'init-essential)

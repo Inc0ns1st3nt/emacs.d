@@ -779,7 +779,7 @@ If CODE-FILE is a real file, the command scans it and output to stdout."
                     (counsel-etags-ctags-options-file-cli ctags-program)
                     (counsel-etags-ctags-ignore-config)
                     ;; print a tabular, human-readable cross reference
-                    ;; --<my-lang>-kinds=f still accept all user defined regex
+                    ;; --<inc0n/lang>-kinds=f still accept all user defined regex
                     ;; so we have to filter in Emacs Lisp
                     (if code-file "-x" "")
                     (if code-file (format "\"%s\"" code-file) ""))))

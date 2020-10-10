@@ -3,6 +3,6 @@
 # key: advice
 # contributor: Chen Bin <chenbin DOT sh AT gmail>
 # --
-(defun my-${1:$(yas/substr yas-text "[^ ]*")}-hack (orig-func &rest args)
+(defun inc0n/${1:$(yas/substr yas-text "[^ ]*")}-hack (orig-func &rest args)
    (apply orig-func args))
-(advice-add '${1:find-file} :around #'my-${1:$(yas/substr yas-text "[^ ]*")}-hack)
+(advice-add '${1:find-file} :around #'inc0n/${1:$(yas/substr yas-text "[^ ]*")}-hack)

@@ -1,0 +1,14 @@
+# -*- mode: snippet -*-
+# name: asdf:defsystem
+# key: defsystem
+# --
+(asdf:defsystem ${1:`(file-name-nondirectory (file-name-sans-extension (buffer-file-name)))`}
+  :version "0.0.1"
+  :license "nil"
+  :author "${2:name} <${3:email}>"
+  :maintainer "$2 <$3>"
+  :description "$4"
+  ;; :homepage "https://github.com/"
+  :components ((:file "package")
+               (:file "$5")))
+$0

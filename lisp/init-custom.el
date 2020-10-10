@@ -10,36 +10,7 @@
 ;; (load-theme 'doom-dark+)
 ;; (load-theme 'solarized-dark)
 
-;;;;
-;; font
-;;;;
-;; https://www.gnu.org/software/emacs/manual/html_node/emacs/Fonts.html
-;; "Bitstream Vera Sans Mono"
-;; "TerminessTTFNerdFont"
-;; "DejaVu Sans Mono"
-;; "Source Code Pro"
-;; "Fira Code", "monaco"
-;; :antialias=false
-;; (set-face-attribute 'default nil :font "monaco" :height 120)
-
-;; (add-to-list 'default-frame-alist
-;;              '(font . "monaco-12"))
-
-(setq-default line-spacing 0)
-
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(git-gutter:handled-backends (quote (svn hg git)))
- '(org-format-latex-options
-   (quote
-    (:foreground default :background default :scale 2.0 :html-foreground "Black" :html-background "Transparent" :html-scale 1.0 :matchers
-                 ("begin" "$1" "$" "$$" "\\(" "\\["))))
- '(org-latex-pdf-process
-   (quote
-    ("xelatex -interaction nonstopmode -output-directory %o %f" "xelatex -interaction nonstopmode -output-directory %o %f" "xelatex -interaction nonstopmode -output-directory %o %f"))))
+;; (setq-default line-spacing 0)
 
 ;; amx
 (setq amx-save-file (concat inc0n/emacs-d "cache/amx-items"))
@@ -113,12 +84,6 @@ Or region from `BEG' to `END'."
 
 ;; (fmakunbound 'evil-insert-char-aux)
 
-(defun insert-timestamp ()
-  "Insert time stamps at current position."
-  (interactive)
-  (let ((current-date-time-format "%a %b %d %H:%M %Z %Y"))
-    (insert (format-time-string current-date-time-format (current-time)))))
-
 ;; (defun my-insert-char-aux ()
 ;;   "My aux fn for inserting charcter."
 ;;   (interactive)
@@ -130,40 +95,6 @@ Or region from `BEG' to `END'."
 (add-hook 'latex-mode-hook
           (lambda () (setq word-wrap t)))
 
-;;; org mode setup
-;; (setq org-publish-project-alist
-;;       '(("org"
-;;          :base-directory "~/org/"
-;;          :publishing-directory "~/sources/gerbil/projects/file-serving-server/static/"
-;;          :section-numbers nil
-;;          :table-of-contents t
-;;          :style "<link rel=\"stylesheet\"
-;;                 href=\"../other/mystyle.css\"
-;;                 type=\"text/css\"/>")))
-
-;; single buffered dired key bindings
-;;
-(defun +vimify-dired-mode-hook+ ()
-  "Give a more vim like key board shortcuts for `dired-mode'."
-  (define-key dired-mode-map (kbd "h")
-    (lambda () (interactive) (find-alternate-file "..")))
-  (define-key dired-mode-map (kbd "j") 'dired-next-line)
-  (define-key dired-mode-map (kbd "k") 'dired-previous-line)
-  (define-key dired-mode-map (kbd "l") 'dired-find-alternate-file)
-  (define-key dired-mode-map (kbd "r") 'dired-do-redisplay))
-(add-hook 'dired-mode-hook #'+vimify-dired-mode-hook+)
-
-;; web
-(setq browse-url-generic-program "firefox"
-      browse-url-generic-args '("--private-window"))
-
-
-(defun +w3m-mode-hook+ ()
-  "My w3m mode hook."
-  (define-key w3m-mode-map (kbd "RET") 'w3m-goto-url))
-
-(add-hook 'w3m-mode-hook #'+w3m-mode-hook+)
-
 ;;; emacs singleton setup
 (defun run-server ()
   "Run a singleton Emacs server."
@@ -172,7 +103,7 @@ Or region from `BEG' to `END'."
          (message "server already started"))
         (t (message "server started")
            (server-start))))
-(run-server)
+;; (run-server)
 
 ;; gambit
 (require 'gambit)
@@ -193,19 +124,6 @@ Or region from `BEG' to `END'."
 
 ;;; lsp setup
 (setq lsp-keymap-prefix "M-n")
-
-;;; julia setup
-
-;; (add-to-list 'load-path "/usr/bin/julia")
-;; (require 'julia-repl)
-;; (add-hook 'julia-mode-hook 'julia-repl-mode)
-(set-language-environment "UTF-8")
-
-;;; mlisp setup
-;; (autoload 'mlisp-mode "mlisp-mode" nil t)
-
-;;; arduino setup
-(push '("\\.\\(pde\\|ino\\)$" . c-mode) auto-mode-alist)
 
 ;;; objc-mode
 ;; (rx (or ".xm" ".x"))

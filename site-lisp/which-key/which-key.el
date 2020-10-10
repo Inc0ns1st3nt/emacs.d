@@ -2172,7 +2172,6 @@ used are reapplied to the new key sequence."
          (next-event (mapcar (lambda (ev) (cons t ev)) key-seq)))
     (setq prefix-arg current-prefix-arg
           unread-command-events next-event)))
-
 (defun which-key-turn-page (delta)
   "Show the next page of keys."
   (which-key-reload-key-sequence)

@@ -1,0 +1,12 @@
+# -*- mode: snippet -*-
+# name: figure
+# key: figure
+# --
+\begin{figure}[${1:H}]
+  \centering
+  \includegraphics[width=$2\columnwidth]{${3:figure-file-name}}
+  \caption{${4:this is a figure}}
+  \label{fig:$3}
+\end{figure}
+\figsquish
+$0

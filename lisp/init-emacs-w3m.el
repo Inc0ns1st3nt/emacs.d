@@ -61,7 +61,7 @@
 
 (defun w3m-guess-keyword (&optional encode-space-with-plus)
   (util/ensure 'w3m)
-  (let* ((keyword (util/use-selected-string-or-ask "Enter keyword:"))
+  (let* ((keyword (util/use-selected-string-or-ask "Enter keyword"))
          (encoded-keyword (w3m-url-encode-string (setq w3m-global-keyword keyword))))
     ;; some search requires plus sign to replace space
     (if encode-space-with-plus
@@ -87,7 +87,8 @@
   (w3m-customized-search-api "f" t))
 
 (defun w3m-mode-hook-setup ()
-  (w3m-lnum-mode 1))
+  (w3m-lnum-mode 1)
+  (define-key w3m-mode-map (kbd "RET") 'w3m-goto-url))
 
 (add-hook 'w3m-mode-hook 'w3m-mode-hook-setup)
 

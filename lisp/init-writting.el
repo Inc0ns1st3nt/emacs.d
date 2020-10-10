@@ -7,17 +7,17 @@ Only applies to text-mode."
   (let* ((f "\\(%s\\)\\(%s\\)")
          (space "?:[[:blank:]\n\r]*"))
     ;; We obviously don't want to do this in prog-mode.
-    (if (and (derived-mode-p 'text-mode)
-             (or (looking-at (format f space rg))
-                 (looking-back (format f rg space))))
-        (replace-match rp nil nil nil 1))))
+    (when (and (derived-mode-p 'text-mode)
+               (or (looking-at (format f space rg))
+                   (looking-back (format f rg space))))
+      (replace-match rp nil nil nil 1))))
 
 (defun endless/call-subword-cmd (fn)
   (util/ensure 'subword)
   (call-interactively fn))
 
 (defun endless/capitalize ()
-  "Capitalize region or word.
+  "Capitalise region or word.
 Also converts commas to full stops, and kills
 extraneous space at beginning of line."
   (interactive)
@@ -31,7 +31,7 @@ extraneous space at beginning of line."
     (endless/call-subword-cmd 'subword-capitalize)))
 
 (defun endless/downcase ()
-  "Downcase region or word.
+  "Down-case region or word.
 Also converts full stops to commas."
   (interactive)
   (endless/convert-punctuation "\\." ",")

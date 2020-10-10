@@ -203,12 +203,14 @@ If N is nil, use `ivy-mode' to browse `kill-ring'."
 (defun util/use-selected-string-or-ask (&optional hint default-string)
   "Use selected region or ask for input.
 If HINT is empty, use symbol at point."
-  (if (or (not (stringp hint))
-          (string-empty-p hint))
-      (util/thing-at-point)
-    (read-string hint "" nil (if (stringp default-string)
-                                 default-string
-                                 ""))))
+  (cond ((or (not (stringp hint))
+             (string-empty-p hint))
+         (util/thing-at-point))
+        ((stringp default-string)
+         (read-string (concat hint " (" default-string "): ")
+                      ""
+                      nil))
+        (t (read-string (concat hint ": ") "" nil))))
 
 (defun util/thing-at-point ()
   "get thing at point.
