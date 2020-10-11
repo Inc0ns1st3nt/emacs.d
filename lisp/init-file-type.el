@@ -98,21 +98,17 @@
                "\\.pac$"
                "\\.jshintrc$")
 
-(cond
- ((not *no-memory*)
-  ;; javascript
-  (add-auto-mode 'js2-mode "\\.js\\(\\.erb\\)?\\'")
-  ;; JSX
-  (add-auto-mode 'rjsx-mode
-                 "\\.jsx\\'"
-                 "components\\/.*\\.js\\'")
-  ;; mock file
-  (add-auto-mode 'js-mode "\\.mock.js\\'")
-  (add-interpreter-mode 'js2-mode "node"))
- (t
-  (add-auto-mode 'js-mode
-                 "\\.js\\(\\.erb\\)?\\'"
-                 "\\.babelrc\\'")))
+(add-auto-mode 'js2-mode "\\.js\\(\\.erb\\)?\\'")
+;; JSX
+
+(add-auto-mode 'rjsx-mode
+               "\\.jsx\\'"
+               "components\\/.*\\.js\\'")
+;; mock file
+
+(add-auto-mode 'js-mode "\\.mock.js\\'")
+(add-interpreter-mode 'js2-mode "node")
+
 
 (add-auto-mode 'typescript-mode "\\.ts$")
 

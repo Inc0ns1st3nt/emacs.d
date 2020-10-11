@@ -3,22 +3,18 @@ Text-Width: 70
 
 ;; <x-color><param>#5C6370</param>-*- coding: utf-8; lexical-binding: t; -*-
 </x-color>
-<x-color><param>#61AFEF</param>(</x-color><x-color><param>#C678DD</param>defvar</x-color> <x-color><param>#E06C75</param>best-gc-cons-threshold</x-color> 4000000
-  "Best default gc threshold value.  Should NOT be too big!"<x-color><param>#61AFEF</param>)</x-color>
+<x-color><param>#61AFEF</param>(</x-color><x-color><param>#C678DD</param>defvar</x-color> <x-color><param>#E06C75</param>best-gc-cons-threshold</x-color> <x-color><param>#98C379</param>(</x-color>* 64 1024 1024<x-color><param>#98C379</param>)</x-color> ;; <x-color><param>#5C6370</param>64mb
+</x-color>  "Best default gc threshold value.  Should NOT be too big!"<x-color><param>#61AFEF</param>)</x-color>
 
-<x-color><param>#61AFEF</param>(</x-color><x-color><param>#C678DD</param>defvar</x-color> <x-color><param>#E06C75</param>inc0n/debug</x-color> nil
-  "Enable debug mode."<x-color><param>#61AFEF</param>)</x-color>
+;; <x-color><param>#5C6370</param>(defvar inc0n/debug nil "Enable debug mode.")
 
-;; <x-color><param>#5C6370</param>don't GC during startup to save time
+</x-color>;; <x-color><param>#5C6370</param>don't GC during startup to save time
 </x-color><x-color><param>#61AFEF</param>(</x-color><x-color><param>#C678DD</param>setq</x-color> gc-cons-threshold most-positive-fixnum<x-color><param>#61AFEF</param>)</x-color>
+
 
 <x-color><param>#61AFEF</param>(</x-color><x-color><param>#C678DD</param>defvar</x-color> <x-color><param>#E06C75</param>inc0n/emacs-load-start-time</x-color> <x-color><param>#98C379</param>(</x-color>current-time<x-color><param>#98C379</param>)</x-color>
   "The time that emacs started as time object"<x-color><param>#61AFEF</param>)</x-color>
 
-;;<x-color><param>#5C6370</param>----------------------------------------------------------------------------
-</x-color>;; <x-color><param>#5C6370</param>Which functionality to enable (use t or nil for true and false)
-</x-color>;;<x-color><param>#5C6370</param>----------------------------------------------------------------------------
-</x-color><x-color><param>#61AFEF</param>(</x-color><x-color><param>#C678DD</param>defvar</x-color> <x-color><param>#E06C75</param>*no-memory*</x-color> nil<x-color><param>#61AFEF</param>)</x-color>
 
 <x-color><param>#61AFEF</param>(</x-color><x-color><param>#C678DD</param>defconst</x-color> <x-color><param>#E06C75</param>inc0n/emacs-d</x-color> <x-color><param>#98C379</param>(</x-color>file-name-as-directory user-emacs-directory<x-color><param>#98C379</param>)</x-color>
   "Directory of emacs.d"<x-color><param>#61AFEF</param>)</x-color>
@@ -35,25 +31,28 @@ Text-Width: 70
 
 <x-color><param>#61AFEF</param>(</x-color><x-color><param>#C678DD</param>defun</x-color> <x-color><param>#61AFEF</param>require-init</x-color> <x-color><param>#98C379</param>(</x-color>pkg <x-color><param>#E5C07B</param>&optional</x-color> maybe-disabled<x-color><param>#98C379</param>)</x-color>
   "Load PKG if MAYBE-DISABLED is nil or it's nil but start up in normal slowly."
-  <x-color><param>#98C379</param>(</x-color><x-color><param>#C678DD</param>when</x-color> <x-color><param>#D19A66</param>(</x-color><x-color><param>#C678DD</param>or</x-color> <x-color><param>#56B6C2</param>(</x-color>not maybe-disabled<x-color><param>#56B6C2</param>)</x-color>
+  <x-color><param>#98C379</param>(</x-color><x-color><param>#C678DD</param>if</x-color> <x-color><param>#D19A66</param>(</x-color><x-color><param>#C678DD</param>or</x-color> <x-color><param>#56B6C2</param>(</x-color>not maybe-disabled<x-color><param>#56B6C2</param>)</x-color>
 
-            <x-color><param>#56B6C2</param>(</x-color>not <x-color><param>#C678DD</param>(</x-color>inc0n/vc-merge-p<x-color><param>#C678DD</param>)</x-color><x-color><param>#56B6C2</param>)</x-color><x-color><param>#D19A66</param>)</x-color>
-    <x-color><param>#D19A66</param>(</x-color>load <x-color><param>#56B6C2</param>(</x-color>file-truename <x-color><param>#C678DD</param>(</x-color>format <x-color><param>#98C379</param>"%s/%s"</x-color> inc0n/lisp-dir pkg<x-color><param>#C678DD</param>)</x-color><x-color><param>#56B6C2</param>)</x-color>
+          <x-color><param>#56B6C2</param>(</x-color>not <x-color><param>#C678DD</param>(</x-color>inc0n/vc-merge-p<x-color><param>#C678DD</param>)</x-color><x-color><param>#56B6C2</param>)</x-color><x-color><param>#D19A66</param>)</x-color>
+      <x-color><param>#D19A66</param>(</x-color>load <x-color><param>#56B6C2</param>(</x-color>file-truename <x-color><param>#C678DD</param>(</x-color>format <x-color><param>#98C379</param>"%s/%s"</x-color> inc0n/lisp-dir pkg<x-color><param>#C678DD</param>)</x-color><x-color><param>#56B6C2</param>)</x-color>
 
-          t t<x-color><param>#D19A66</param>)</x-color><x-color><param>#98C379</param>)</x-color><x-color><param>#61AFEF</param>)</x-color>
+            t t<x-color><param>#D19A66</param>)</x-color>
+
+    <x-color><param>#D19A66</param>(</x-color><x-color><param>#5C6370</param>warn</x-color> <x-color><param>#98C379</param>"could not load init file %s"</x-color> pkg<x-color><param>#D19A66</param>)</x-color><x-color><param>#98C379</param>)</x-color><x-color><param>#61AFEF</param>)</x-color>
 
 <x-color><param>#61AFEF</param>(</x-color><x-color><param>#C678DD</param>defun</x-color> <x-color><param>#61AFEF</param>local-require</x-color> <x-color><param>#98C379</param>(</x-color>pkg<x-color><param>#98C379</param>)</x-color>
   "Require PKG in site-lisp directory."
-  <x-color><param>#98C379</param>(</x-color><x-color><param>#C678DD</param>unless</x-color> <x-color><param>#D19A66</param>(</x-color><x-color><param>#C678DD</param>featurep</x-color> <x-color><param>#56B6C2</param>pkg</x-color><x-color><param>#D19A66</param>)</x-color>
-    <x-color><param>#D19A66</param>(</x-color>load <x-color><param>#56B6C2</param>(</x-color>expand-file-name
-           <x-color><param>#C678DD</param>(</x-color><x-color><param>#C678DD</param>if</x-color> <x-color><param>#E5C07B</param>(</x-color>eq pkg 'go-mode-load<x-color><param>#E5C07B</param>)</x-color>
-               <x-color><param>#E5C07B</param>(</x-color>format <x-color><param>#98C379</param>"%s/go-mode/%s"</x-color> inc0n/site-lisp-dir pkg<x-color><param>#E5C07B</param>)</x-color>
-             <x-color><param>#E5C07B</param>(</x-color>format <x-color><param>#98C379</param>"%s/%s/%s"</x-color> inc0n/site-lisp-dir pkg pkg<x-color><param>#E5C07B</param>)</x-color><x-color><param>#C678DD</param>)</x-color><x-color><param>#56B6C2</param>)</x-color>
-          t t<x-color><param>#D19A66</param>)</x-color><x-color><param>#98C379</param>)</x-color><x-color><param>#61AFEF</param>)</x-color>
+  <x-color><param>#98C379</param>(</x-color><x-color><param>#C678DD</param>or</x-color> <x-color><param>#D19A66</param>(</x-color><x-color><param>#C678DD</param>featurep</x-color> <x-color><param>#56B6C2</param>pkg</x-color><x-color><param>#D19A66</param>)</x-color>
+      <x-color><param>#D19A66</param>(</x-color>load <x-color><param>#56B6C2</param>(</x-color>expand-file-name
+             <x-color><param>#C678DD</param>(</x-color><x-color><param>#C678DD</param>if</x-color> <x-color><param>#E5C07B</param>(</x-color>eq pkg 'go-mode-load<x-color><param>#E5C07B</param>)</x-color>
+                 <x-color><param>#E5C07B</param>(</x-color>format <x-color><param>#98C379</param>"%s/go-mode/%s"</x-color> inc0n/site-lisp-dir pkg<x-color><param>#E5C07B</param>)</x-color>
+               <x-color><param>#E5C07B</param>(</x-color>format <x-color><param>#98C379</param>"%s/%s/%s"</x-color> inc0n/site-lisp-dir pkg pkg<x-color><param>#E5C07B</param>)</x-color><x-color><param>#C678DD</param>)</x-color><x-color><param>#56B6C2</param>)</x-color>
+            t t<x-color><param>#D19A66</param>)</x-color>
+
+      <x-color><param>#D19A66</param>(</x-color><x-color><param>#5C6370</param>warn</x-color> <x-color><param>#98C379</param>"could not load local pkg %s"</x-color> pkg<x-color><param>#D19A66</param>)</x-color><x-color><param>#98C379</param>)</x-color><x-color><param>#61AFEF</param>)</x-color>
 
 ;; <x-color><param>#5C6370</param>(setq garbage-collection-messages t) ; for debug
-</x-color><x-color><param>#61AFEF</param>(</x-color><x-color><param>#C678DD</param>setq</x-color> best-gc-cons-threshold <x-color><param>#98C379</param>(</x-color>* 64 1024 1024<x-color><param>#98C379</param>)</x-color><x-color><param>#61AFEF</param>)</x-color>
-<x-color><param>#61AFEF</param>(</x-color><x-color><param>#C678DD</param>setq</x-color> gc-cons-percentage 0.5<x-color><param>#61AFEF</param>)</x-color>
+</x-color><x-color><param>#61AFEF</param>(</x-color><x-color><param>#C678DD</param>setq</x-color> gc-cons-percentage 0.5<x-color><param>#61AFEF</param>)</x-color>
 <x-color><param>#61AFEF</param>(</x-color>run-with-idle-timer 5 t #'garbage-collect<x-color><param>#61AFEF</param>)</x-color>
 
 ;; <x-color><param>#5C6370</param>@see https://www.reddit.com/r/emacs/comments/3kqt6e/2_easy_little_known_steps_to_speed_up_emacs_start/
@@ -164,7 +163,7 @@ Text-Width: 70
            <x-color><param>#D19A66</param>(</x-color>format-time-string <x-color><param>#98C379</param>"%3N"</x-color> <x-color><param>#56B6C2</param>(</x-color>time-since inc0n/emacs-load-start-time<x-color><param>#56B6C2</param>)</x-color><x-color><param>#D19A66</param>)</x-color><x-color><param>#98C379</param>)</x-color><x-color><param>#61AFEF</param>)</x-color>
 
 
- ;;; <x-color><param>#5C6370</param>Local Variables:
+;;; <x-color><param>#5C6370</param>Local Variables:
 </x-color>;;; <x-color><param>#5C6370</param>no-byte-compile: t
 </x-color>;;; <x-color><param>#5C6370</param>End:
 </x-color><x-color><param>#61AFEF</param>(</x-color>put 'erase-buffer 'disabled nil<x-color><param>#61AFEF</param>)</x-color>

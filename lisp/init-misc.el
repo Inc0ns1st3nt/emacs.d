@@ -120,9 +120,6 @@
 (setq minibuffer-prompt-properties
       '(read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt))
 
-(global-set-key (kbd "M-x") 'counsel-M-x)
-(global-set-key (kbd "C-x C-m") 'counsel-M-x)
-
 (defvar inc0n/do-bury-compilation-buffer t
   "Hide compilation buffer if compile successfully.")
 
@@ -207,6 +204,9 @@ This function can be re-used by other major modes after compilation."
 ;; @see http://stackoverflow.com/questions/4222183/emacs-how-to-jump-to-function-definition-in-el-file
 (global-set-key (kbd "C-h C-f") #'find-function)
 
+;; A quick way to jump to the definition of a function given its key binding
+(global-set-key (kbd "C-h K") #'find-function-on-key)
+
 ;; {{ time format
 ;; If you want to customize time format, read document of `format-time-string'
 ;; and customize `display-time-format'.
@@ -218,16 +218,13 @@ This function can be re-used by other major modes after compilation."
 (display-time) ; show date in modeline
 ;; }}
 
-;; a no-op function to bind to if you want to set a keystroke to null
-(defun void () "this is a no-op" (interactive))
-
-(defalias 'list-buffers #'ibuffer)
+;; (defalias 'list-buffers #'ibuffer)
 
 ;; {{ show email sent by `git send-email' in gnus
 (with-eval-after-load 'gnus
-  (local-require 'gnus-article-treat-patch)
-  (setq gnus-article-patch-conditions
-        '( "^@@ -[0-9]+,[0-9]+ \\+[0-9]+,[0-9]+ @@" )))
+  (when (local-require 'gnus-article-treat-patch)
+    (setq gnus-article-patch-conditions
+          '( "^@@ -[0-9]+,[0-9]+ \\+[0-9]+,[0-9]+ @@" ))))
 ;; }}
 
 (defun add-pwd-into-load-path ()
@@ -297,8 +294,8 @@ This function can be re-used by other major modes after compilation."
   (popup-tip (inc0n/which-function)))
 ;; }}
 
-(local-require 'ace-pinyin)
-(ace-pinyin-global-mode 1)
+(when (local-require 'ace-pinyin)
+  (ace-pinyin-global-mode 1))
 
 ;; {{ avy, jump between texts, like easymotion in vim
 ;; @see http://emacsredux.com/blog/2015/07/19/ace-jump-mode-is-dead-long-live-avy/ for more tips
@@ -488,11 +485,11 @@ If no region is selected, `kill-ring' or clipboard is used instead."
   (message "indent-tabs-mode=%s" indent-tabs-mode))
 
 ;; {{ auto-save.el
-(local-require 'auto-save)
-(add-to-list 'auto-save-exclude 'file-too-big-p t)
-(setq auto-save-idle 1) ; 1 seconds
-(auto-save-enable)
-(setq auto-save-slient nil)
+(when (local-require 'auto-save)
+  (add-to-list 'auto-save-exclude 'file-too-big-p t)
+  (setq auto-save-idle 1) ; 1 seconds
+  (auto-save-enable)
+  (setq auto-save-slient nil))
 ;; }}
 
 ;; {{ csv
@@ -992,12 +989,12 @@ Including indent-buffer, which should not be called automatically on save."
 (setq-default browse-url-generic-args "--private-window")
 
 ;; {{ which-key-mode
-(local-require 'which-key)
-(setq which-key-allow-imprecise-window-fit t) ; performance
-(setq which-key-idle-delay 0.5)
-(setq which-key-separator " → ")
-(setq which-key-show-remaining-keys t)
-(which-key-mode 1)
+(when (local-require 'which-key)
+  (setq which-key-allow-imprecise-window-fit t) ; performance
+  (setq which-key-idle-delay 0.5)
+  (setq which-key-separator " → ")
+  (setq which-key-show-remaining-keys t)
+  (which-key-mode 1))
 ;; }}
 
 ;; {{ Answer Yes/No programmically when asked by `y-or-n-p'

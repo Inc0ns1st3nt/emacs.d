@@ -43,11 +43,12 @@
 ;; I don't care Emacs 25 performance any more
 (when (fboundp 'global-display-line-numbers-mode)
   (defun display-line-numbers-mode-hook-setup ()
-    (setq display-line-numbers
-          (and (not (or (memq major-mode inc0n/linum-inhibit-modes)
-                        ;; don't show line number for certain file extensions
-                        (should-use-minimum-resource)))
-               'relative)))
+    (if (or (memq major-mode inc0n/linum-inhibit-modes)
+            ;; don't show line number for certain file extensions
+            (should-use-minimum-resource))
+        (setq display-line-numbers t)
+      (setq display-line-numbers 'relative)
+      (setq display-line-numbers-type 'relative)))
   (add-hook 'display-line-numbers-mode-hook #'display-line-numbers-mode-hook-setup)
   (global-display-line-numbers-mode t))
 

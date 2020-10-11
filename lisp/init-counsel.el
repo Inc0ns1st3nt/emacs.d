@@ -92,5 +92,9 @@ as deep as counsel--search-file-max-depth"
     (let ((imenu-create-index-function #'evilnc-imenu-create-index-function))
       (counsel-imenu))))
 
+
+(global-set-key (kbd "M-x") 'counsel-M-x)
+(global-set-key (kbd "C-x C-m") 'counsel-M-x)
+
 (provide 'init-counsel)
 ;;; init-counsel.el ends here

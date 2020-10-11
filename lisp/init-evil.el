@@ -230,7 +230,6 @@ If the character before and after CH is space or tab, CH is NOT slash"
 (evil-escape-mode 1)
 ;; }}
 
-
 ;; Move back the cursor one position when exiting insert mode
 (setq evil-move-cursor-back t)
 
@@ -796,6 +795,7 @@ If INCLUSIVE is t, the text object is inclusive."
 
 ;; {{ evil-nerd-commenter
 (evilnc-default-hotkeys t)
+(define-key evil-normal-state-map ",," 'evilnc-comment-operator)
 (define-key evil-motion-state-map "gc" 'evilnc-comment-operator) ; same as doom-emacs
 
 (defun inc0n/current-line-html-p (paragraph-region)

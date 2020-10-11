@@ -216,7 +216,8 @@ ARG is ignored."
                                (concat org-directory "todo.org")))
   (setq org-capture-templates
         `(("t" "Todo" entry  (file "todo.org")
-           ,(concat "* TODO %U %?\n"))
+           ,(concat "* TODO %?\n"
+                    "/Entered on/ %U"))
           ("s" "Schedule" entry (file+headline "agenda.org" "Future")
            ,(concat "* TODO %?\n"
                     "SCHEDULED: %t"))
@@ -246,37 +247,31 @@ ARG is ignored."
           ;;  "* NEXT %?\n%U\n%a\nSCHEDULED: %(format-time-string \"%<<%Y-%m-%d %a .+1d/3d>>\")\n:PROPERTIES:\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:END:\n")
           ))
   (setq org-agenda-custom-commands
-        '(("g" "Get Things Done (GTD)"
-           ((agenda ""
-                    ((org-agenda-skip-function
-                      '(org-agenda-skip-entry-if 'deadline))
-                     (org-deadline-warning-days 0)))
-            (todo "NEXT"
-                  ((org-agenda-skip-function
-                    '(org-agenda-skip-entry-if 'deadline))
-                   (org-agenda-prefix-format "  %i %-12:c [%e] ")
-                   (org-agenda-overriding-header "\nTasks\n")))
-            ;; (agenda nil
-            ;;         ((org-agenda-entry-types '(:deadline))
-            ;;          ;; (org-agenda-format-date "")
-            ;;          (org-deadline-warning-days 7)
-            ;;          (org-agenda-skip-function
-            ;;           '(org-agenda-skip-entry-if 'notregexp "\\* NEXT"))
-            ;;          (org-agenda-overriding-header "\nDeadlines")))
-            (tags-todo "TODO"
-                       ((org-agenda-prefix-format "  %?-12t% s")
-                        (org-agenda-overriding-header "\nTodo\n")))
-            (tags "CLOSED>=\"<today>\""
-                  ((org-agenda-overriding-header "\nCompleted today\n")))))
-          ("n" "Agenda and all TODOs"
-           ((agenda "")
-            (alltodo ""))))))
+        '(("n" "Agenda and all TODOs"
+           ((tags "CLOSED>=\"<today>\""
+                  ((org-agenda-overriding-header "Completed today")))
+            (agenda ""
+                    ;; ((org-agenda-entry-types '(:deadline))
+                    ;;  (org-agenda-format-date "")
+                    ;;  (org-agenda-skip-function
+                    ;;   '(org-agenda-skip-entry-if 'deadline))
+                    ;;  (org-deadline-warning-days 0))
+                    )
+            ;; (tags-todo "TODO")
+            (todo "TODO"
+                  ((org-agenda-format-date "")
+                   ;; (org-deadline-warning-days 7)
+                   (org-agenda-prefix-format " %i %-12:c [%e] ")
+                   (org-agenda-overriding-header "Todo")))
+            (todo "PROJECT"
+                  ((org-agenda-overriding-header "Projects")))
+            (todo "HOLD"
+                  ((org-agenda-overriding-header "Maybe"))))))))
 
-(with-eval-after-load 'evil
-  (defun org-agenda-mode-setup ()
-    (evil-mode 1)
-    (evil-normal-state)
-    (evil-local-set-key 'normal (kbd "RET") 'org-agenda-show))
-  (add-hook 'org-agenda-mode-hook #'org-agenda-mode-setup))
+(defun org-agenda-mode-setup ()
+  (evil-mode 1)
+  (evil-normal-state)
+  (evil-local-set-key 'normal (kbd "RET") #'org-agenda-switch-to))
+(add-hook 'org-agenda-mode-hook #'org-agenda-mode-setup)
 
 (provide 'init-org)
