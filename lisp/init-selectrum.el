@@ -6,17 +6,24 @@
 
 ;;; Code
 
+;; @see https://github.com/raxod502/selectrum
 (require-package 'selectrum)
 
 ;; (add-hook 'after-init-hook 'selectrum-mode)
 (selectrum-mode 1)
-(setq amx-backend 'selectrum)
 
+(setq amx-backend 'selectrum)
 (setq-default selectrum-should-sort-p nil)
 
+;; @see https://github.com/raxod502/prescient.el
 (when (maybe-require-package 'selectrum-prescient)
   (selectrum-prescient-mode 1)
   (prescient-persist-mode 1))
+
+;; optional completion package
+;; (when (maybe-require-package 'orderless)
+;;   (setq selectrum-refine-candidates-function #'orderless-filter)
+;;   (setq selectrum-highlight-candidates-function #'orderless-highlight-matches))
 
 (defun selectrum-yank-search (regex-str)
   "set search item as str"
@@ -32,6 +39,7 @@
 (defvar selectrum-swiper-history nil
   "Submission history for `selectrum-swiper'.")
 
+;; TODO - custom mode and mode-map for `M-q' query-replace support
 (defun selectrum-swiper (&optional initial-input)
   "Search for a matching line and jump to the beginning of its text.  Obeys narrowing."
   (interactive (list (util/thing-at-point)))
