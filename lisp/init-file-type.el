@@ -124,7 +124,11 @@
 (add-auto-mode 'roblox-mode "\\.rbxlx\\'")
 ;; }}
 
-;;; arduino setup
+;; arduino setup
 (add-auto-mode 'c-mode "\\.\\(pde\\|ino\\)$")
+
+;; objc-mode
+;; (rx (or ".xm" ".x"))
+(add-to-list 'auto-mode-alist `(,(regexp-opt '(".xm" ".x") t) . objc-mode))
 
 (provide 'init-file-type)

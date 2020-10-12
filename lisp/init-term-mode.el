@@ -91,11 +91,13 @@ EVENT is ignored."
   (setq comint-password-prompt-regexp
         (format "%s\\|^ *Password for .*: *$" comint-password-prompt-regexp))
   (add-hook 'comint-output-filter-functions #'comint-watch-for-password-prompt))
+
 (defun comint-mode-hook-setup ()
   ;; look up shell command history
   (local-set-key (kbd "M-n") #'counsel-shell-history)
   ;; Don't show trailing whitespace in REPL.
   (local-set-key (kbd "M-;") #'comment-dwim))
+
 (add-hook 'comint-mode-hook #'comint-mode-hook-setup)
 ;; }}
 

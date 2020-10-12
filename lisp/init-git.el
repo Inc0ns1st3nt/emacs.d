@@ -10,7 +10,7 @@
 ;; @see https://www.reddit.com/r/emacs/comments/4c0mi3/the_biggest_performance_improvement_to_emacs_ive/
 ;; open files faster but you can't check if file is version
 ;; controlled. other VCS functionality still works.
-(remove-hook 'find-file-hooks 'vc-find-file-hook)
+(remove-hook 'find-file-hooks #'vc-find-file-hook)
 ;; }}
 
 ;; ;; {{ Solution 3: setup vc-handled-backends per project
@@ -63,15 +63,6 @@
     (git-gutter:set-start-revision parent)
     (message "git-gutter:set-start-revision HEAD^")))
 
-(defun git-gutter-toggle ()
-  "Toggle git gutter."
-  (interactive)
-  (git-gutter-mode -1)
-  ;; git-gutter-fringe doesn't seem to
-  ;; clear the markup right away
-  (sit-for 0.1)
-  (git-gutter:clear))
-
 (defun git-gutter-reset-to-default ()
   "Restore git gutter to its original status.
 Show the diff between current working code and git head."
@@ -86,7 +77,7 @@ Show the diff between current working code and git head."
  ;; should not be used in `display-line-number-mode'
  (git-gutter:linum-setup))
 
-(global-set-key (kbd "C-x C-g") 'git-gutter:toggle)
+(global-set-key (kbd "C-x C-g") 'git-gutter-mode)
 (global-set-key (kbd "C-x v =") 'git-gutter:popup-hunk)
 ;; Stage current hunk
 (global-set-key (kbd "C-x v s") 'git-gutter:stage-hunk)

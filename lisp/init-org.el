@@ -56,6 +56,12 @@
     (org-mime-change-element-style "blockquote"
                                    "border-left: 2px solid gray; padding-left: 4px;"))
   (add-hook 'org-mime-html-hook #'org-mime-html-hook-setup))
+
+(autoload 'org-mime-htmlize "org-mime" nil t)
+(autoload 'org-mime-edit-mail-in-org-mode "org-mime" nil t)
+(autoload 'org-mime-revert-to-plain-text-mail "org-mime" nil t)
+(autoload 'org-mime-org-buffer-htmlize "org-mime" nil t)
+(autoload 'org-mime-org-subtree-htmlize "org-mime" nil t)
 ;; }}
 
 (defun org-mode-hook-setup ()
@@ -193,7 +199,7 @@ ARG is ignored."
         ;; }}
         ;; org v8
         org-odt-preferred-output-format "doc"
-        org-tags-column 80
+        org-tags-column 50
 
         ;; Refile targets include this file and any file contributing to the agenda - up to 5 levels deep
         org-refile-targets '(("projects.org" :regexp . "\\(?:\\(?:Note\\|Task\\)s\\)"))

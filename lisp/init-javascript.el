@@ -1,4 +1,7 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
+
+(require-package 'typescript-mode)
+
 (setq-default js2-use-font-lock-faces t
               js2-mode-must-byte-compile nil
               ;; {{ comment indention in modern frontend development

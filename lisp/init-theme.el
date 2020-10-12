@@ -1,11 +1,12 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
-;; someone mentioned that blink cursor could slow Emacs24.4
-;; I couldn't care less about cursor, so turn it off explicitly
-;; https://github.com/redguardtoo/emacs.d/issues/208
-;; but somebody mentioned that blink cursor is needed in dark theme
-;; so it should not be turned off by default
-;; (blink-cursor-mode -1)
+;;; Commentary:
+;; themes also some selectrum specific theme hacks
+
+;;; Code:
+
+(require-package 'atom-one-dark-theme)
+(require-package 'doom-themes)
 
 (defvar theme/night 'atom-one-dark)
 (defvar theme/day 'doom-one-light)
@@ -15,6 +16,25 @@
   (dolist (i custom-enabled-themes)
     (disable-theme i))
   (load-theme theme t))
+
+(defun load-day-theme ()
+  ;; selectrum is okay with this
+  (load-theme-only theme/day))
+
+(defun load-night-theme ()
+  ;; selectrum quick fix
+  (load-theme-only theme/night)
+  (let ((class t))
+	(custom-theme-set-faces
+	 'atom-one-dark
+	 `(selectrum-current-candidate
+	   ((,class (:background "#3E4451"))))
+	 `(selectrum-primary-highlight
+	   ((,class (:foreground "#C678DD" :background "#2C323C" :underline t
+							 :weight semi-bold))))
+	 `(selectrum-secondary-highlight
+	   ((,class (:inherit selectrum-primary-highlight))))))
+  (enable-theme 'atom-one-dark))
 
 (cl-labels ((time-abs (num)
                       (if (< num 0)
@@ -31,32 +51,25 @@
         (current-time (format-time-string "%H %M")))
     (run-with-timer (string-time-diff 8 00)
                     one-day-secs
-                    (lambda () (load-theme-only theme/day)))
+                    #'load-day-theme)
     (run-with-timer (string-time-diff 16 00)
                     one-day-secs
-                    (lambda () (load-theme-only theme/night)))
+                    #'load-night-theme)
     (if (or (string> current-time "16 00")
             (string< current-time "08 00"))
-        (load-theme-only theme/night)
-      (load-theme-only theme/day))))
+        (load-night-theme)
+      (load-day-theme))))
 
 (defun inc0n/toggle-day/night ()
   (interactive)
-  (if (and custom-enabled-themes
-           (null (cdr custom-enabled-themes)))
-      (if (equal (car custom-enabled-themes) theme/night)
-          (load-theme-only theme/day)
-        (load-theme-only theme/night))
-    (message "theme cannot be toggled")))
-
-;; random color theme
-;; (defun inc0n/random-color-theme (themes)
-;;   "Pickup random color theme from themes."
-;;   (interactive (custom-available-themes))
-;;   (let ((theme
-;;          (nth (random (length available-themes)) themes)))
-;;     (load-theme-only theme)
-;;     (message "Color theme [%s] loaded." theme)))
+  (cond ((or (null custom-enabled-themes)
+			 (cdr custom-enabled-themes))
+		 (message "theme cannot be toggled"))
+		((equal (car custom-enabled-themes)
+				theme/night)
+		 (load-day-theme))
+		(t
+		 (load-night-theme))))
 
 (defun inc0n/theme-packages (packages)
   "Get themes from PACKAGES."
@@ -82,16 +95,16 @@
     (goto-char (point-min))
     (search-forward "{")
     (backward-char)                  ; move cursor just before the "{"
-
     (when-let* ((pkgs (json-read))
                 (names (inc0n/theme-packages pkgs)))
-      ;; insert theme package names
-      (kill-buffer)
-      (ivy-read "Select theme to install: "
-                (mapcar (lambda (x) (cons (format "%s:%s" (cdr x) (car x))
-                                          (car x)))
-                        names)
-                :action (lambda (x) (package-install (cdr x)))))))
+      (let ((selectrum-should-sort-p nil)
+			(cand (selectrum-read
+				   "Select theme to install: "
+				   (mapcar (lambda (x)
+							 (cons (format "%s:%s" (cdr x) (car x))
+								   (car x)))
+						   names))))
+		(package-install (cdr cand))))))
 
 (provide 'init-theme)
 ;;; init-theme.el ends here

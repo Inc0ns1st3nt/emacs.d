@@ -1,5 +1,7 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
+(require-package 'expand-region) ; I prefer stable version
+
 ;; enable evil-mode
 (evil-mode 1)
 
@@ -230,9 +232,6 @@ If the character before and after CH is space or tab, CH is NOT slash"
 (evil-escape-mode 1)
 ;; }}
 
-;; Move back the cursor one position when exiting insert mode
-(setq evil-move-cursor-back t)
-
 ;; As a general rule, mode specific evil leader keys started
 ;; with upper cased character or 'g' or special character except "=" and "-"
 (evil-declare-key 'normal org-mode-map
@@ -323,74 +322,8 @@ If the character before and after CH is space or tab, CH is NOT slash"
 (global-set-key (kbd "C-r") #'undo-tree-redo)
 
 ;; {{
-(defvar evil-global-markers-history nil)
-(defun inc0n/evil-set-marker-hack (char &optional pos advance)
-  "Place evil marker's position into history."
-  (unless pos
-    (setq pos (point)))
-  ;; only rememeber global markers
-  (when (and (>= char ?A) (<= char ?Z) buffer-file-name)
-    (setq evil-global-markers-history
-          (delq nil
-                (mapcar (lambda (e)
-                          (unless (string-match (format "^%s@" (char-to-string char)) e)
-                            e))
-                        evil-global-markers-history)))
-    (setq evil-global-markers-history
-          (add-to-list 'evil-global-markers-history
-                       (format "%s@%s:%d:%s"
-                               (char-to-string char)
-                               (file-truename buffer-file-name)
-                               (line-number-at-pos pos)
-                               (string-trim (inc0n/line-str)))))))
-(advice-add 'evil-set-marker :before #'inc0n/evil-set-marker-hack)
-
-(defun inc0n/evil-goto-mark-line-hack (orig-func &rest args)
-  "Place line marker into history."
-  (let ((char (nth 0 args))
-        (orig-pos (point)))
-    (condition-case nil
-        (apply orig-func args)
-      (error (progn
-               (when (and (eq orig-pos (point))
-                          evil-global-markers-history)
-                 (let ((markers evil-global-markers-history)
-                       (i 0)
-                       m
-                       file
-                       found)
-                   (while (and (not found)
-                               (< i (length markers)))
-                     (setq m (nth i markers))
-                     (when (string-match (format "\\`%s@\\(.*?\\):\\([0-9]+\\):\\(.*\\)\\'"
-                                                 (char-to-string char))
-                                         m)
-                       (setq file (match-string-no-properties 1 m))
-                       (setq found (match-string-no-properties 2 m)))
-                     (setq i (1+ i)))
-                   (when file
-                     (find-file file)
-                     (counsel-etags-forward-line found)))))))))
-(advice-add 'evil-goto-mark-line :around #'inc0n/evil-goto-mark-line-hack)
-
-(defun counsel-evil-goto-global-marker ()
-  "Goto global evil marker."
-  (interactive)
-  (util/ensure 'counsel-etags)
-  (ivy-read "Goto global evil marker: "
-            evil-global-markers-history
-            :action
-            (lambda (m)
-              (when (string-match "\\`[A-Z]@\\(.*?\\):\\([0-9]+\\):\\(.*\\)\\'" m)
-                (let ((file (match-string-no-properties 1 m))
-                      (linenum (match-string-no-properties 2 m)))
-                  ;; item's format is like '~/proj1/ab.el:39: (defun hello() )'
-                  (counsel-etags-push-marker-stack (point-marker))
-                  ;; open file, go to certain line
-                  (find-file file)
-                  (counsel-etags-forward-line linenum))
-                ;; flash, Emacs v25 only API
-                (xref-pulse-momentarily)))))
+;; (advice-add 'evil-set-marker :before #'inc0n/evil-set-marker-hack)
+;; (advice-add 'evil-goto-mark-line :around #'inc0n/evil-goto-mark-line-hack)
 ;; }}
 
 (local-require 'general)
@@ -458,6 +391,19 @@ If INCLUSIVE is t, the text object is inclusive."
       (js2hl-rename-thing-at-point)
     ;; simple string search/replace in function scope
     (evilmr-replace-in-defun)))
+
+(defun inc0n/evil-transient-jump-forward ()
+  "Transient interface for `evil-jump'."
+  (interactive)
+  (let ((echo-keystrokes nil))
+    (evil-jump-forward)
+    (message "evil-jump: [f]orward [b]ackward [q]uit")
+    (set-transient-map
+     (let ((map (make-sparse-keymap)))
+       (define-key map [?f] #'evil-jump-forward)
+       (define-key map [?b] #'evil-jump-backward)
+       map)
+     t)))
 
 ;; {{ Use `SPC` as leader key
 ;; all keywords arguments are still supported
@@ -563,10 +509,11 @@ If INCLUSIVE is t, the text object is inclusive."
 
   "ih" 'inc0n/goto-git-gutter           ; use ivy-mode
   "ii" 'inc0n/imenu-or-list-tag-in-current-file
-  "ic" 'counsel-imenu-comments
-  "ir" 'ivy-resume
-  "i SPC" 'just-one-space
+  "ic" 'selectrum-imenu-comments
+  "ir" 'selectrum-repeat
+  "SPC" 'just-one-space
 
+  "jf" 'inc0n/evil-transient-jump-forward
   "jp" 'inc0n/print-json-path
   ;;
   ;; TODO - transiant scroll other window
@@ -574,19 +521,18 @@ If INCLUSIVE is t, the text object is inclusive."
   "kb" 'kill-buffer-and-window ;; "k" is preserved to replace "C-g"
   "kc" 'kill-ring-to-clipboard
 
-  "lb" 'langtool-check-buffer
-  "ll" 'langtool-goto-next-error
   ;;   "ls" 'highlight-symbol
   ;;   "lq" 'highlight-symbol-query-replace
   ;;   "ln" 'highlight-symbol-nav-mode ; use M-n/M-p to navigation between symbols
 
-  "mm" 'counsel-evil-goto-global-marker
+  "mm" 'selectrum-evil-marks
   "mf" 'mark-defun
+  "mp" 'avy-pop-mark
 
   "nh" 'inc0n/goto-next-hunk
   "ni" 'newline-and-indent
 
-  "oa" 'counsel-org-agenda-headlines
+  "oa" 'selectrum-org-agenda-headlines
   "oc" 'org-capture
   "og" 'org-agenda
   "on" 'org-agenda-show-agenda-and-todo
@@ -624,18 +570,18 @@ If INCLUSIVE is t, the text object is inclusive."
   "vv" 'vc-msg-show
   "vj" 'inc0n/validate-json-or-js-expression
 
-  "yy" 'counsel-browse-kill-ring
+  "yy" 'selectrum-browse-kill-ring
   "ycr" 'inc0n/yas-reload-all
 
   "xv" 'vc-next-action                  ; 'C-x v v' in original
   "xe" 'eval-last-sexp
-  "xb" 'ivy-switch-buffer-by-pinyin
-  "xf" 'counsel-find-file
+  "xb" 'switch-to-buffer
+  "xf" 'find-file
   "xh" 'mark-whole-buffer
-  "xm" 'counsel-M-x
+  "xm" 'execute-extended-command
   "xk" 'kill-buffer
   "xs" 'save-buffer
-  "xc" 'counsel-M-x
+  "xc" 'execute-extended-command
   ;; "xx" 'er/expand-region
   ;; "xo" 'ace-window
   ;; {{ window move
@@ -648,18 +594,8 @@ If INCLUSIVE is t, the text object is inclusive."
   ;; `keyfreq-show' proved sub-window operations happen most.
   "x0" 'delete-window
   "x1" 'delete-other-windows
-  "x2" 'split-window-vertically
+  "x2" (lambda () (interactive)(split-window-vertically) (other-window 1))
   "x3" 'split-window-horizontally
-  "xq" 'delete-window
-  "xa" 'split-window-vertically
-  "xd" 'split-window-horizontally
-  "s0" 'delete-window
-  "s1" 'delete-other-windows
-  "s2" 'split-window-vertically
-  "s3" 'split-window-horizontally
-  "sq" 'delete-window
-  "sa" 'split-window-vertically
-  "sd" 'split-window-horizontally
   ;; }}
   "xr" 'ace-swap-window
   "xt" 'toggle-two-split-window
@@ -668,56 +604,12 @@ If INCLUSIVE is t, the text object is inclusive."
   ;; counsel
   "qq" 'inc0n/multi-purpose-grep
   "dd" 'counsel-etags-grep-current-directory
-  "rr" 'inc0n/counsel-recentf
-  "ss" 'counsel-rg-thing-at-point
+  "rr" 'selectrum-recentf
+  "ss" 'selectrum-rg
 
   "wf" 'popup-which-function
   "ww" 'narrow-or-widen-dim
   "+" 'surround-with-char)
-
-;; per-major-mode setup
-
-;; disables javascript leader key
-(when nil
-  (general-create-definer inc0n/javascript-leader-def
-    :prefix "SPC"
-    :non-normal-prefix "M-SPC"
-    :states '(normal motion insert emacs)
-    :keymaps 'js2-mode-map)
-
-  (inc0n/javascript-leader-def
-    "de" 'js2-display-error-list
-    "nn" 'js2-next-error
-    "te" 'js2-mode-toggle-element
-    "tf" 'js2-mode-toggle-hide-functions
-    "jeo" 'js2r-expand-object
-    "jco" 'js2r-contract-object
-    "jeu" 'js2r-expand-function
-    "jcu" 'js2r-contract-function
-    "jea" 'js2r-expand-array
-    "jca" 'js2r-contract-array
-    "jwi" 'js2r-wrap-buffer-in-iife
-    "jig" 'js2r-inject-global-in-iife
-    "jev" 'js2r-extract-var
-    "jiv" 'js2r-inline-var
-    "jrv" 'js2r-rename-var
-    "jvt" 'js2r-var-to-this
-    "jag" 'js2r-add-to-globals-annotation
-    "jsv" 'js2r-split-var-declaration
-    "jss" 'js2r-split-string
-    "jef" 'js2r-extract-function
-    "jem" 'js2r-extract-method
-    "jip" 'js2r-introduce-parameter
-    "jlp" 'js2r-localize-parameter
-    "jtf" 'js2r-toggle-function-expression-and-declaration
-    "jao" 'js2r-arguments-to-object
-    "juw" 'js2r-unwrap
-    "jwl" 'js2r-wrap-in-for-loop
-    "j3i" 'js2r-ternary-to-if
-    "jlt" 'js2r-log-this
-    "jsl" 'js2r-forward-slurp
-    "jba" 'js2r-forward-barf
-    "jk" 'js2r-kill))
 ;; }}
 
 (defun inc0n/evil-delete-hack (orig-func &rest args)
@@ -763,15 +655,16 @@ If INCLUSIVE is t, the text object is inclusive."
 (defun inc0n/select-from-search-text-history ()
   "My select the history of text searching."
   (interactive)
-  (ivy-read "Search text history:" inc0n/search-text-history
-            :action (lambda (item)
-                      (copy-yank-str item)
-                      (message "%s => clipboard & yank ring" item))))
+  (let ((item
+		 (selectrum-read "Search text history:" inc0n/search-text-history)))
+	(copy-yank-str item)
+	(message "%s => clipboard & yank ring" item)))
 
 (defun inc0n/cc-isearch-string (&rest args)
-  "Add `isearch-string' inot history."
+  "Add `isearch-string' to history."
   (and isearch-string
-       (> --> --> (length isearch-string) 0)
+       (> ;; --> -->
+		  (length isearch-string) 0)
        (push isearch-string inc0n/search-text-history)))
 (advice-add 'evil-search-incrementally :after #'inc0n/cc-isearch-string)
 (advice-add 'evil-search-word :after #'inc0n/cc-isearch-string)
@@ -903,6 +796,9 @@ If INCLUSIVE is t, the text object is inclusive."
     (evil-make-overriding-map 'git-timemachine-mode-map 'normal)
     ;; force update evil keymaps after git-timemachine-mode loaded
     (add-hook 'git-timemachine-mode-hook #'evil-normalize-keymaps))
+
+  ;; Move back the cursor one position when exiting insert mode
+  (setq evil-move-cursor-back t)
 
   ;; @see https://bitbucket.org/lyro/evil/issue/342/evil-default-cursor-setting-should-default
   ;; Cursor is always black because of evil.

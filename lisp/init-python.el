@@ -1,5 +1,7 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
+(require-package 'elpy)
+
 (with-eval-after-load 'python
   ;; run command `pip install jedi flake8 importmagic` in shell,
   ;; or just check https://github.com/jorgenschaefer/elpy

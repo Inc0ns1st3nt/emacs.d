@@ -40,16 +40,17 @@
     calendar-mode)
   "Major modes without line number.")
 
-;; I don't care Emacs 25 performance any more
-(when (fboundp 'global-display-line-numbers-mode)
-  (defun display-line-numbers-mode-hook-setup ()
-    (if (or (memq major-mode inc0n/linum-inhibit-modes)
-            ;; don't show line number for certain file extensions
-            (should-use-minimum-resource))
-        (setq display-line-numbers t)
-      (setq display-line-numbers 'relative)
-      (setq display-line-numbers-type 'relative)))
-  (add-hook 'display-line-numbers-mode-hook #'display-line-numbers-mode-hook-setup)
-  (global-display-line-numbers-mode t))
+(unless (fboundp 'global-display-line-numbers-mode)
+  (error "global-display-line-numbers-mode not bound"))
+
+(defun display-line-numbers-mode-hook-setup ()
+  (if (or (memq major-mode inc0n/linum-inhibit-modes)
+          ;; don't show line number for certain file extensions
+          (should-use-minimum-resource))
+      (setq display-line-numbers t)
+    (setq display-line-numbers 'relative)
+    (setq display-line-numbers-type 'relative)))
+(add-hook 'display-line-numbers-mode-hook #'display-line-numbers-mode-hook-setup)
+(global-display-line-numbers-mode t)
 
 (provide 'init-linum-mode)

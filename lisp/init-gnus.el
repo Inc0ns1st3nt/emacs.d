@@ -1,5 +1,10 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
+;;; Commentary:
+;; gnu email
+
+;;; Code:
+
 (defun inc0n/gnus-group-list-subscribed-groups ()
  "List all subscribed groups with or without un-read messages."
   (interactive)

@@ -1,5 +1,7 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
+(require-package 'simple-httpd)
+
 ;; Do NOT start elnode-web-server by default, prefer manual way
 
 ;; per project setup may be better

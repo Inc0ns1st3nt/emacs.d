@@ -1,5 +1,10 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
+;;; Commentary:
+;; keyfreq
+
+;;; Code:
+
 (require-package 'keyfreq)
 
 (defun turnon-keyfreq-mode ()
@@ -245,13 +250,12 @@
         undo-fu-only-redo))
 
 (with-eval-after-load 'keyfreq
-  (util/write-to-missing-file "()" keyfreq-file)
-  (turnon-keyfreq-mode))
+  (util/write-to-missing-file "()" keyfreq-file))
 
 ;; And use keyfreq-show to see how many times you used a command.
 ;; It's recommended to use `keyfreq-mode' (could be in "~/.custom.el").
 ;; It's reported keyfreq is not compatible with `latex-mode'
 ;; @see https://github.com/redguardtoo/emacs.d/issues/767
-;; (turnon-keyfreq-mode)
+(turnon-keyfreq-mode)
 
 (provide 'init-keyfreq)

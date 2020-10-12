@@ -100,7 +100,7 @@
           (if (and (boundp 'ispell-alternate-dictionary)
                    ispell-alternate-dictionary)
               ispell-alternate-dictionary
-            (file-truename (concat inc0n/emacs-d "misc/english-words.txt"))))))
+            (inc0n/emacs-d "misc/english-words.txt")))))
 
 ;; message-mode use company-bbdb.
 ;; So we should NOT turn on company-ispell

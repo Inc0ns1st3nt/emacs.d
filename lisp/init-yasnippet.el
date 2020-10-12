@@ -35,7 +35,7 @@
 (defun inc0n/yas-reload-all ()
   "Compile and reload snippets.  Run the command after adding new snippets."
   (interactive)
-  (yas-compile-directory (file-truename (concat inc0n/emacs-d "snippets")))
+  (yas-compile-directory (inc0n/emacs-d "snippets"))
   (yas-reload-all)
   (inc0n/enable-yas-minor-mode))
 
@@ -61,14 +61,11 @@
 
 (defun inc0n/yas-camelcase-to-string-list (str)
   "Convert camelcase STR into string list."
-  (let ((old-case case-fold-search)
-        rlt)
-    (setq case-fold-search nil)
-    (setq rlt (replace-regexp-in-string "\\([A-Z]+\\)" " \\1" str t))
-    (setq rlt (replace-regexp-in-string "\\([A-Z]+\\)\\([A-Z][a-z]+\\)" "\\1 \\2" rlt t))
-    ;; restore case-fold-search
-    (setq case-fold-search old-case)
-    (split-string rlt " ")))
+  (let ((case-fold-search nil))
+    (let ((rlt (replace-regexp-in-string "\\([A-Z]+\\)" " \\1" str t))
+          (rlt (replace-regexp-in-string "\\([A-Z]+\\)\\([A-Z][a-z]+\\)" "\\1 \\2"
+                                         rlt t)))
+      (split-string rlt " "))))
 
 (defun inc0n/yas-camelcase-to-downcase (str)
   (let ((l (inc0n/yas-camelcase-to-string-list str))
@@ -128,8 +125,8 @@
       (apply orig-func args)))
   (advice-add 'yas-insert-snippet :around #'inc0n/yas-insert-snippet-hack)
 
-  (when (and  (file-exists-p inc0n/yasnippets)
-              (not (member inc0n/yasnippets yas-snippet-dirs)))
+  (when (and (file-exists-p inc0n/yasnippets)
+             (not (member inc0n/yasnippets yas-snippet-dirs)))
     (add-to-list 'yas-snippet-dirs inc0n/yasnippets))
 
   (yas-reload-all))

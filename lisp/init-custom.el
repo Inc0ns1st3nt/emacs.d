@@ -1,5 +1,8 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
+;;; Commentary:
+;; old user custom file check ../custom.el instead
+
 ;; night
 ;; (load-theme 'doom-spacegrey)
 ;; (load-theme 'doom-molokai)
@@ -13,8 +16,8 @@
 ;; (setq-default line-spacing 0)
 
 ;; amx
-(setq amx-save-file (concat inc0n/emacs-d "cache/amx-items"))
-(setq ido-save-directory-list-file (concat inc0n/emacs-d "cache/ido.last"))
+(setq amx-save-file (inc0n/emacs-d "cache/amx-items"))
+(setq ido-save-directory-list-file (inc0n/emacs-d "cache/ido.last"))
 
 ;; iedit quit fix
 (with-eval-after-load 'evil-iedit-state
@@ -48,7 +51,7 @@
 ;;;;
 
 ;; writeroom
-(setq writeroom-width 100)
+
 
 ;; (setq evil-emacs-state-modes (append evil-normal-state-modes evil-motion-state-modes))
 ;; (setq evil-normal-state-modes nil)
@@ -61,8 +64,6 @@
 ;; (setq x-select-enable-clipboard t) ;; enable emacs -> os clipboard
 ;; (setq x-select-enable-primary t) ;; enable os -> emacs clipboard
 
-;; paren mode
-(show-paren-mode 1)
 ;; (setq show-paren-delay 0.125)
 
 ;;;;
@@ -91,10 +92,6 @@ Or region from `BEG' to `END'."
 ;;     (forward-char)
 ;;     (insert-char char)))
 
-;;; latex
-(add-hook 'latex-mode-hook
-          (lambda () (setq word-wrap t)))
-
 ;;; emacs singleton setup
 (defun run-server ()
   "Run a singleton Emacs server."
@@ -105,29 +102,8 @@ Or region from `BEG' to `END'."
            (server-start))))
 ;; (run-server)
 
-;; gambit
-(require 'gambit)
-(add-hook 'inferior-scheme-mode-hook 'gambit-inferior-mode)
-
-;; gerbil setup
-(defvar inc0n/gerbil-home (getenv "GERBIL_HOME"))
-(let ((gerbil-program-name (concat inc0n/gerbil-home "/bin/gxi")))
-  ;; gerbil mode
-  (add-to-list 'load-path (concat inc0n/gerbil-home "/etc/"))
-  (autoload 'gerbil-mode "gerbil-mode" "Gerbil editing mode." t)
-  ;; gerbil tags
-  (add-to-list 'tags-table-list (concat inc0n/gerbil-home "/src/TAGS"))
-  (setq scheme-program-name gerbil-program-name))
-
-(add-auto-mode 'gerbil-mode "\\.ss$")
-
-
 ;;; lsp setup
 (setq lsp-keymap-prefix "M-n")
-
-;;; objc-mode
-;; (rx (or ".xm" ".x"))
-(add-to-list 'auto-mode-alist `(,(regexp-opt '(".xm" ".x") t) . objc-mode))
 
 (provide 'init-custom)
 ;;; init-custom.el ends here

@@ -75,7 +75,7 @@
                        (mode . gnus-article-mode)
                        (name . "^\\.bbdb$")
                        (name . "^\\.newsrc-dribble"))))))
-  (add-hook 'ibuffer-mode-hook 'ibuffer-mode-hook-setup)
+  (add-hook 'ibuffer-mode-hook #'ibuffer-mode-hook-setup)
 
   ;; Modify the default ibuffer-formats
   (setq ibuffer-formats
@@ -92,6 +92,6 @@
 
   (setq ibuffer-filter-group-name-face 'font-lock-doc-face))
 
-(global-set-key (kbd "C-x C-b") 'ibuffer)
+(global-set-key (kbd "C-x C-b") #'ibuffer)
 
 (provide 'init-ibuffer)

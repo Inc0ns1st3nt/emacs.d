@@ -39,63 +39,6 @@
                keyword))))
       (counsel-etags-grep)))))
 
-;; {{ message buffer things
-(defun inc0n/search-backward-prompt (n)
-  "Search backward for N prompt.
-Return the line beginning of prompt line."
-  (let (rlt
-        (first-line-end-pos (save-excursion
-                              (goto-char (point-min))
-                              (line-end-position))))
-    (save-excursion
-      (while (and (> (line-beginning-position) first-line-end-pos)
-                  (> n 0))
-        (when (evilmi-prompt-line-p)
-          (setq n (1- n))
-          (setq rlt (line-beginning-position)))
-        (forward-line -1)))
-    rlt))
-
-(defun inc0n/erase-one-visible-buffer (buf-name &optional n)
-  "Erase the content of visible buffer with BUF-NAME.
-Keep latest N cli program output if it's not nil."
-  (let ((original-window (get-buffer-window))
-        (target-window (get-buffer-window buf-name))
-        beg)
-    (if (not target-window)
-        (message "Buffer %s is not visible!" buf-name)
-      (select-window target-window)
-      (let ((inhibit-read-only t))
-        (util/ensure 'evil-matchit-terminal)
-        (when (and n (> n 0)
-                   (fboundp 'evilmi-prompt-line-p))
-          ;; skip current prompt line
-          (forward-line -2)
-          (setq beg (inc0n/search-backward-prompt n)))
-        (if beg
-            (delete-region (point-min) beg)
-          (erase-buffer)))
-      (select-window original-window))))
-
-(defun inc0n/erase-visible-buffer (&optional n)
-  "Erase the content of the *Messages* buffer.
-N specifies the buffer to erase."
-  (interactive "P")
-  (inc0n/erase-one-visible-buffer
-   (cond
-    ((null n) "*Messages*")
-    ((eq 1 n) "*shell*")
-    ((eq 2 n) "*Javascript REPL*")
-    ((eq 3 n) "*eshell*"))))
-
-(defun inc0n/erase-current-buffer (&optional n)
-  "Erase current buffer even it's read-only.
-Keep N cli output if it's not nil."
-  (interactive "P")
-  (inc0n/erase-one-visible-buffer (buffer-name (current-buffer)) n)
-  (goto-char (point-max)))
-;; }}
-
 ;; {{ narrow region
 (defun narrow-to-region-indirect-buffer-maybe (start end use-indirect-buffer)
   "Indirect buffer could multiple widen on same file."

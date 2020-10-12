@@ -1,6 +1,7 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
 (require-package 'ace-window)
+(require-package 'winum)
 
 ;; Navigate window layouts with "C-c <left>" and "C-c <right>"
 (winner-mode 1)
@@ -62,7 +63,7 @@
 
 ;; {{ move focus between sub-windows
 (setq winum-keymap
-      (let ((map (make-sparse-keymap)))
+	  (let ((map (make-sparse-keymap)))
         (define-key map (kbd "M-0") 'winum-select-window-0)
         (define-key map (kbd "M-1") 'winum-select-window-1)
         (define-key map (kbd "M-2") 'winum-select-window-2)
@@ -74,9 +75,7 @@
         (define-key map (kbd "M-8") 'winum-select-window-8)
         map))
 
-(require-package 'winum)
 (util/ensure 'winum)
-
 (with-eval-after-load 'winum
   (setq winum-format "%s")
   (setq winum-mode-line-position 0)

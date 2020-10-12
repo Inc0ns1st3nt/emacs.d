@@ -11,7 +11,9 @@
 
     ;; line and column
     "(" ;; '%02' to set to 2 chars at least; prevents flickering
-    "%02l" "," "%01c"
+    "%02l"
+	","
+	"%01c"
     ") "
 
     ;; @see https://www.gnu.org/software/emacs/manual/html_node/emacs/Help-Echo.html

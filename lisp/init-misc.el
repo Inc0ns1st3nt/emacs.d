@@ -1,5 +1,11 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
+;;; Commentary:
+
+;; Miscellaneous configurations
+
+;;; Code:
+
 ;; Avoid potential lag:
 ;; https://emacs.stackexchange.com/questions/28736/emacs-pointcursor-movement-lag/28746
 ;; `next-line' triggers the `format-mode-line' which triggers `projectile-project-name'
@@ -7,7 +13,10 @@
 ;; Set `auto-window-vscroll' to nil to avoid triggering `format-mode-line'.
 (setq auto-window-vscroll nil)
 
+(global-set-key (kbd "TAB") #'indent-for-tab-command)
+
 ;; {{ auto-yasnippet
+(require-package 'auto-yasnippet)
 ;; Use C-q instead tab to complete snippet
 ;; - `aya-create' at first, input ~ to mark the thing next
 ;; - `aya-expand' to expand snippet
@@ -16,16 +25,13 @@
 ;; }}
 
 ;; {{ ace-link
+(require-package 'ace-link)
 (ace-link-setup-default)
 (global-set-key (kbd "M-o") 'ace-link)
 ;; }}
 
 ;; open header file under cursor
 (global-set-key (kbd "C-x C-o") 'ffap)
-
-;; {{ support MY packages which are not included in melpa
-(setq org2nikola-use-verbose-metadata t) ; for nikola 7.7+
-;; }}
 
 (define-key global-map (kbd "RET") 'newline-and-indent)
 
@@ -43,7 +49,7 @@
               ediff-window-setup-function #'ediff-setup-windows-plain
               grep-highlight-matches t
               grep-scroll-output t
-              indent-tabs-mode nil
+              indent-tabs-mode t
               line-spacing 0
               mouse-yank-at-point t
               set-mark-command-repeat-pop t
@@ -63,6 +69,7 @@
    (setq-default save-place t))
 
 ;; {{ find-file-in-project (ffip)
+(require-package 'find-file-in-project)
 (with-eval-after-load 'find-file-in-project
   (defun inc0n/search-git-reflog-code ()
     (let ((default-directory
@@ -327,18 +334,18 @@ This function can be re-used by other major modes after compilation."
   (add-hook 'compilation-filter-hook #'inc0n/colorize-compilation-buffer))
 ;; }}
 
-(defun inc0n/minibuffer-setup-hook ()
-  (local-set-key (kbd "C-k") #'kill-line)
-  (subword-mode 1) ; enable subword movement in minibuffer
-  (setq gc-cons-threshold most-positive-fixnum))
+;; (defun inc0n/minibuffer-setup-hook ()
+;;   (local-set-key (kbd "C-k") #'kill-line)
+;;   (subword-mode 1) ; enable subword movement in minibuffer
+;;   (setq gc-cons-threshold most-positive-fixnum))
 
-(defun inc0n/minibuffer-exit-hook ()
-  ;; evil-mode also use minibuf
-  (setq gc-cons-threshold best-gc-cons-threshold))
+;; (defun inc0n/minibuffer-exit-hook ()
+;;   ;; evil-mode also use minibuf
+;;   (setq gc-cons-threshold best-gc-cons-threshold))
 
 ;; @see http://bling.github.io/blog/2016/01/18/why-are-you-changing-gc-cons-threshold/
-(add-hook 'minibuffer-setup-hook #'inc0n/minibuffer-setup-hook)
-(add-hook 'minibuffer-exit-hook #'inc0n/minibuffer-exit-hook)
+;; (add-hook 'minibuffer-setup-hook #'inc0n/minibuffer-setup-hook)
+;; (add-hook 'minibuffer-exit-hook #'inc0n/minibuffer-exit-hook)
 
 ;; {{ Diff two regions
 ;; Step 1: Select a region and `M-x diff-region-tag-selected-as-a'
@@ -489,7 +496,7 @@ If no region is selected, `kill-ring' or clipboard is used instead."
   (add-to-list 'auto-save-exclude 'file-too-big-p t)
   (setq auto-save-idle 1) ; 1 seconds
   (auto-save-enable)
-  (setq auto-save-slient nil))
+  (setq auto-save-slient t))
 ;; }}
 
 ;; {{ csv
@@ -611,7 +618,9 @@ If no region is selected, `kill-ring' or clipboard is used instead."
 ;; }}
 
 ;; {{
+(autoload 'typewriter-mode "typewriter-mode" "Mode for emulating type writer" t)
 (local-require 'typewriter-mode)
+(typewriter-mode)
 ;; }}
 
 (with-eval-after-load 'grep
@@ -645,8 +654,9 @@ If no region is selected, `kill-ring' or clipboard is used instead."
     (kbd "C-x C-q") 'wgrep-change-to-wgrep-mode))
 
 ;; {{ https://www.emacswiki.org/emacs/EmacsSession better than "desktop.el" or "savehist".
+(require-package 'session)
 ;; Any global variable matching `session-globals-regexp' is saved *automatically*.
-(setq session-save-file (expand-file-name (concat inc0n/emacs-d ".session")))
+(setq session-save-file (inc0n/emacs-d ".session"))
 (setq session-globals-max-size 2048)
 ;; can store 8Mb string
 (setq session-globals-max-string (* 8 1024 1024))
@@ -706,6 +716,7 @@ If the shell is already opened in some buffer, switch to that buffer."
       (ansi-term var/term-program)))))
 
 ;; {{ emms
+(require-package 'emms)
 (with-eval-after-load 'emms
   (emms-all)
   (setq emms-source-file-default-directory "~/Music"
@@ -905,12 +916,14 @@ Including indent-buffer, which should not be called automatically on save."
     (apply orig-func args)))
 (advice-add 'which-func-update :around #'inc0n/which-func-update-hack)
 
-(with-eval-after-load 'which-function
-  (add-to-list 'which-func-modes 'org-mode))
-(which-function-mode 1)
+(autoload 'which-function "which-func")
+;; (with-eval-after-load 'which-function
+;;   (add-to-list 'which-func-modes 'org-mode))
+;; (which-function-mode 1)
 ;; }}
 
 ;; {{ pomodoro
+(require-package 'pomodoro)
 (with-eval-after-load 'pomodoro
   (setq pomodoro-play-sounds nil) ; *.wav is not installed
   (setq pomodoro-break-time 2)
@@ -923,6 +936,7 @@ Including indent-buffer, which should not be called automatically on save."
 ;; }}
 
 ;; {{ epub setup
+(require-package 'nov) ; read epub
 (defun nov-mode-hook-setup ()
   "Set up of `nov-mode'."
   (local-set-key (kbd "d")
@@ -948,6 +962,7 @@ Including indent-buffer, which should not be called automatically on save."
 ;; }}
 
 ;; {{ wgrep setup
+(require-package 'wgrep)
 (with-eval-after-load 'wgrep
   (define-key grep-mode-map
     (kbd "C-c C-c") 'wgrep-finish-edit)
@@ -957,6 +972,7 @@ Including indent-buffer, which should not be called automatically on save."
 ;; }}
 
 ;; {{ edit-server
+(require-package 'edit-server)
 (defun edit-server-start-hook-setup ()
   "Some web sites actually pass html to edit server."
   (let ((url (buffer-name)))
@@ -973,8 +989,8 @@ Including indent-buffer, which should not be called automatically on save."
       ;; insert text after removing br tag, that's required by zhihu.com
       ;; unfortunately, after submit comment once, page need be refreshed.
       (replace-regexp "<br data-text=\"true\">" "")))))
-
 (add-hook 'edit-server-start-hook #'edit-server-start-hook-setup)
+
 (when (require 'edit-server nil t)
   (setq edit-server-new-frame nil)
   (edit-server-start))
@@ -992,8 +1008,8 @@ Including indent-buffer, which should not be called automatically on save."
 (when (local-require 'which-key)
   (setq which-key-allow-imprecise-window-fit t) ; performance
   (setq which-key-idle-delay 0.5)
-  (setq which-key-separator " → ")
-  (setq which-key-show-remaining-keys t)
+  (setq which-key-separator ":")
+  (setq which-key-show-remaining-keys nil)
   (which-key-mode 1))
 ;; }}
 
@@ -1024,7 +1040,7 @@ Including indent-buffer, which should not be called automatically on save."
 ;; {{ eldoc
 (with-eval-after-load 'eldoc
   ;; multi-line message should not display too soon
-  (setq eldoc-idle-delay 1)
+  (setq eldoc-idle-delay 0.5)
   (setq eldoc-echo-area-use-multiline-p t))
 ;;}}
 
@@ -1039,13 +1055,12 @@ Including indent-buffer, which should not be called automatically on save."
 (defun inc0n/fetch-subtitles (&optional video-file)
   "Fetch subtitles of VIDEO-FILE.
 See https://github.com/RafayGhafoor/Subscene-Subtitle-Grabber."
-  (let ((cmd-prefix "subgrab -l EN"))
-    (when inc0n/fetch-subtitles-proxy
-      (setq cmd-prefix
-            (format "http_proxy=%s https_proxy=%s %s"
-                    inc0n/fetch-subtitles-proxy
-                    inc0n/fetch-subtitles-proxy
-                    cmd-prefix)))
+  (let ((cmd-prefix
+         (if inc0n/fetch-subtitles-proxy
+             (format "http_proxy=%s https_proxy=%s subgrab -l EN"
+                     inc0n/fetch-subtitles-proxy
+                     inc0n/fetch-subtitles-proxy)
+           "subgrab -l EN")))
     (if video-file
         (let ((default-directory (file-name-directory video-file)))
           (shell-command
@@ -1056,8 +1071,11 @@ See https://github.com/RafayGhafoor/Subscene-Subtitle-Grabber."
 ;; }}
 
 ;; {{ use pdf-tools to view pdf
-(when (display-graphic-p)
-  (pdf-loader-install))
+;; run "M-x pdf-tool-install" at debian and open pdf in GUI Emacs
+(require-package 'pdf-tools)
+(with-eval-after-load 'pdf-tools
+  (when (display-graphic-p)
+    (pdf-loader-install)))
 ;; }}
 
 (provide 'init-misc)

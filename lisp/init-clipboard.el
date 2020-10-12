@@ -1,5 +1,11 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
+;;; Commentary:
+
+;; clipboard configurations
+
+;;; Code:
+
 ;; Use the system clipboard
 ;; @see https://www.emacswiki.org/emacs/CopyAndPaste
 ;; So `C-y' could paste from clipbord if you are NOT using emacs-nox

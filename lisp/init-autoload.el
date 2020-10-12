@@ -1,8 +1,6 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 (autoload 'xclip-set-selection "xclip" "" t)
 (autoload 'xclip-get-selection "xclip" "" t)
-(autoload 'langtool-check "langtool" "" t)
-(autoload 'langtool-check-buffer "langtool" "" t)
 (autoload 'dianyou-group-make-nnir-group "dianyou" "" t)
 (autoload 'dianyou-summary-extract-email-address "dianyou" "" t)
 (autoload 'dianyou-switch-gnus-buffer "dianyou" "" t)
@@ -36,8 +34,8 @@
 (autoload 'sdcv-search-input+ "sdcv" "show word explanation in tooltip" t)
 (autoload 'sdcv-search-input "sdcv" "show word explanation in tooltip" t)
 (autoload 'elpamr-create-mirror-for-installed "elpa-mirror" "" t)
-(autoload 'org2nikola-export-subtree "org2nikola" "" t)
-(autoload 'org2nikola-rerender-published-posts "org2nikola" "" t)
+;; (autoload 'org2nikola-export-subtree "org2nikola" "" t)
+;; (autoload 'org2nikola-rerender-published-posts "org2nikola" "" t)
 (autoload 'dictionary-new-search "dictionary" "" t nil)
 (autoload 'legalese "legalese" "" t)
 (autoload 'buf-move-left "buffer-move" "move buffer" t)
@@ -49,7 +47,6 @@
 (autoload 'highlight-symbol-prev "highlight-symbol" "" t)
 (autoload 'highlight-symbol-nav-mode "highlight-symbol" "" t)
 (autoload 'highlight-symbol-query-replace "highlight-symbol" "" t)
-(autoload 'which-function "which-func")
 (autoload 'popup-tip "popup")
 (autoload 'srt-renumber-subtitles "subtitles" "" t)
 (autoload 'srt-offset-subtitles "subtitles" "" t)
@@ -57,14 +54,8 @@
 (autoload 'srt-convert-sub-to-srt "subtitles" "" t)
 (autoload 'fastdef-insert "fastdef" nil t)
 (autoload 'fastdef-insert-from-history "fastdef" nil t)
-(autoload 'org-mime-htmlize "org-mime" nil t)
-(autoload 'org-mime-edit-mail-in-org-mode "org-mime" nil t)
-(autoload 'org-mime-revert-to-plain-text-mail "org-mime" nil t)
-(autoload 'org-mime-org-buffer-htmlize "org-mime" nil t)
-(autoload 'org-mime-org-subtree-htmlize "org-mime" nil t)
 (autoload 'doctest-mode "doctest-mode" "Python doctest editing mode." t)
 (autoload 'textile-mode "textile-mode" "Mode for editing Textile documents" t)
-(autoload 'typewriter-mode "typewriter-mode" "Mode for emulating type writer" t)
 (autoload 'find-library-name "find-func")
 (autoload 'web-mode "web-mode")
 (autoload 'snippet-mode "yasnippet" "")
@@ -138,4 +129,3 @@ NUM default values i 10.  Show the latest NUM changes.
 
 (provide 'init-autoload)
 ;;; init-autoload.el ends here
-

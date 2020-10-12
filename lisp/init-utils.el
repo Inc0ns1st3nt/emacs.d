@@ -45,17 +45,27 @@
        (memq major-mode '(typescript-mode
                           js-mode))))
 
-(defun inc0n/add-subdirs-to-load-path (inc0n/lisp-dir)
-  "Add sub-directories under INC0N/LISP-DIR into `load-path'."
-  (let ((default-directory inc0n/lisp-dir))
+(defun inc0n/add-subdirs-to-load-path (parent-dir)
+  "Adds every non-hidden subdir of PARENT-DIR to `load-path'."
+  (let ((default-directory parent-dir))
     (setq load-path
           (append
-           (delq nil
-                 (mapcar (lambda (dir)
-                           (unless (string-match-p "^\\." dir)
-                             (expand-file-name dir)))
-                         (directory-files inc0n/site-lisp-dir)))
+           (cl-remove-if-not
+            (lambda (dir) (file-directory-p dir))
+            (directory-files (expand-file-name parent-dir) t "^[^\\.]"))
            load-path))))
+
+;; (defun inc0n/add-subdirs-to-load-path (inc0n/lisp-dir)
+;;   "Add sub-directories under INC0N/LISP-DIR into `load-path'."
+;;   (let ((default-directory inc0n/lisp-dir))
+;;     (setq load-path
+;;           (append
+;;            (delq nil
+;;                  (mapcar (lambda (dir)
+;;                            (unless (string-match-p "^\\." dir)
+;;                              (expand-file-name dir)))
+;;                          (directory-files inc0n/site-lisp-dir)))
+;;            load-path))))
 
 ;; {{ copied from http://ergoemacs.org/emacs/elisp_read_file_content.html
 (defun util/get-string-from-file (file)
@@ -141,18 +151,18 @@
 
 (defun inc0n/select-from-kill-ring (fn)
   "If N > 1, yank the Nth item in `kill-ring'.
-If N is nil, use `ivy-mode' to browse `kill-ring'."
+If N is nil, use `selectrum-mode' to browse `kill-ring'."
   (interactive "P")
-  (let ((candidates (cl-remove-if
-                     (lambda (s)
-                       (or (< (length s) 5)
-                           (string-match-p "\\`[\n[:blank:]]+\\'" s)))
-                     (delete-dups kill-ring)))
-        (ivy-height (/ (frame-height) 2)))
-    (ivy-read "Browse `kill-ring':"
-              (mapcar #'util/prepare-candidate-fit-into-screen
-                      candidates)
-              :action fn)))
+  (let ((candidates
+		 (cl-remove-if
+          (lambda (s)
+            (or (< (length s) 5)
+                (string-match-p "\\`[\n[:blank:]]+\\'" s)))
+          (delete-dups kill-ring))))
+    (funcall fn
+			 (selectrum-read
+			  "Browse `kill-ring':"
+			  candidates))))
 
 (defun util/delete-selected-region ()
   "Delete selected region."
@@ -216,9 +226,25 @@ If HINT is empty, use symbol at point."
   "get thing at point.
 If region is active get region string.
 Else use thing-at-point to get current string 'symbol."
-  (cond ((and (not (= (point-max) (point)))
-              (char-equal ?\  (char-after))) "")
-        (t (ivy-thing-at-point))))
+  ;; (if (and (not (= (point-max) (point)))
+  ;; 		   (char-equal ?\  (char-after)))
+  ;; 	  "")
+  (substring-no-properties
+   (cond
+	((use-region-p)
+	 (let* ((beg (region-beginning))
+			(end (region-end))
+			(eol (save-excursion (goto-char beg) (line-end-position))))
+	   (buffer-substring-no-properties beg (min end eol))))
+	((thing-at-point 'url))
+	((let ((s (thing-at-point 'symbol)))
+	   (and (stringp s)
+			(if (string-match "\\`[`']?\\(.*?\\)'?\\'" s)
+				(match-string 1 s)
+			  s))))
+	((looking-at "(+\\(\\(?:\\sw\\|\\s_\\)+\\)\\_>")
+	 (match-string-no-properties 1))
+	(t ""))))
 
 (defun delete-this-file ()
   "Delete the current file, and kill the buffer."
@@ -261,22 +287,21 @@ Else use thing-at-point to get current string 'symbol."
 (defun buffer-file-temp-p ()
   "If (buffer-file-name) is nil or a temp file or HTML file converted from org file."
   (interactive)
-  (let ((f (buffer-file-name)))
-    (or (not load-user-customized-major-mode-hook)
-        ;; file does not exist at all
-        ;; org-babel edit inline code block need calling hook
-        (null f)
-        ;; (string= f cached-normal-file-full-path)
-        (or
-         ;; file is create from temp directory
-         (string-match (concat "^" temporary-file-directory) f)
-         ;; file is a html file exported from org-mode
-         (and (string-match "\.html$" f)
-              (file-exists-p (replace-regexp-in-string "\.html$" ".org" f)))
-         force-buffer-file-temp-p)
-        ;; (progn (setq cached-normal-file-full-path f)
-        ;;        nil)
-        )))
+  (and (not scratch-buffer) ;; treat scratch-buffer not as temp
+	   (let ((f (buffer-file-name)))
+		 (or (not load-user-customized-major-mode-hook)
+			 ;; file does not exist at all
+			 ;; org-babel edit inline code block need calling hook
+			 (null f)
+			 ;; (string= f cached-normal-file-full-path)
+			 ;; file is create from temp directory
+			 (string-match (concat "^" temporary-file-directory) f)
+			 ;; file is a html file exported from org-mode
+			 (and (string-match "\.html$" f)
+				  (file-exists-p (replace-regexp-in-string "\.html$" ".org" f)))
+			 ;; (progn (setq cached-normal-file-full-path f)
+			 ;;        nil)
+			 force-buffer-file-temp-p))))
 
 (defvar inc0n/mplayer-extra-opts ""
   "Extra options for mplayer (ao or vo setup).  For example,
