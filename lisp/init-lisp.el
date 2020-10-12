@@ -50,22 +50,6 @@
   ;; (add-hook 'racket-repl-mode-hook #'racket-unicode-input-method-enable)
   (setq racket-images-system-viewer "feh"))
 
-;; gambit
-(require 'gambit)
-(add-hook 'inferior-scheme-mode-hook #'gambit-inferior-mode)
-
-;; gerbil setup
-(defvar inc0n/gerbil-home (getenv "GERBIL_HOME"))
-(let ((gerbil-program-name (concat inc0n/gerbil-home "/bin/gxi")))
-  ;; gerbil mode
-  (add-to-list 'load-path (concat inc0n/gerbil-home "/etc/"))
-  (autoload 'gerbil-mode "gerbil-mode" "Gerbil editing mode." t)
-  ;; gerbil tags
-  (add-to-list 'tags-table-list (concat inc0n/gerbil-home "/src/TAGS"))
-  (setq scheme-program-name gerbil-program-name))
-
-(add-auto-mode 'gerbil-mode "\\.ss$")
-
 ;; slime swank
 
 (defun gerbil-scheme-start-swank (file encoding)

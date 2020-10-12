@@ -34,6 +34,7 @@
 
 ;; {{ git-gutter
 (local-require 'git-gutter)
+
 (with-eval-after-load 'git-gutter
   (setq git-gutter:update-interval 2)
   ;; nobody use bzr
@@ -91,19 +92,18 @@ Show the diff between current working code and git head."
   (let* ((git-cmd "git --no-pager log --date=short --pretty=format:'%h|%ad|%s|%an'")
          (collection (nonempty-lines (shell-command-to-string git-cmd)))
          (item (ffip-completing-read "git log:" collection)))
-    (when item
-      (car (split-string item "|" t)))))
+    (and item
+		 (car (split-string item "|" t)))))
 
 (defun inc0n/git-show-commit-internal ()
   "Show git commit."
-  (let* ((id (inc0n/git-commit-id)))
-    (when id
-      (shell-command-to-string (format "git show %s" id)))))
+  (when-let ((id (inc0n/git-commit-id)))
+    (shell-command-to-string (format "git show %s" id))))
 
 (defun inc0n/git-show-commit ()
   "Show commit using ffip."
   (interactive)
-  (let* ((ffip-diff-backends '(("Show git commit" . inc0n/git-show-commit-internal))))
+  (let ((ffip-diff-backends '(("Show git commit" . inc0n/git-show-commit-internal))))
     (ffip-show-diff 0)))
 
 ;; {{ git-timemachine
@@ -141,7 +141,7 @@ Show the diff between current working code and git head."
   (when (and (buffer-file-name)
              (yes-or-no-p (format "git checkout %s?"
                                   (file-name-nondirectory (buffer-file-name)))))
-    (let* ((filename (git-get-current-file-relative-path)))
+    (let ((filename (git-get-current-file-relative-path)))
       (shell-command (concat "git checkout " filename))
       (message "DONE! git checkout %s" filename))))
 
@@ -167,7 +167,7 @@ Show the diff between current working code and git head."
   "Git add file of current buffer."
   (interactive)
   (when buffer-file-name
-    (let* ((filename (git-get-current-file-relative-path)))
+    (let ((filename (git-get-current-file-relative-path)))
       (shell-command (concat "git add " filename))
       (message "DONE! git add %s" filename))))
 
@@ -198,22 +198,18 @@ Show the diff between current working code and git head."
 ;; {{
 (defun inc0n/git-extract-based (target lines)
   "Extract based version from TARGET."
-  (let* (based (i 0) break)
-    (while (and (not break) (< i (length lines)))
-      (cond
-       ((string-match (regexp-quote target) (nth i lines))
-        (setq break t))
-       (t
-        (setq i (1+ i)))))
-    ;; find child of target commit
-    (when (and (< 0 i)
-               (< i (length lines)))
-      (setq based
-            (replace-regexp-in-string "^tag: +"
-                                      ""
-                                      (car (split-string (nth (1- i) lines)
-                                                         " +")))))
-    based))
+  (cl-loop with regexp-target = (regexp-quote target)
+		   for i from 0
+		   for line in lines
+		   until (string-match regexp-target line)
+		   finally return
+		   ;; find child of target commit
+		   (and (< 0 i)
+				(< i (length lines))
+				(replace-regexp-in-string "^tag: +"
+										  ""
+										  (car (split-string (nth (1- i) lines)
+															 " +"))))))
 
 (defun inc0n/git-rebase-interactive (&optional user-select-branch)
   "Rebase interactively on the closest branch or tag in git log output.
@@ -221,25 +217,22 @@ If USER-SELECT-BRANCH is not nil, rebase on the tag or branch selected by user."
   (interactive "P")
   (let* ((cmd "git --no-pager log --decorate --oneline -n 1024")
          (lines (util/lines-from-command-output cmd))
-         (targets (delq nil
-                        (mapcar (lambda (e)
-                                  (when (and (string-match "^[a-z0-9]+ (\\([^()]+\\)) " e)
-                                             (not (string-match "^[a-z0-9]+ (HEAD " e)))
-                                    (match-string 1 e)))
-                                lines)))
-         based)
-    (cond
-     ((or (not targets) (eq (length targets) 0))
-      (message "No tag or branch is found to base on."))
-     ((or (not user-select-branch)) (eq (length targets) 1)
-      ;; select the closest/only tag or branch
-      (setq based (inc0n/git-extract-based (nth 0 targets) lines)))
-     (t
-      ;; select the one tag or branch
-      (setq based (inc0n/git-extract-based (completing-read "Select based: " targets)
-                                        lines))))
-
-    ;; start git rebase
+         (targets (mapcan (lambda (e)
+                            (and (string-match "^[a-z0-9]+ (\\([^()]+\\)) " e)
+                                 (not (string-match "^[a-z0-9]+ (HEAD " e))
+								 (list (match-string 1 e))))
+                          lines))
+         (based (cond
+				 ((or (not targets) (eq (length targets) 0))
+				  (message "No tag or branch is found to base on."))
+				 ((or (null user-select-branch)) (eq (length targets) 1)
+				  ;; select the closest/only tag or branch
+				  (inc0n/git-extract-based (nth 0 targets) lines))
+				 (t
+				  ;; select the one tag or branch
+				  (inc0n/git-extract-based (completing-read "Select based: " targets)
+										   lines)))))
+	;; start git rebase
     (when based
       (magit-rebase-interactive based nil))))
 ;; }}
@@ -247,38 +240,40 @@ If USER-SELECT-BRANCH is not nil, rebase on the tag or branch selected by user."
 ;; {{ git-gutter use ivy
 (defun inc0n/reshape-git-gutter (gutter)
   "Re-shape gutter for `ivy-read'."
-  (let* ((linenum-start (aref gutter 3))
-         (linenum-end (aref gutter 4))
-         (target-line "")
-         (target-linenum 1)
-         (tmp-line "")
-         (max-line-length 0))
+  (let ((linenum-start (aref gutter 3))
+        (linenum-end (aref gutter 4))
+        (target-line "")
+        (target-linenum 1)
+        (max-line-length 0))
     (save-excursion
       (while (<= linenum-start linenum-end)
         (goto-line linenum-start)
-        (setq tmp-line (replace-regexp-in-string "^[ \t]*" ""
-                                                 (buffer-substring (line-beginning-position)
-                                                                   (line-end-position))))
-        (when (> (length tmp-line) max-line-length)
-          (setq target-linenum linenum-start)
-          (setq target-line tmp-line)
-          (setq max-line-length (length tmp-line)))
+        (let ((tmp-line (replace-regexp-in-string "^[ \t]*" ""
+												  (buffer-substring (line-beginning-position)
+																	(line-end-position)))))
+          (when (> (length tmp-line) max-line-length)
+			(setq target-linenum linenum-start)
+			(setq target-line tmp-line)
+			(setq max-line-length (length tmp-line)))
 
-        (setq linenum-start (1+ linenum-start))))
+          (setq linenum-start (1+ linenum-start)))))
     ;; build (key . linenum-start)
     (cons (format "%s %d: %s"
-                  (if (eq 'deleted (aref gutter 1)) "-" "+")
-                  target-linenum target-line)
+                  (if (eq 'deleted (aref gutter 1))
+					  "-"
+					"+")
+                  target-linenum
+				  target-line)
           target-linenum)))
 
 (defun inc0n/goto-git-gutter ()
   (interactive)
   (if git-gutter:diffinfos
-      (ivy-read "git-gutters:"
-                (mapcar 'inc0n/reshape-git-gutter git-gutter:diffinfos)
-                :action (lambda (e)
-                          (unless (numberp e) (setq e (cdr e)))
-                          (goto-line e)))
+      (let ((e (selectrum-read "git-gutters:"
+							   (mapcar #'inc0n/reshape-git-gutter
+									   git-gutter:diffinfos))))
+		(unless (numberp e) (setq e (cdr e)))
+		(goto-line e))
     (message "NO git-gutters!")))
 
 ;; }}

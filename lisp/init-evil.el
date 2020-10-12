@@ -521,9 +521,9 @@ If INCLUSIVE is t, the text object is inclusive."
   "kb" 'kill-buffer-and-window ;; "k" is preserved to replace "C-g"
   "kc" 'kill-ring-to-clipboard
 
-  ;;   "ls" 'highlight-symbol
-  ;;   "lq" 'highlight-symbol-query-replace
-  ;;   "ln" 'highlight-symbol-nav-mode ; use M-n/M-p to navigation between symbols
+  ;; "ls" 'highlight-symbol
+  ;; "lq" 'highlight-symbol-query-replace
+  ;; "ln" 'highlight-symbol-nav-mode ; use M-n/M-p to navigation between symbols
 
   "mm" 'selectrum-evil-marks
   "mf" 'mark-defun
@@ -604,7 +604,7 @@ If INCLUSIVE is t, the text object is inclusive."
   ;; counsel
   "qq" 'inc0n/multi-purpose-grep
   "dd" 'counsel-etags-grep-current-directory
-  "rr" 'selectrum-recentf
+  "rf" 'selectrum-recentf
   "ss" 'selectrum-rg
 
   "wf" 'popup-which-function

@@ -16,8 +16,6 @@
 ;; (setq-default line-spacing 0)
 
 ;; amx
-(setq amx-save-file (inc0n/emacs-d "cache/amx-items"))
-(setq ido-save-directory-list-file (inc0n/emacs-d "cache/ido.last"))
 
 ;; iedit quit fix
 (with-eval-after-load 'evil-iedit-state

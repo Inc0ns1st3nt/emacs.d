@@ -5,6 +5,7 @@
 
 ;;; Code:
 
+(require-package 'color-theme-modern)
 (require-package 'atom-one-dark-theme)
 (require-package 'doom-themes)
 

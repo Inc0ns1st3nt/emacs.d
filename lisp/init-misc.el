@@ -1078,4 +1078,12 @@ See https://github.com/RafayGhafoor/Subscene-Subtitle-Grabber."
     (pdf-loader-install)))
 ;; }}
 
+;; {{ cache files
+(setq amx-save-file (inc0n/emacs-d "cache/amx-items"))
+(setq ido-save-directory-list-file (inc0n/emacs-d "cache/ido.last"))
+(setq company-statistics-file (inc0n/emacs-d "cache/company-statistics-cache.el"))
+;; }}
+
+(amx-mode 1)
+
 (provide 'init-misc)

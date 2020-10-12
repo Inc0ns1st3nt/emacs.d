@@ -3,14 +3,17 @@
 (require 'package)
 
 ;;; Install into separate package dirs for each Emacs version, to prevent bytecode incompatibility
-(setq package-user-dir
-      (expand-file-name (format "elpa-%s.%s" emacs-major-version emacs-minor-version)
-                        user-emacs-directory))
+;; (setq package-user-dir
+;;       (expand-file-name (format "elpa-%s.%s" emacs-major-version emacs-minor-version)
+;;                         user-emacs-directory))
 
-(add-to-list 'package-archives
-             '("melpa" . "https://melpa.org/packages/") t)
-(add-to-list 'package-archives
-             '("melpa-stable" . "https://stable.melpa.org/packages/") t)
+(setq package-archives
+	  '(("melpa" . "https://melpa.org/packages/")
+		("melpa-stable" . "https://stable.melpa.org/packages/")))
+;; (add-to-list 'package-archives
+;;              '("melpa" . "https://melpa.org/packages/") t)
+;; (add-to-list 'package-archives
+;;              '("melpa-stable" . "https://stable.melpa.org/packages/") t)
 
 ;; (add-to-list 'package-archives '("melpa" . "https://mirrors.163.com/elpa/melpa/") t)
 ;; (add-to-list 'package-archives '("melpa-stable" . "https://mirrors.163.com/elpa/melpa-stable/") t)
@@ -23,7 +26,7 @@
   (expand-file-name path user-emacs-directory))
 
 (when (and (not noninteractive)         ; no popup in batch mode
-           (not (file-exists-p (file-truename (inc0n/emacs-d "elpa"))))
+           (not (file-exists-p (file-truename package-user-dir)))
            (yes-or-no-p "Switch to faster package repositories in China temporarily?
 You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use this ELPA mirror."))
   (setq package-archives
@@ -235,7 +238,6 @@ locate PACKAGE."
 (require-package 'toc-org)
 (require-package 'elpa-mirror)
 ;; {{ @see https://pawelbx.github.io/emacs-theme-gallery/
-(require-package 'color-theme)
 (require-package 'visual-regexp) ;; Press "M-x vr-*"
 
 (require-package 'benchmark-init)

@@ -1,9 +1,16 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
+;;; Commentary
+;; selectrum, the incremental search package, setup
+;;
+
+;;; Code
+
 (require-package 'selectrum)
 
 ;; (add-hook 'after-init-hook 'selectrum-mode)
 (selectrum-mode 1)
+(setq amx-backend 'selectrum)
 
 (setq-default selectrum-should-sort-p nil)
 
@@ -22,8 +29,6 @@
 		 (isearch-yank-string regex-str))))
 
 ;; @see https://github.com/raxod502/selectrum/wiki/Useful-Commands#swiper-like-jumping-to-matching-lines
-(autoload 'selectrum-read "selectrum")
-
 (defvar selectrum-swiper-history nil
   "Submission history for `selectrum-swiper'.")
 
@@ -103,9 +108,9 @@
 											   (shell-command-to-string
 												(concat command in))
 											   "\n")))
-					  (input . ,(replace-regexp-in-string
-								 "\\([^ ]\\) +\\(.\\)" "\\1.+?\\2"
-								 in))))))
+					  (input . ;; ,(replace-regexp-in-string "\\([^
+							   ;; ]\\) +\\(.\\)" "\\1.+?\\2" in)
+							 ,in)))))
 		 (cand
 		  (let ((selectrum-should-sort-p nil))
 			(selectrum-read "rg: " cands
@@ -122,14 +127,16 @@
 		(selectrum-yank-search input)
 		(recenter)))))
 
-(defun selectrum-recentf (&optional n)
+(defun selectrum-recentf ()
   "Find a file on `recentf-list'."
-  (interactive "P")
+  (interactive)
+  (util/ensure 'recentf)
   (let ((files (mapcar 'abbreviate-file-name recentf-list)))
 	(find-file (selectrum-read "Find recent file: " files
 							   :require-match t
 							   :initial-input (and (region-active-p)
 												   (util/selected-str))))))
+
 (defun selectrum-git-recentf ()
   (find-file (selectrum-read "Find recent file (git): "
 							 (inc0n/git-recent-files)
@@ -137,10 +144,10 @@
 							 :initial-input (and (region-active-p)
 												 (util/selected-str)))))
 
-(defun selectrum-browse-kill-ring (&optional n)
+(defun selectrum-browse-kill-ring ()
   "If N > 1, assume just yank the Nth item in `kill-ring'.
 If N is nil, use `ivy-mode' to browse `kill-ring'."
-  (interactive "P")
+  (interactive)
   (inc0n/select-from-kill-ring
    (lambda (s)
 	 (let ((plain-str (util/insert-str s)))
@@ -183,6 +190,7 @@ If N is nil, use `ivy-mode' to browse `kill-ring'."
 
 (defun selectrum-imenu ()
   "`imenu' interfacing with `selectrum'"
+  (interactive)
   (let* ((cands (selectrum--imenu-candidates))
 		 (cand (selectrum-read
 				"imenu items: " (mapcar #'car cands)
@@ -201,7 +209,7 @@ If N is nil, use `ivy-mode' to browse `kill-ring'."
 (defun selectrum-org-agenda-headlines ()
   "Choose from headers of `org-mode' files in the agenda."
   (interactive)
-  (require 'org)
+  ;; (require 'org)
   (let ((minibuffer-allow-text-properties t))
     (funcall counsel-org-agenda-headlines-action-goto
 			 (selectrum-read "Org headline: "
