@@ -148,7 +148,7 @@ ARG is ignored."
                  ;; skip checking in below fonts
                  (font-belongs-to (point) '(org-verbatim org-code))
                  ;; skip checking property lines
-                 (string-match "^[ \t]+:[A-Z]+:[ \t]+" (inc0n/line-str))
+                 (string-match "^[ \t]+:[A-Z]+:[ \t]+" (util/line-str nil nil))
                  ;; skipping checking in code snippet
                  ;; slow test should be placed at last
                  (inc0n/org-mode-code-snippet-p))))))
@@ -199,7 +199,8 @@ ARG is ignored."
         ;; }}
         ;; org v8
         org-odt-preferred-output-format "doc"
-        org-tags-column 50
+        org-tags-column 80
+		org-agenda-tags-column 80
 
         ;; Refile targets include this file and any file contributing to the agenda - up to 5 levels deep
         org-refile-targets '(("projects.org" :regexp . "\\(?:\\(?:Note\\|Task\\)s\\)"))
@@ -276,8 +277,7 @@ ARG is ignored."
 
 (defun org-agenda-mode-setup ()
   (evil-mode 1)
-  (evil-normal-state)
-  (evil-local-set-key 'normal (kbd "RET") #'org-agenda-switch-to))
+  (evil-normal-state))
 (add-hook 'org-agenda-mode-hook #'org-agenda-mode-setup)
 
 (provide 'init-org)

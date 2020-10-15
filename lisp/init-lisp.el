@@ -5,6 +5,7 @@
 (require-package 'paredit)
 
 ;; paredit
+;; (require-package 'diminish)
 ;; (with-eval-after-load 'paredit
 ;;   (diminish 'paredit-mode " Par"))
 

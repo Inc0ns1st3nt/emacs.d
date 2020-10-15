@@ -39,93 +39,107 @@
 (defvar selectrum-swiper-history nil
   "Submission history for `selectrum-swiper'.")
 
+(defun selectrum-swiper-candidates ()
+  (let ((inhibit-field-text-motion t))
+	(save-excursion
+	  (goto-char (point-min))
+	  (cl-loop
+	   with n-lines = (count-lines (point-min) (point-max))
+	   with number-format = (concat
+							 "%"
+							 (number-to-string
+							  (length (number-to-string n-lines)))
+							 "d ")
+	   repeat n-lines
+	   for num from 1
+	   for buffer-line = (buffer-substring (point) (line-end-position))
+	   if (string-empty-p buffer-line)	; Just skip empty lines.
+	   collect buffer-line
+	   else collect
+	   (propertize buffer-line
+				   'selectrum-candidate-display-prefix
+				   (format number-format num)
+				   ;; (propertize
+				   ;;  (format number-format num)
+				   ;;  'face 'completions-annotations)
+				   'line-num num)
+	   do (forward-line 1)))))
+(add-hook 'after-init-hook (lambda () (byte-compile 'selectrum-swiper-candidates)))
+
 ;; TODO - custom mode and mode-map for `M-q' query-replace support
 (defun selectrum-swiper (&optional initial-input)
   "Search for a matching line and jump to the beginning of its text.  Obeys narrowing."
   (interactive (list (util/thing-at-point)))
-  (let* ((selectrum-should-sort-p nil)
-         ;; Get the current line number for determining the travel distance.
-         (current-line-number (line-number-at-pos (point) t))
-		 (input initial-input)
-
-         (chosen-line
-		  (cl-loop
-           with minimum-line-number = (line-number-at-pos (point-min) t)
-           with buffer-text-lines = (split-string (buffer-string) "\n")
-           with number-format = (concat
-								 "%"
-								 (number-to-string
-								  (length (number-to-string
-                                           (length buffer-text-lines))))
-								 "d ")
-           for buffer-line in buffer-text-lines
-           for num from minimum-line-number
-           ;; unless (string-empty-p buffer-line) ; Just skip empty lines.
-           collect
-           (propertize buffer-line
-					   'selectrum-candidate-display-prefix
-					   (format number-format num)
-					   ;; (propertize
-					   ;;  (format number-format num)
-					   ;;  'face 'completions-annotations)
-					   'line-num num) into formatted-lines
-		   finally return
-		   (let ((default-cand (nth (1- current-line-number) formatted-lines))
-				 (line-choices formatted-lines))
-			 (selectrum-read "Selectrum Swiper: "
-							 line-choices
-							 :default-candidate default-cand
-							 :initial-input input
-							 :history 'selectrum-swiper-history
-							 :require-match t
-							 :no-move-default-candidate t))))
+  (let* ((current-line-number (line-number-at-pos (point) t))
+         (cands (selectrum-swiper-candidates))
+		 (chosen-line
+		  (selectrum-read "Selectrum Swiper: "
+						  cands
+						  :default-candidate (nth (1- current-line-number) cands)
+						  :initial-input initial-input
+						  :history 'selectrum-swiper-history
+						  :may-modify-candidates t
+						  :require-match t
+						  :no-move-default-candidate t))
          (chosen-line-number
 		  (get-text-property 0 'line-num chosen-line)))
     (push-mark (point) t)
-    (forward-line (- chosen-line-number
-					 current-line-number))
+    (forward-line (- chosen-line-number current-line-number))
 	;; (beginning-of-line-text 1)
 	(selectrum-yank-search selectrum--previous-input-string)))
 
 (global-set-key (kbd "C-s") #'selectrum-swiper)
 
+(defun selectrum-find-file ()
+  ;; TODO - complete selectrum-find-file
+  ;; (interactive)
+  (let ((cand
+		 (selectrum-read "Find file: " nil
+						 :initial-input default-directory
+						 ;; :may-modify-candidates t
+						 :history 'file-name-history
+						 :require-match 'confirm-after-completion)))
+	(find-file file-name)))
+
 ;; @see https://github.com/raxod502/selectrum/wiki/Useful-Commands#search-with-ripgrep-like-selectrum-rg
+(defvar selectrum-rg-base-cmd
+  "rg -M 240 --with-filename --no-heading --line-number --color never -S -e <R>"
+  "selectrum rg base cmd, can be used to set to use different command to grep")
+
+(autoload 'grep-expand-template "grep" "")
+(autoload 'counsel--elisp-to-pcre "counsel" "")
+
 (defun selectrum-rg (&optional initial-input)
   (interactive (list (util/thing-at-point)))
-  (let* ((command
-		  "rg -M 240 --with-filename --no-heading --line-number --color never -S -e ")
-		 (prop (lambda (cands)
-				 (mapcar
-				  (lambda (c)
-					(when (string-match "\\`\\([^:]+\\):\\([^:]+\\):" c)
-                      (add-face-text-property ;; file name
-					   (match-beginning 1)
-					   (match-end 1)
-					   'compilation-info nil c)
-                      (add-face-text-property ;; line number
-					   (match-beginning 2)
-					   (match-end 2)
-					   '(:underline t :inherit compilation-line-number) nil c))
-					c)
-                  cands)))
+  (let* ((command selectrum-rg-base-cmd)
+		 (prop (lambda (c)
+				 (when (string-match "\\`\\([^:]+\\):\\([^:]+\\):" c)
+                   (add-face-text-property ;; file name
+					(match-beginning 1)
+					(match-end 1)
+					'compilation-info nil c)
+                   (add-face-text-property ;; line number
+					(match-beginning 2)
+					(match-end 2)
+					'(:underline t :inherit compilation-line-number) nil c))
+				 c))
 		 (cands (lambda (in)
 				  (if (< (length in) 3)
 					  (list "Input should more than 3 characters.")
-					`((candidates . ,(funcall prop
-											  (split-string
-											   (shell-command-to-string
-												(concat command in))
-											   "\n")))
-					  (input . ;; ,(replace-regexp-in-string "\\([^
-							   ;; ]\\) +\\(.\\)" "\\1.+?\\2" in)
-							 ,in)))))
-		 (cand
-		  (let ((selectrum-should-sort-p nil))
-			(selectrum-read "rg: " cands
-							:initial-input initial-input
-							:may-modify-candidates t
-							:history 'selectrum-search-rg-history
-							:require-match t))))
+					(let* ((counsel--regex-look-around "--pcre2")
+						   (regex
+							(counsel--elisp-to-pcre in counsel--regex-look-around)))
+					  ;; `((candidates . ,)
+					  ;;   (input . ,regex))
+					  (mapcar prop
+							  (split-string (shell-command-to-string
+											 (grep-expand-template command regex))
+											"\n"))))))
+		 (cand (selectrum-read "rg: " cands
+							   :initial-input initial-input
+							   ;; :may-modify-candidates t
+							   :history 'selectrum-search-rg-history
+							   :require-match nil)))
 	(when (string-match "\\`\\(.*?\\):\\([0-9]+\\):\\(.*\\)\\'" cand)
 	  (let ((file-name (match-string-no-properties 1 cand))
 			(line-number (match-string-no-properties 2 cand))
@@ -135,15 +149,64 @@
 		(selectrum-yank-search input)
 		(recenter)))))
 
+;; selectrum find file in dir
+
+(defvar selectrum--search-file-max-depth 3
+  "the maximum depth selectrum-search-file-list will reach into, default is 3")
+
+(defun inc0n/ffip-project-root ()
+  "Return project root or `default-directory'."
+  (if-let ((project-root
+			;; (cond ((listp ffip-project-file))
+			;; 		(t (locate-dominating-file default-directory
+			;; 								 ffip-project-file)))
+			(cl-some (apply-partially #'locate-dominating-file
+                                      default-directory)
+					 ffip-project-file)))
+      (file-name-as-directory project-root)
+    default-directory))
+
+(defun selectrum-search-file-list (root-path)
+  "generate a list of files recursively starting from dir-path
+as deep as selectrum--search-file-max-depth"
+  (cl-labels
+      ((aux
+        (dir-path depth)
+        (cond ((< depth selectrum--search-file-max-depth)
+			   (if (file-directory-p dir-path)
+				   (cl-reduce (lambda (acc f)
+								(let ((f (format "%s/%s" dir-path f)))
+								  (if (file-directory-p f)
+									  (append (aux f (1+ depth))
+											  acc)
+									(cons f acc))))
+							  (directory-files dir-path nil "[^.]")
+							  :initial-value nil)
+				 (list dir-path)))
+			  ((file-directory-p dir-path) (list (file-name-as-directory dir-path)))
+              (t (list dir-path)))))
+    (let ((default-directory root-path))
+	  (aux "." 0))))
+
+(defun selectrum-ffip ()
+  (interactive)
+  (let* ((collection (selectrum-search-file-list (inc0n/ffip-project-root)))
+		 (cand (selectrum-read "Search files:" collection
+							   :require-match t)))
+    (find-file cand)))
+
+;;
+
 (defun selectrum-recentf ()
   "Find a file on `recentf-list'."
   (interactive)
   (util/ensure 'recentf)
-  (let ((files (mapcar 'abbreviate-file-name recentf-list)))
-	(find-file (selectrum-read "Find recent file: " files
+  (let* ((files (mapcar 'abbreviate-file-name recentf-list))
+		 (cand (selectrum-read "Find recent file: " files
 							   :require-match t
 							   :initial-input (and (region-active-p)
-												   (util/selected-str))))))
+												   (util/selected-str)))))
+	(find-file cand)))
 
 (defun selectrum-git-recentf ()
   (find-file (selectrum-read "Find recent file (git): "
@@ -151,15 +214,6 @@
 							 :require-match t
 							 :initial-input (and (region-active-p)
 												 (util/selected-str)))))
-
-(defun selectrum-browse-kill-ring ()
-  "If N > 1, assume just yank the Nth item in `kill-ring'.
-If N is nil, use `ivy-mode' to browse `kill-ring'."
-  (interactive)
-  (inc0n/select-from-kill-ring
-   (lambda (s)
-	 (let ((plain-str (util/insert-str s)))
-	   (kill-new plain-str)))))
 
 (defun selectrum--imenu-candidates ()
   (require 'imenu)
@@ -172,7 +226,7 @@ If N is nil, use `ivy-mode' to browse `kill-ring'."
 	(when (eq major-mode 'emacs-lisp-mode)
       (when-let ((fns (cl-remove-if #'listp items :key #'cdr)))
 		(setq items (nconc (cl-remove-if #'nlistp items :key #'cdr)
-						   `(("Functions" ,@fns))))))
+						   `(("Function" ,@fns))))))
 	(cl-labels ((get-candidates
 				 (alist &optional prefix)
                  (cl-mapcan
@@ -210,9 +264,29 @@ If N is nil, use `ivy-mode' to browse `kill-ring'."
 (defun selectrum-imenu-comments ()
   "Imenu display comments."
   (interactive)
-  (when (fboundp 'evilnc-imenu-create-index-function)
-    (let ((imenu-create-index-function #'evilnc-imenu-create-index-function))
-	  (selectrum-imenu))))
+  (let ((imenu-create-index-function
+		 (lambda ()
+		   (save-excursion
+			 (goto-char (point-min))
+			 (cl-loop with comment-end-fn = (if (string= comment-end "")
+												#'line-end-position
+											  (lambda ()
+												(search-forward comment-end nil t)))
+					  with comment-start = (string-trim comment-start)
+					  with file-end = (point-max)
+					  for start = (search-forward comment-start file-end t)
+					  while start
+					  for end = (funcall comment-end-fn)
+					  collect (cons (format
+									 "%d:%s"
+									 (line-number-at-pos start)
+									 (replace-regexp-in-string
+									  (concat "^" comment-start "+[ ]*")
+									  ""
+									  (buffer-substring-no-properties (1- start) end)))
+									(point-marker))
+					  do (goto-char end))))))
+	(selectrum-imenu)))
 
 (defun selectrum-org-agenda-headlines ()
   "Choose from headers of `org-mode' files in the agenda."
@@ -240,10 +314,6 @@ If N is nil, use `ivy-mode' to browse `kill-ring'."
     (selectrum-imenu))))
 
 ;; evil mark
-
-(defvar selectrum--marks-history ()
-  "History for the command `selectrum-marks'.
-This is probably not so useful, since marks can move with text.")
 
 (defun selectrum-evil-marks ()
   "Jump to a marker in `evil-marker-alist', signified by a highlighted \"|\".
@@ -297,9 +367,24 @@ Currently truncates line if longer than window body width."
                                          'selectrum-candidate-display-prefix
 										 (format "%c: " key))
 										marker-pos)))))
-             (chosen-cand (completing-read "Go to position: " formatted-candidates nil
-                                           t nil selectrum--marks-history)))
+             (chosen-cand (completing-read "Go to position: "
+										   formatted-candidates nil t)))
         (goto-char (cdr (assoc chosen-cand formatted-candidates))))
     (user-error "selectrum-evil-marks: No Evil marks placed.")))
+
+(defun selectrum-bash-history ()
+  "Yank one command from the bash history."
+  (interactive)
+  (shell-command "history -r")          ; reload history
+  (let* ((collection
+          (nreverse
+           (util/read-lines (file-truename "~/.bash_history"))))
+		 (cmd
+		  (selectrum-read "Bash history: " collection)))
+	;; (kill-new val)
+	;; (message "%s => kill-ring" val)
+	;; TODO - use region selection instead of kill
+	(save-excursion
+	  (insert cmd))))
 
 (provide 'init-selectrum)

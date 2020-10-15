@@ -90,7 +90,7 @@ Show the diff between current working code and git head."
 (defun inc0n/git-commit-id ()
   "Select commit id from current branch."
   (let* ((git-cmd "git --no-pager log --date=short --pretty=format:'%h|%ad|%s|%an'")
-         (collection (nonempty-lines (shell-command-to-string git-cmd)))
+         (collection (util/shell-command-to-lines git-cmd))
          (item (ffip-completing-read "git log:" collection)))
     (and item
 		 (car (split-string item "|" t)))))
@@ -216,7 +216,7 @@ Show the diff between current working code and git head."
 If USER-SELECT-BRANCH is not nil, rebase on the tag or branch selected by user."
   (interactive "P")
   (let* ((cmd "git --no-pager log --decorate --oneline -n 1024")
-         (lines (util/lines-from-command-output cmd))
+         (lines (util/shell-command-to-lines cmd))
          (targets (mapcan (lambda (e)
                             (and (string-match "^[a-z0-9]+ (\\([^()]+\\)) " e)
                                  (not (string-match "^[a-z0-9]+ (HEAD " e))
@@ -287,7 +287,7 @@ If ARG is 1, find file in previous commit."
          (prompt (format "Find file from commit %s" rev))
          (cmd (inc0n/git-files-in-rev-command rev arg))
          (default-directory (inc0n/git-root-dir))
-         (file (completing-read prompt (util/lines-from-command-output cmd))))
+         (file (completing-read prompt (util/shell-command-to-lines cmd))))
     (when file
       (find-file file))))
 
@@ -298,18 +298,16 @@ If only one line is selected, use current selection as function name to look up.
 If nothing is selected, use the word under cursor as function name to look up."
   (interactive)
   (when buffer-file-name
-    (let* ((range-or-func (cond
-                           ((region-active-p)
-                            (cond
-                             ((util/in-one-line-p (region-beginning) (region-end))
-                              (format ":%s" (util/selected-str)))
-                             (t
-                              (format "%s,%s"
-                                      (line-number-at-pos (region-beginning))
-                                      (line-number-at-pos (1- (region-end)))))))
-                           (t
-                            (format ":%s" (thing-at-point 'symbol)))))
-           (cmd (format "git log -L%s:%s" range-or-func (file-truename buffer-file-name)))
+    (let* ((range-or-func (if (region-active-p)
+                              (if (util/in-one-line-p (region-beginning) (region-end))
+								  (format ":%s" (util/selected-str))
+								(format "%s,%s"
+										(line-number-at-pos (region-beginning))
+										(line-number-at-pos (1- (region-end)))))
+							(format ":%s" (thing-at-point 'symbol))))
+           (cmd (format "git log -L%s:%s"
+						range-or-func
+						(file-truename buffer-file-name)))
            (content (shell-command-to-string cmd)))
       (when (string-match-p "no match" content)
         ;; mark current function and try again

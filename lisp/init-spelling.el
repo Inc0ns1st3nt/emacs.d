@@ -100,6 +100,7 @@ When fixing a typo, avoid pass camel case option to cli program."
   (setq-local ispell-extra-args (inc0n/detect-ispell-args))
   (util/ensure 'wucuo)
   (wucuo-start))
+
 ;; un-comment to enable wucuo
 ;; (add-hook 'text-mode-hook 'text-mode-hook-setup)
 

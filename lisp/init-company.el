@@ -66,12 +66,12 @@
 
 (with-eval-after-load 'company-ispell
   (defun inc0n/company-ispell-available-hack (orig-func &rest args)
-    ;; in case evil is disabled
-    (util/ensure 'evil-nerd-commenter)
     (cond
      ((and (derived-mode-p 'prog-mode)
            (or (not (company-in-string-or-comment)) ; respect advice in `company-in-string-or-comment'
-               (not (evilnc-pure-comment-p (point))))) ; auto-complete in comment only
+               (not (comment-only-p (line-beginning-position)
+									(line-end-position)))))
+	  ;; auto-complete in comment only
       ;; only use company-ispell in comment when coding
       nil)
      (t

@@ -7,7 +7,6 @@
 (defun evil-toggle-input-method ()
   "When input method is on, goto `evil-insert-state'."
   (interactive)
-
   ;; load IME when needed, less memory footprint
   (util/ensure 'pyim)
 

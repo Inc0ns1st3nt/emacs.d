@@ -3,9 +3,8 @@
 (defun util/ensure (feature)
   "Make sure FEATURE is required."
   (unless (featurep feature)
-    (condition-case nil
-        (require feature)
-      (error nil))))
+    (unless (require feature nil t)
+	  (warn "util/ensure - feature %s cannot be required" feature))))
 
 (defun inc0n/git-root-dir ()
   "Git root directory."
@@ -19,21 +18,17 @@
           rev
           (make-string level ?^)))
 
-(defun nonempty-lines (s)
-  (split-string s "[\r\n]+" t))
-
-(defun util/lines-from-command-output (command)
+(defun util/shell-command-to-lines (command)
   "Return lines of COMMAND output."
-  (let* ((output (string-trim (shell-command-to-string command)))
-         (cands (nonempty-lines output)))
-    (delq nil (delete-dups cands))))
+  (split-string (shell-command-to-string command)
+				"[\r\n]+" t))
 
 (defun run-cmd-and-replace-region (cmd)
   "Run CMD in shell on selected region or whole buffer and replace it with cli output."
   (let ((orig-point (point))
-        (b (if (region-active-p) (region-beginning) (point-min)))
-        (e (if (region-active-p) (region-end) (point-max))))
-    (shell-command-on-region b e cmd nil t)
+        (begin (if (region-active-p) (region-beginning) (point-min)))
+        (end (if (region-active-p) (region-end) (point-max))))
+    (shell-command-on-region begin end cmd nil t)
     (goto-char orig-point)))
 
 (defun inc0n/use-tags-as-imenu-function-p ()
@@ -55,20 +50,8 @@
             (directory-files (expand-file-name parent-dir) t "^[^\\.]"))
            load-path))))
 
-;; (defun inc0n/add-subdirs-to-load-path (inc0n/lisp-dir)
-;;   "Add sub-directories under INC0N/LISP-DIR into `load-path'."
-;;   (let ((default-directory inc0n/lisp-dir))
-;;     (setq load-path
-;;           (append
-;;            (delq nil
-;;                  (mapcar (lambda (dir)
-;;                            (unless (string-match-p "^\\." dir)
-;;                              (expand-file-name dir)))
-;;                          (directory-files inc0n/site-lisp-dir)))
-;;            load-path))))
-
 ;; {{ copied from http://ergoemacs.org/emacs/elisp_read_file_content.html
-(defun util/get-string-from-file (file)
+(defun util/read-file-content (file)
   "Return FILE's content."
   (with-temp-buffer
     (insert-file-contents file)
@@ -76,19 +59,19 @@
 
 (defun util/read-lines (file)
   "Return a list of lines of FILE."
-  (split-string (util/get-string-from-file file) "\n" t))
+  (split-string (with-temp-buffer
+				  (insert-file-contents file)
+				  (buffer-string))
+				"\n" t))
 ;; }}
 
-(defun util/write-to-file (str file)
-  "Write STR to FILE."
-  (with-temp-buffer
-    (insert str)
-    (write-file (file-truename file))))
-
-(defun util/write-to-missing-file (str file)
-  "Write STR to FILE if it's missing."
-  (unless (file-exists-p file)
-    (util/write-to-file str file)))
+(defun util/make-file (file-path &optional init-content)
+  (unless (file-exists-p file-path)
+    (with-temp-buffer
+      (insert (if (stringp init-content)
+				  init-content
+				""))
+      (write-file (file-truename file-path)))))
 
 ;; Handier way to add modes to auto-mode-alist
 (defun add-auto-mode (mode &rest patterns)
@@ -114,22 +97,22 @@
 ;;----------------------------------------------------------------------------
 ;; String utilities missing from core emacs
 ;;----------------------------------------------------------------------------
-(defun string-all-matches (regex str &optional group)
-  "Find all matches for `REGEX' within `STR', returning the full match string or group `GROUP'."
-  (let ((result nil)
-        (pos 0)
-        (group (or group 0)))
-    (while (string-match regex str pos)
-      (push (match-string group str) result)
-      (setq pos (match-end group)))
-    result))
+;; (defun string-all-matches (regex str &optional group)
+;;   "Find all matches for `REGEX' within `STR', returning the full match string or group `GROUP'."
+;;   (let ((result nil)
+;;         (pos 0)
+;;         (group (or group 0)))
+;;     (while (string-match regex str pos)
+;;       (push (match-string group str) result)
+;;       (setq pos (match-end group)))
+;;     result))
 
 ;; Find the directory containing a given library
-(defun directory-of-library (library-name)
-  "Return the directory in which the `LIBRARY-NAME' load file is found."
-  (file-name-as-directory
-   (file-name-directory
-    (find-library-name library-name))))
+;; (defun directory-of-library (library-name)
+;;   "Return the directory in which the `LIBRARY-NAME' load file is found."
+;;   (file-name-as-directory
+;;    (file-name-directory
+;;     (find-library-name library-name))))
 
 (defun path-in-directory-p (file directory)
   "FILE is in DIRECTORY."
@@ -149,20 +132,19 @@
             key)
           s)))
 
-(defun inc0n/select-from-kill-ring (fn)
+(defun inc0n/select-from-kill-ring (n)
   "If N > 1, yank the Nth item in `kill-ring'.
 If N is nil, use `selectrum-mode' to browse `kill-ring'."
   (interactive "P")
-  (let ((candidates
-		 (cl-remove-if
-          (lambda (s)
-            (or (< (length s) 5)
-                (string-match-p "\\`[\n[:blank:]]+\\'" s)))
-          (delete-dups kill-ring))))
-    (funcall fn
-			 (selectrum-read
-			  "Browse `kill-ring':"
-			  candidates))))
+  (let* ((candidates
+		  (cl-remove-if
+           (lambda (s)
+             (or (< (length s) 5)
+                 (string-match-p "\\`[\n[:blank:]]+\\'" s)))
+           (delete-dups kill-ring)))
+		 (cand (selectrum-read "Browse `kill-ring':" candidates)))
+    (util/set-clip s)
+    (message "%s => clipboard" s)))
 
 (defun util/delete-selected-region ()
   "Delete selected region."
@@ -183,14 +165,13 @@ If N is nil, use `selectrum-mode' to browse `kill-ring'."
     (forward-char))
 
   (util/delete-selected-region)
+  (insert str))
 
-  ;; insert now
-  (insert str)
-  str)
-
-(defun inc0n/line-str (&optional line-end)
+(defun util/line-str (&optional n)
   (buffer-substring-no-properties (line-beginning-position)
-                                  (if line-end line-end (line-end-position))))
+                                  (save-excursion
+									(forward-line n)
+									(point))))
 
 (defun util/in-one-line-p (b e)
   (save-excursion
@@ -204,11 +185,6 @@ If N is nil, use `selectrum-mode' to browse `kill-ring'."
 (defun util/selected-str ()
   "Get string of selected region."
   (buffer-substring-no-properties (region-beginning) (region-end)))
-
-(defun utils/selected-str/deactivate ()
-  "Get string of selected region. And deactivate it"
-  (prog1 (util/selected-str)
-    (deactivate-mark)))
 
 (defun util/use-selected-string-or-ask (&optional hint default-string)
   "Use selected region or ask for input.
@@ -231,6 +207,8 @@ Else use thing-at-point to get current string 'symbol."
   ;; 	  "")
   (substring-no-properties
    (cond
+	((char-equal ?\  (char-after))
+	 "")
 	((use-region-p)
 	 (let* ((beg (region-beginning))
 			(end (region-end))
@@ -246,7 +224,7 @@ Else use thing-at-point to get current string 'symbol."
 	 (match-string-no-properties 1))
 	(t ""))))
 
-(defun delete-this-file ()
+(defun delete-this-buffer-and-file ()
   "Delete the current file, and kill the buffer."
   (interactive)
   (or (buffer-file-name)
@@ -270,9 +248,6 @@ Else use thing-at-point to get current string 'symbol."
              (set-visited-file-name new-name)
              (set-buffer-modified-p nil)))))
 
-(defvar load-user-customized-major-mode-hook t)
-(defvar cached-normal-file-full-path nil)
-
 (defun buffer-too-big-p ()
   ;; 5000 lines
   (> (buffer-size) (* 5000 80)))
@@ -289,19 +264,16 @@ Else use thing-at-point to get current string 'symbol."
   (interactive)
   (and (not scratch-buffer) ;; treat scratch-buffer not as temp
 	   (let ((f (buffer-file-name)))
-		 (or (not load-user-customized-major-mode-hook)
-			 ;; file does not exist at all
-			 ;; org-babel edit inline code block need calling hook
-			 (null f)
-			 ;; (string= f cached-normal-file-full-path)
-			 ;; file is create from temp directory
-			 (string-match (concat "^" temporary-file-directory) f)
-			 ;; file is a html file exported from org-mode
-			 (and (string-match "\.html$" f)
-				  (file-exists-p (replace-regexp-in-string "\.html$" ".org" f)))
-			 ;; (progn (setq cached-normal-file-full-path f)
-			 ;;        nil)
-			 force-buffer-file-temp-p))))
+		 (or
+		  ;; file does not exist at all
+		  ;; org-babel edit inline code block need calling hook
+		  (null f)
+		  ;; file is create from temp directory
+		  (string-match (concat "^" temporary-file-directory) f)
+		  ;; file is a html file exported from org-mode
+		  (and (string-match "\.html$" f)
+			   (file-exists-p (replace-regexp-in-string "\.html$" ".org" f)))
+		  force-buffer-file-temp-p))))
 
 (defvar inc0n/mplayer-extra-opts ""
   "Extra options for mplayer (ao or vo setup).  For example,
@@ -317,11 +289,12 @@ you can '(setq inc0n/mplayer-extra-opts \"-ao alsa -vo vdpau\")'.")
 
 (defun util/get-clip ()
   "Get clipboard content."
-  (xclip-get-selection 'clipboard))
+  (if kill-ring
+	  (car kill-ring)
+	""))
 
-(defun util/set-clip (str-val)
-  "Put STR-VAL into clipboard."
-  (xclip-set-selection 'clipboard str-val))
+(defalias 'util/set-clip #'kill-new
+  "Put STR-VAL into clipboard.")
 ;; }}
 
 (defun should-use-minimum-resource ()
@@ -344,9 +317,9 @@ you can '(setq inc0n/mplayer-extra-opts \"-ao alsa -vo vdpau\")'.")
 
 ;; reply y/n instead of yes/no
 (fset 'yes-or-no-p 'y-or-n-p)
-;; {{ code is copied from https://liu233w.github.io/2016/09/29/org-python-windows.org/
 
-(defun util/setup-language-and-encode (language-name coding-system)
+;; {{ code is copied from https://liu233w.github.io/2016/09/29/org-python-windows.org/
+(defun util/setup-language-and-encode ()
   "Set up LANGUAGE-NAME and CODING-SYSTEM at Windows.
 For example,
 - \"English\" and 'utf-16-le

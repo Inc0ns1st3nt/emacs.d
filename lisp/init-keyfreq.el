@@ -250,12 +250,12 @@
         undo-fu-only-redo))
 
 (with-eval-after-load 'keyfreq
-  (util/write-to-missing-file "()" keyfreq-file))
+  (util/make-file keyfreq-file "()"))
 
 ;; And use keyfreq-show to see how many times you used a command.
 ;; It's recommended to use `keyfreq-mode' (could be in "~/.custom.el").
 ;; It's reported keyfreq is not compatible with `latex-mode'
 ;; @see https://github.com/redguardtoo/emacs.d/issues/767
-(turnon-keyfreq-mode)
+(add-hook 'after-init-hook 'turnon-keyfreq-mode)
 
 (provide 'init-keyfreq)

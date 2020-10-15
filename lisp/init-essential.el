@@ -95,10 +95,11 @@ If USE-INDIRECT-BUFFER is not nil, use `indirect-buffer' to hold the widen conte
     (save-excursion
       ;; If the (point) is already beginning or end of file diff,
       ;; the `diff-beginning-of-file' and `diff-end-of-file' return nil
-      (let* ((b (progn (diff-beginning-of-file) (point)))
-             (e (progn (diff-end-of-file) (point))))
-        (when (and b e (< b e))
-          (narrow-to-region-indirect-buffer-maybe b e use-indirect-buffer)))))
+      (when-let* ((b (progn (diff-beginning-of-file) (point)))
+				  (e (progn (diff-end-of-file) (point))))
+        (when (< b e)
+          (narrow-to-region-indirect-buffer-maybe
+		   b e use-indirect-buffer)))))
 
    ((derived-mode-p 'prog-mode)
     (mark-defun)

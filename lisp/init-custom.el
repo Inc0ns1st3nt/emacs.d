@@ -74,14 +74,15 @@ Or region from `BEG' to `END'."
   (interactive (if (use-region-p)
                    (list (region-beginning) (region-end))
                  (list (point) (1+ (point)))))
-  (let ((selection (buffer-substring-no-properties beg end)))
-    (let ((char (read-char "press char to surround: ")))
-      (kill-region beg end)
-      (insert (format "%c%c" char char)))
+  (let* ((selection (buffer-substring-no-properties beg end))
+		 (char (read-char "press char to surround: ")))
+	(save-excursion
+	  (goto-char (1- beg))
+	  (insert ))
+    (kill-region beg end)
+    (insert (format "%c%c" char char))
     (backward-char)
     (insert selection)))
-
-;; (fmakunbound 'evil-insert-char-aux)
 
 ;; (defun my-insert-char-aux ()
 ;;   "My aux fn for inserting charcter."

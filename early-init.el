@@ -45,9 +45,9 @@
       (concat ";; Please wait "
               (or user-login-name "")
               " org agenda is being prepared for you"))
-(setq initial-buffer-choice
-      (lambda ()
-        (let ((org-agenda-window-setup 'only-window))
-          (org-agenda nil "n"))
-        (current-buffer)))
+(add-hook 'after-init-hook (lambda ()
+							 (let ((org-agenda-window-setup 'only-window))
+							   (org-agenda nil "n"))
+							 (current-buffer)))
+;; (setq initial-buffer-choice)
 ;; (fringe-mode '(3 . 0))

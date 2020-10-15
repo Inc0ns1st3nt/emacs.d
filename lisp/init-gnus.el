@@ -17,7 +17,7 @@
 
 (add-hook 'gnus-group-mode-hook
           ;; list all the subscribed groups even they contain zero un-read messages
-          (lambda () (local-set-key "o" 'inc0n/gnus-group-list-subscribed-groups )))
+          (lambda () (local-set-key "o" 'inc0n/gnus-group-list-subscribed-groups)))
 
 (setq message-send-mail-function 'smtpmail-send-it
       smtpmail-default-smtp-server "smtp.gmail.com"
@@ -36,23 +36,20 @@
 (defun message-select-forwarded-email-tags ()
   "Select the <#mml-or-what-ever> tags in message-mode"
   (interactive)
-  (let (rlt)
-    (when (search-forward "<#")
-      (push-mark (point) t t)
-      (goto-char (point-max))
-      (search-backward ">")
-      (forward-char)
-      (setq rlt t))
-    rlt))
+  (when (search-forward "<#")
+    (push-mark (point) t t)
+    (goto-char (point-max))
+    (search-backward ">")
+    (forward-char)
+    t))
 
 (defun message-copy-select-forwarded-email-tags ()
   "copy the <#mml-or-what-ever> tags in message-mode"
   (interactive)
   (save-excursion
-    (cond
-     ((message-select-forwarded-email-tags)
-      (copy-region-as-kill (region-beginning) (region-end))
-      (message "forwarded email tags copied!"))
-     (t (message "NO forwarded email tags found!")))))
+    (if (not (message-select-forwarded-email-tags))
+		(message "NO forwarded email tags found!")
+	  (copy-region-as-kill (region-beginning) (region-end))
+      (message "forwarded email tags copied!"))))
 
 (provide 'init-gnus)

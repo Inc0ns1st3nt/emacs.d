@@ -49,24 +49,23 @@ EVENT is ignored."
 (add-hook 'eshell-mode-hook #'eshell-mode-hook-setup)
 
 ;; {{ @see http://emacs-journey.blogspot.com.au/2012/06/improving-ansi-term.html
-(advice-add 'term-sentinel :after #'inc0n/kill-process-buffer-when-exit)
-
-;; always use bash
-(defvar var/term-program "/bin/bash")
+;; TODO - see if process buffer would exit without this advice
+;; (advice-add 'term-sentinel :after #'inc0n/kill-process-buffer-when-exit)
 
 ;; utf8
-(defun inc0n/term-use-utf8 ()
+;; (defun inc0n/term-use-utf8 ()
+;;   (set-buffer-process-coding-system 'utf-8-unix 'utf-8-unix))
+;; (add-hook 'term-exec-hook #'inc0n/term-use-utf8)
+(defadvice ansi-term (after advise-ansi-term-coding-system)
   (set-buffer-process-coding-system 'utf-8-unix 'utf-8-unix))
-(add-hook 'term-exec-hook #'inc0n/term-use-utf8)
 ;; }}
 
 ;; {{ hack counsel-browser-history
 (defvar var/comint-full-input nil)
 (defun inc0n/counsel-shell-history-hack (orig-func &rest args)
-  (setq var/comint-full-input (util/comint-current-input))
-  (util/comint-kill-current-input)
-  (apply orig-func args)
-  (setq var/comint-full-input nil))
+  (let ((var/comint-full-input (util/comint-current-input)))
+	(util/comint-kill-current-input)
+	(apply orig-func args)))
 (advice-add 'counsel-shell-history :around #'inc0n/counsel-shell-history-hack)
 
 (defun inc0n/ivy-history-contents-hack (orig-func &rest args)
@@ -74,12 +73,11 @@ EVENT is ignored."
         (input var/comint-full-input))
     (if (and input (not (string-empty-p input)))
         ;; filter shell history with current input
-        (delq nil (mapcar
-                   (lambda (s)
-                     (if (string-match (regexp-quote input) s)
-                         s
-                       nil))
-                   rlt))
+        (mapcan
+		 (lambda (s)
+           (and (string-match (regexp-quote input) s)
+                (list s)))
+		 rlt)
       rlt)))
 (advice-add 'ivy-history-contents :around #'inc0n/ivy-history-contents-hack)
 ;; }}

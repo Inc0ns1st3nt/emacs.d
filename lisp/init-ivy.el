@@ -4,6 +4,9 @@
 (require-package 'swiper)
 (require-package 'counsel) ; counsel => swiper => ivy
 
+(autoload 'ivy-recentf "ivy" "" t)
+(autoload 'ivy-read "ivy")
+
 (ivy-mode 1) ; it enables ivy UI for `kill-buffer'
 
 (defun inc0n/rename-file (x)
@@ -49,7 +52,7 @@ For example, could be \"---author=MyName\"")
          ;; two weeks is a sprint, minus weekend and days for sprint review and test
          (cmd (format "git --no-pager log %s --name-status --since=\"10 days ago\" --pretty=format:"
                       inc0n/git-recent-files-extra-options))
-         (lines (util/lines-from-command-output cmd)))
+         (lines (util/shell-command-to-lines cmd)))
     (when lines
       (dolist (l lines)
         (let ((items (split-string l "[ \t]+" l)))
@@ -133,7 +136,7 @@ If N is 2, list files in my recent 20 commits."
   (let ((collection
          (nreverse
           (util/read-lines (file-truename "~/.bash_history")))))
-    (ivy-read (format "Bash history:") collection
+    (ivy-read "Bash history: " collection
               :action (lambda (val)
                         (kill-new val)
                         (message "%s => kill-ring" val)
@@ -148,9 +151,10 @@ If N is not nil, only list directories in current project."
                 (append inc0n/dired-directory-history
                         (mapcar 'file-name-directory recentf-list)
                         ;; fasd history
-                        (if (executable-find "fasd")
-                            (nonempty-lines (shell-command-to-string "fasd -ld"))))))
-        (root-dir (if (ffip-project-root) (file-truename (ffip-project-root)))))
+                        (and (executable-find "fasd")
+                             (util/shell-command-to-lines "fasd -ld")))))
+        (root-dir (and (ffip-project-root)
+					   (file-truename (ffip-project-root)))))
     (when (and n root-dir)
       (setq cands
             (delq nil (mapcar (lambda (f) (path-in-directory-p f root-dir)) cands))))
@@ -184,7 +188,7 @@ If N is not nil, only list directories in current project."
                                 "git --no-pager grep -n --no-color -I -e \"%s\" -- {}"))
               (cmd (format cmd-opts str)))
           (ivy-read "git grep in commit: "
-                    (util/lines-from-command-output cmd)
+                    (util/shell-command-to-lines cmd)
                     :caller 'counsel-etags-grep
                     :history 'counsel-git-grep-history
                     :action #'counsel-git-grep-action))))

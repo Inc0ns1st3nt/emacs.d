@@ -151,7 +151,7 @@ locate PACKAGE."
 ;;------------------------------------------------------------------------------
 
 (require-package 'async)
-; color-theme 6.6.1 in elpa is buggy
+
 (require-package 'amx)
 (require-package 'avy)
 (require-package 'popup) ; some old package need it
@@ -173,7 +173,6 @@ locate PACKAGE."
 (require-package 'connection)
 (require-package 'dictionary) ; dictionary requires 'link and 'connection
 (require-package 'htmlize)
-(require-package 'diminish)
 (require-package 'scratch)
 (require-package 'textile-mode)
 (require-package 'dsvn)
@@ -183,7 +182,6 @@ locate PACKAGE."
 (require-package 'vimrc-mode)
 (require-package 'csv-mode)
 (require-package 'rust-mode)
-(require-package 'adoc-mode) ; asciidoc files
 
 (require-package 'counsel-bbdb)
 
@@ -219,19 +217,7 @@ locate PACKAGE."
 (require-package 'web-mode)
 (require-package 'iedit)
 (require-package 'websocket) ; for debug debugging of browsers
-(require-package 'undo-tree)
-(require-package 'evil)
-(require-package 'evil-escape)
-(require-package 'evil-exchange)
-(require-package 'evil-find-char-pinyin)
 (require-package 'evil-mark-replace)
-(require-package 'evil-matchit)
-(require-package 'evil-nerd-commenter)
-(require-package 'evil-surround)
-(require-package 'evil-visualstar)
-(require-package 'evil-args)
-(require-package 'evil-textobj-syntax)
-(require-package 'undo-fu)
 (require-package 'counsel-css)
 (require-package 'auto-package-update)
 (require-package 'shackle)

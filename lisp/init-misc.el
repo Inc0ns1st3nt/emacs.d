@@ -13,32 +13,50 @@
 ;; Set `auto-window-vscroll' to nil to avoid triggering `format-mode-line'.
 (setq auto-window-vscroll nil)
 
-(global-set-key (kbd "TAB") #'indent-for-tab-command)
+;; @see http://www.emacswiki.org/emacs/SavePlace
+(add-hook 'after-init-hook 'save-place-mode)
+(add-hook 'after-init-hook 'amx-mode)
+
+(local-require 'general)
+
+(general-define-key
+ "C-c C-u" (lambda (arg)
+			 (interactive (list (thing-at-point 'symbol)))
+			 (if (not (stringp arg))
+				 (message "unexpected %s" arg)
+			   (fmakunbound (intern arg))
+			   (message "fmakunbounded %s" arg)))
+ "<C-backspace>" 'backward-delete-word
+ "C-q" 'aya-open-line
+ "M-o" 'ace-link
+ "C-x C-o" 'ffap
+ "C-M-s" 'isearch-forward-regexp
+ "C-M-r" 'isearch-backward-regexp
+ "C-h C-f" 'find-function
+ "C-h K" 'find-function-on-key)
+
+(defun backward-delete-word ()
+  (interactive)
+  (delete-region (point)
+				 (progn (forward-word -1)
+						(point))))
 
 ;; {{ auto-yasnippet
 (require-package 'auto-yasnippet)
 ;; Use C-q instead tab to complete snippet
-;; - `aya-create' at first, input ~ to mark the thing next
-;; - `aya-expand' to expand snippet
-;; - `aya-open-line' to finish
-(global-set-key (kbd "C-q") #'aya-open-line)
+;; - aya-create at first, input ~ to mark the thing next
+;; - aya-expand to expand snippet
+;; - aya-open-line to finish
 ;; }}
 
 ;; {{ ace-link
 (require-package 'ace-link)
-(ace-link-setup-default)
-(global-set-key (kbd "M-o") 'ace-link)
+(with-eval-after-load 'ace-link
+  (ace-link-setup-default))
 ;; }}
-
-;; open header file under cursor
-(global-set-key (kbd "C-x C-o") 'ffap)
-
-(define-key global-map (kbd "RET") 'newline-and-indent)
 
 ;; {{ isearch
 ;; Use regex to search by default
-(global-set-key (kbd "C-M-s") 'isearch-forward-regexp)
-(global-set-key (kbd "C-M-r") 'isearch-backward-regexp)
 (define-key isearch-mode-map (kbd "C-o") 'isearch-occur)
 ;; }}
 
@@ -61,12 +79,6 @@
               ;; visible-bell has some issue
               ;; @see https://github.com/redguardtoo/mastering-emacs-in-one-year-guide/issues/9#issuecomment-97848938
               visible-bell nil)
-
-;; @see http://www.emacswiki.org/emacs/SavePlace
-(if (fboundp 'save-place-mode)
-     (save-place-mode 1)
-   (require 'saveplace)
-   (setq-default save-place t))
 
 ;; {{ find-file-in-project (ffip)
 (require-package 'find-file-in-project)
@@ -186,10 +198,7 @@ This function can be re-used by other major modes after compilation."
 (add-hook 'css-mode-hook #'generic-prog-mode-hook-setup)
 
 ;; {{ display long lines in truncated style (end line with $)
-(defun truncate-lines-setup ()
-  (toggle-truncate-lines 1))
-(add-hook 'grep-mode-hook #'truncate-lines-setup)
-;; (add-hook 'org-mode-hook 'truncate-lines-setup)
+(add-hook 'grep-mode-hook (lambda () (toggle-truncate-lines 1)))
 ;; }}
 
 ;; turn on auto-fill-mode, don't use `text-mode-hook' because for some
@@ -208,12 +217,6 @@ This function can be re-used by other major modes after compilation."
 ;; NO automatic new line when scrolling down at buffer bottom
 (setq next-line-add-newlines nil)
 
-;; @see http://stackoverflow.com/questions/4222183/emacs-how-to-jump-to-function-definition-in-el-file
-(global-set-key (kbd "C-h C-f") #'find-function)
-
-;; A quick way to jump to the definition of a function given its key binding
-(global-set-key (kbd "C-h K") #'find-function-on-key)
-
 ;; {{ time format
 ;; If you want to customize time format, read document of `format-time-string'
 ;; and customize `display-time-format'.
@@ -222,7 +225,7 @@ This function can be re-used by other major modes after compilation."
 ;; from RobinH, Time management
 (setq display-time-24hr-format t) ; the date in modeline is English too, magic!
 (setq display-time-day-and-date t)
-(display-time) ; show date in modeline
+(add-hook 'after-init-hook 'display-time-mode) ; show date in modeline
 ;; }}
 
 ;; (defalias 'list-buffers #'ibuffer)
@@ -301,14 +304,15 @@ This function can be re-used by other major modes after compilation."
   (popup-tip (inc0n/which-function)))
 ;; }}
 
-(when (local-require 'ace-pinyin)
-  (ace-pinyin-global-mode 1))
+;; (when (local-require 'ace-pinyin)
+;;   (add-hook 'after-init-hook 'ace-pinyin-global-mode))
 
 ;; {{ avy, jump between texts, like easymotion in vim
 ;; @see http://emacsredux.com/blog/2015/07/19/ace-jump-mode-is-dead-long-live-avy/ for more tips
 ;; dired
+(add-hook 'dired-mode-hook 'diredfl-mode)
 (with-eval-after-load 'dired
-  (diredfl-global-mode 1)
+  ;; (diredfl-global-mode 1)
   (define-key dired-mode-map (kbd ";") 'avy-goto-subword-1))
 ;; }}
 
@@ -462,11 +466,11 @@ If no region is selected, `kill-ring' or clipboard is used instead."
 (defun extract-list-from-package-json ()
   "Extract package list from package.json."
   (interactive)
-  (let ((str (util/use-selected-string-or-ask)))
-    (setq str (replace-regexp-in-string ":.*$\\|\"" "" str))
-    ;; join lines
-    (setq str (replace-regexp-in-string "[\r\n \t]+" " " str))
-    (copy-yank-str str)
+  (let* ((str (util/use-selected-string-or-ask))
+		 (str (replace-regexp-in-string ":.*$\\|\"" "" str))
+		 ;; join lines
+		 (str (replace-regexp-in-string "[\r\n \t]+" " " str)))
+    (util/set-clip str)
     (message "%s => clipboard & yank ring" str)))
 
 (defun inc0n/insert-absolute-path ()
@@ -474,7 +478,7 @@ If no region is selected, `kill-ring' or clipboard is used instead."
   (interactive)
   (let* ((str (util/use-selected-string-or-ask "Input relative path"))
          (path (file-truename str)))
-    (copy-yank-str path)
+    (util/set-clip path)
     (message "%s => clipboard & yank ring" path)))
 
 (defun inc0n/insert-relative-path ()
@@ -482,7 +486,7 @@ If no region is selected, `kill-ring' or clipboard is used instead."
   (interactive)
   (let* ((str (util/use-selected-string-or-ask "Input absolute path"))
          (path (file-relative-name str)))
-    (copy-yank-str path)
+    (util/set-clip path)
     (message "%s => clipboard & yank ring" path)))
 
 ;; indention management
@@ -495,8 +499,8 @@ If no region is selected, `kill-ring' or clipboard is used instead."
 (when (local-require 'auto-save)
   (add-to-list 'auto-save-exclude 'file-too-big-p t)
   (setq auto-save-idle 1) ; 1 seconds
-  (auto-save-enable)
-  (setq auto-save-slient t))
+  (setq auto-save-slient t)
+  (add-hook 'after-init-hook 'auto-save-enable))
 ;; }}
 
 ;; {{ csv
@@ -512,10 +516,9 @@ If no region is selected, `kill-ring' or clipboard is used instead."
       (setq n (length kill-ring)))
     (let* ((rlt (mapconcat 'identity (subseq kill-ring 0 n) "|"))
            (rlt (replace-regexp-in-string "(" "\\\\(" rlt)))
-      (copy-yank-str rlt)
+      (util/set-clip rlt)
       (message (format "%s => kill-ring&clipboard" rlt)))))
 ;; }}
-
 
 (defun inc0n/get-total-hours ()
   (interactive)
@@ -523,7 +526,7 @@ If no region is selected, `kill-ring' or clipboard is used instead."
                   (util/selected-str)
                 (util/buffer-str)))
          (total-hours 0)
-         (lines (nonempty-lines str)))
+         (lines (split-string str "[\r\n]+" t)))
     (dolist (l lines)
       (when (string-match " \\([0-9][0-9.]*\\)h[ \t]*$" l)
         (setq total-hours (+ total-hours (string-to-number (match-string 1 l))))))
@@ -588,13 +591,7 @@ If no region is selected, `kill-ring' or clipboard is used instead."
         (y-or-n-p "The message suggests that you may want to attach something, but no attachment is found. Send anyway?")
       (error "It seems that an attachment is needed, but none was found. Aborting sending."))))
 (add-hook 'message-send-hook #'inc0n/message-pre-send-check-attachment)
-
 ;; }}
-
-;; @see https://stackoverflow.com/questions/3417438/closing-all-other-buffers-in-emacs
-(defun kill-all-but-current-buffer ()
-  (interactive)
-  (mapc 'kill-buffer (cdr (buffer-list (current-buffer)))))
 
 (defun minibuffer-inactive-mode-hook-setup ()
   ;; Make `try-expand-dabbrev' from `hippie-expand' work in mini-buffer.
@@ -617,10 +614,9 @@ If no region is selected, `kill-ring' or clipboard is used instead."
 (add-hook 'vc-msg-show-code-hook #'vc-msg-show-code-setup)
 ;; }}
 
-;; {{
-(autoload 'typewriter-mode "typewriter-mode" "Mode for emulating type writer" t)
+;; {{ typewriter
 (local-require 'typewriter-mode)
-(typewriter-mode)
+(add-hook 'after-init-hook #'typewriter-mode)
 ;; }}
 
 (with-eval-after-load 'grep
@@ -670,6 +666,7 @@ If no region is selected, `kill-ring' or clipboard is used instead."
 ;; }}
 
 ;; {{
+(require-package 'adoc-mode) ; asciidoc files
 (defun adoc-imenu-index ()
   (let ((patterns '((nil "^=\\([= ]*[^=\n\r]+\\)" 1))))
     (save-excursion
@@ -728,18 +725,9 @@ If the shell is already opened in some buffer, switch to that buffer."
                            emms-player-vlc-playlist)))
 ;; }}
 
-(transient-mark-mode t)
+(add-hook 'after-init-hook 'transient-mark-mode)
 
-;; (unless (or *cygwin* *win64*)
-;;   ;; Takes ages to start Emacs.
-;;   ;; Got error `Socket /tmp/fam-cb/fam- has wrong permissions` in Cygwin ONLY!
-;;   ;; reproduced with Emacs 26.1 and Cygwin upgraded at 2019-02-26
-;;   ;;
-;;   ;; Although win64 is fine. It still slows down generic performance.
-;;   ;; @see https://stackoverflow.com/questions/3589535/why-reload-notification-slow-in-emacs-when-files-are-modified-externally
-;;   ;; So no auto-revert-mode on Windows/Cygwin
-;; )
-(global-auto-revert-mode)
+(add-hook 'after-init-hook 'global-auto-revert-mode)
 (setq global-auto-revert-non-file-buffers t
       auto-revert-verbose nil)
 
@@ -749,7 +737,6 @@ If the shell is already opened in some buffer, switch to that buffer."
         (lambda ()
           (concat (getenv "USER") " $ "))))
 
-;; I'm in Australia now, so I set the locale to "en_AU"
 (defun inc0n/insert-date (prefix)
   "Insert the current date. With prefix-argument, use ISO format. With
    two prefix arguments, write out the day and month name."
@@ -785,7 +772,7 @@ If the shell is already opened in some buffer, switch to that buffer."
       (insert (format "%4d %c\n" i i))))
   (beginning-of-buffer))
 
-;; {{ unique lines
+;; unique lines
 (defun uniq-lines ()
   "Delete duplicate lines in region or buffer."
   (interactive)
@@ -798,7 +785,6 @@ If the shell is already opened in some buffer, switch to that buffer."
             (goto-char start)
             (re-search-forward "^\\(.*\\)\n\\(\\(.*\n\\)*\\)\\1\n" end t))
         (replace-match "\\1\n\\2")))))
-;; }}
 
 (defun inc0n/insert-file-link-from-clipboard ()
   "Make sure the full path of file exist in clipboard.
@@ -869,11 +855,11 @@ version control automatically."
 (put 'upcase-region 'disabled nil)
 
 ;; midnight mode purges buffers which haven't been displayed in configured period
-(require 'midnight)
+;; (require-package 'midnight)
 (setq midnight-period (* 3600 24)) ;; 24 hours
-(setq midnight-mode t)
+(add-hook 'after-init-hook 'midnight-mode)
 
-(defun cleanup-buffer-safe ()
+(defun cleanup-buffer ()
   "Perform a bunch of safe operations on the whitespace content of a buffer.
 Does not indent buffer, because it is used for a before-save-hook, and that
 might be bad."
@@ -881,11 +867,11 @@ might be bad."
   (untabify (point-min) (point-max))
   (delete-trailing-whitespace))
 
-(defun cleanup-buffer ()
+(defun cleanup-buffer-and-indent ()
   "Perform a bunch of operations on the whitespace content of a buffer.
 Including indent-buffer, which should not be called automatically on save."
   (interactive)
-  (cleanup-buffer-safe)
+  (cleanup-buffer)
   (indent-region (point-min) (point-max)))
 
 ;; {{ easygpg setup
@@ -993,7 +979,7 @@ Including indent-buffer, which should not be called automatically on save."
 
 (when (require 'edit-server nil t)
   (setq edit-server-new-frame nil)
-  (edit-server-start))
+  (add-hook 'after-init-hook 'edit-server-start))
 ;; }}
 
 (defun inc0n/browse-current-file ()
@@ -1010,31 +996,7 @@ Including indent-buffer, which should not be called automatically on save."
   (setq which-key-idle-delay 0.5)
   (setq which-key-separator ":")
   (setq which-key-show-remaining-keys nil)
-  (which-key-mode 1))
-;; }}
-
-;; {{ Answer Yes/No programmically when asked by `y-or-n-p'
-(defvar inc0n/default-yes-no-answers nil
-  "Usage: (setq inc0n/default-yes-no-answers '((t . \"question1\") (t . \"question2\")))).")
-(defun inc0n/y-or-n-p-hack (orig-func &rest args)
-  "Answer yes or no automatically for some questions."
-  (let ((prompt (car args)))
-    (cond
-     ((and inc0n/default-yes-no-answers
-           (listp inc0n/default-yes-no-answers))
-      (let ((i 0) found cand rlt)
-        (while (and (setq cand (nth i inc0n/default-yes-no-answers))
-                    (not found))
-          (when (string-match-p (cdr cand) prompt)
-            (setq found t)
-            (setq rlt (car cand)))
-          (setq i (1+ i)))
-        (if found
-            rlt
-          (apply orig-func args))))
-     (t
-      (apply orig-func args)))))
-(advice-add 'y-or-n-p :around #'inc0n/y-or-n-p-hack)
+  (add-hook 'after-init-hook #'which-key-mode))
 ;; }}
 
 ;; {{ eldoc
@@ -1079,11 +1041,25 @@ See https://github.com/RafayGhafoor/Subscene-Subtitle-Grabber."
 ;; }}
 
 ;; {{ cache files
-(setq amx-save-file (inc0n/emacs-d "cache/amx-items"))
-(setq ido-save-directory-list-file (inc0n/emacs-d "cache/ido.last"))
-(setq company-statistics-file (inc0n/emacs-d "cache/company-statistics-cache.el"))
-;; }}
+(unless (file-directory-p (inc0n/emacs-d "cache"))
+  (make-directory (inc0n/emacs-d "cache")))
 
-(amx-mode 1)
+(cl-flet ((inc0n/emacs.d/cache (path)
+							   (inc0n/emacs-d (concat "cache/" path))))
+  (setq amx-save-file (inc0n/emacs.d/cache "amx-items"))
+  (setq ido-save-directory-list-file (inc0n/emacs.d/cache "ido.last"))
+  (setq company-statistics-file (inc0n/emacs.d/cache "company-statistics-cache.el"))
+
+  (setq eshell-aliases-file (inc0n/emacs.d/cache "eshell/alias")
+		eshell-history-file (inc0n/emacs.d/cache "eshell/history")
+		eshell-last-dir-ring-file-name (inc0n/emacs.d/cache "eshell/lastdir"))
+  (setq pyim-dcache-directory (inc0n/emacs.d/cache "pyim/dcache/"))
+  (setq save-place-file (inc0n/emacs.d/cache "places"))
+  (setq recentf-save-file (inc0n/emacs.d/cache "recentf"))
+  (setq nov-save-place-file (inc0n/emacs.d/cache "nov-places"))
+  (setq auto-save-list-file-prefix (inc0n/emacs.d/cache "auto-save-list/.saves-"))
+  (setq keyfreq-file (inc0n/emacs.d/cache "keyfreq")
+		keyfreq-file-lock (inc0n/emacs.d/cache "keyfreq.lock")))
+;; }}
 
 (provide 'init-misc)
