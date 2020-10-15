@@ -207,7 +207,8 @@ Else use thing-at-point to get current string 'symbol."
   ;; 	  "")
   (substring-no-properties
    (cond
-	((char-equal ?\  (char-after))
+	((and (not (= (point-max) (point)))
+		  (char-equal ?\  (char-after)))
 	 "")
 	((use-region-p)
 	 (let* ((beg (region-beginning))

@@ -1,3 +1,12 @@
+;;; early-init.el --- Emacs 27+ pre-initialisation config
+
+;;; Commentary:
+
+;; Emacs 27+ loads this file before (normally) calling
+;; `package-initialize'.  We use this file to suppress that automatic
+;; behaviour so that startup is consistent across Emacs versions.
+
+;;; Code:
 
 (setq use-file-dialog nil)
 (setq use-dialog-box nil)
@@ -40,14 +49,19 @@
             (or user-login-name "")
             " - Emacs loves you!\n\n")))
 
-(setq initial-scratch-message
+(setq initial-scratch-message nil
       ;; (show-scratch-buffer-message)
-      (concat ";; Please wait "
-              (or user-login-name "")
-              " org agenda is being prepared for you"))
-(add-hook 'after-init-hook (lambda ()
-							 (let ((org-agenda-window-setup 'only-window))
-							   (org-agenda nil "n"))
-							 (current-buffer)))
-;; (setq initial-buffer-choice)
+      ;; (concat ";; Please wait "
+      ;;         (or user-login-name "")
+      ;;         " org agenda is being prepared for you")
+	  )
+
+(setq initial-buffer-choice
+	  (lambda ()
+		(let ((org-agenda-window-setup 'only-window))
+		  (org-agenda nil "n"))
+		(current-buffer)))
 ;; (fringe-mode '(3 . 0))
+
+(provide 'early-init)
+;;; early-init.el ends here

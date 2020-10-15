@@ -1,7 +1,7 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
 (require-package 'undo-fu)
-(require-package 'undo-tree)
+;; (require-package 'undo-tree)
 (require-package 'expand-region) ; I prefer stable version
 
 (require-package 'evil)
@@ -28,16 +28,13 @@
   :init-value nil
   :global t)
 (undo-fu-mode 1)
+(evil-set-undo-system 'undo-fu)
 ;; }}
 
 ;; Store more undo history to prevent loss of data
 (setq undo-limit 8000000
       undo-strong-limit 8000000
       undo-outer-limit 8000000)
-
-(defvar inc0n/use-m-for-matchit nil
-  "If t, use \"m\" key for `evil-matchit-mode'.
-And \"%\" key is also restored to `evil-jump-item'.")
 
 ;; {{ evil surround
 (require-package 'evil-surround)
@@ -670,7 +667,6 @@ If INCLUSIVE is t, the text object is inclusive."
 				 (concat (util/selected-str) "\n")
 			   (util/line-str n))))
 	(save-excursion
-	  (message "cc debug: %d" n)
 	  (beginning-of-line)
 	  (insert str)
 	  (comment-line (- n)))))
@@ -781,6 +777,8 @@ If INCLUSIVE is t, the text object is inclusive."
 
 ;; {{ `evil-matchit'
 (require-package 'evil-matchit)
+(setq evilmi-shortcut "m"
+	  evilmi-may-jump-by-percentage nil)
 (add-hook 'after-init-hook 'global-evil-matchit-mode)
 ;; }}
 
@@ -809,7 +807,7 @@ If INCLUSIVE is t, the text object is inclusive."
 ;; {{ Port of vim-textobj-syntax.
 ;; It provides evil text objects for consecutive items with same syntax highlight.
 ;; press "vah" or "vih"
-(require-package 'evil-textobj-syntax)
+(require 'evil-textobj-syntax)
 ;; }}
 
 ;; {{ evil-args
@@ -825,6 +823,7 @@ If INCLUSIVE is t, the text object is inclusive."
 (define-key evil-motion-state-map "H" 'evil-backward-arg)
 
 ;; bind evil-jump-out-args
+(define-key evil-motion-state-map "K" 'evil-jump-out-args)
 (define-key evil-normal-state-map "K" 'evil-jump-out-args)
 ;; }}
 

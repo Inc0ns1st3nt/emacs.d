@@ -3,9 +3,6 @@
 (require-package 'yasnippet)
 (require-package 'yasnippet-snippets)
 
-;; my private snippets, should be placed before enabling yasnippet
-(defvar inc0n/yasnippets (expand-file-name "~/inc0n/yasnippets"))
-
 (defun inc0n/enable-yas-minor-mode ()
   "Enable `yas-minor-mode'."
   (unless (buffer-file-temp-p)
@@ -42,11 +39,11 @@
 (defun inc0n/yas-field-to-statement (str sep)
   "If STR=='a.b.c' and SEP=' && ', 'a.b.c' => 'a && a.b && a.b.c'"
   (mapconcat 'identity
-             (reduce (lambda (acc elm)
-                       (if acc
-                           (concat acc "." elm)
-                         elm))
-                     (split-string str "\\."))
+             (cl-reduce (lambda (acc elm)
+						  (if acc
+							  (concat acc "." elm)
+							elm))
+						(split-string str "\\."))
              sep))
 
 (defun inc0n/yas-get-first-name-from-to-field ()
@@ -114,8 +111,8 @@
   (setq-default mode-require-final-newline nil)
   ;; Use `yas-dropdown-prompt' if possible. It requires `dropdown-list'.
   (setq yas-prompt-functions '(yas-dropdown-prompt
-                               yas-ido-prompt
-                               yas-completing-prompt))
+                               yas-completing-prompt
+							   yas-maybe-ido-prompt))
 
   ;; Use `yas-completing-prompt' when ONLY when "M-x yas-insert-snippet"
   ;; Thanks to capitaomorte for providing the trick.
@@ -125,9 +122,8 @@
       (apply orig-func args)))
   (advice-add 'yas-insert-snippet :around #'inc0n/yas-insert-snippet-hack)
 
-  (when (and (file-exists-p inc0n/yasnippets)
-             (not (member inc0n/yasnippets yas-snippet-dirs)))
-    (add-to-list 'yas-snippet-dirs inc0n/yasnippets))
+  ;; how to add custom yasnippet directory
+  ;; (add-to-list 'yas-snippet-dirs inc0n/yasnippets)
 
   (yas-reload-all))
 

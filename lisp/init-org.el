@@ -148,7 +148,7 @@ ARG is ignored."
                  ;; skip checking in below fonts
                  (font-belongs-to (point) '(org-verbatim org-code))
                  ;; skip checking property lines
-                 (string-match "^[ \t]+:[A-Z]+:[ \t]+" (util/line-str nil nil))
+                 (string-match "^[ \t]+:[A-Z]+:[ \t]+" (util/line-str))
                  ;; skipping checking in code snippet
                  ;; slow test should be placed at last
                  (inc0n/org-mode-code-snippet-p))))))

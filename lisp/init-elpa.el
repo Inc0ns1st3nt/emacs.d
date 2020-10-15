@@ -94,28 +94,18 @@ locate PACKAGE."
     typescript-mode ; the stable version lacks important feature (highlight function names)
     evil-exchange
     evil-find-char-pinyin
-    ;; {{ dependencies of stable realgud are too old
-    load-relative
-    loc-changes
-    test-simple
-    ;; }}
+
     iedit
     undo-tree
     js-doc
-    ;; {{ since stable v0.13.0 released, we go back to stable version
-    ;; ivy
-    ;; counsel
-    ;; swiper
-    ;; }}
     wgrep
 
     groovy-mode
     company ; I won't wait another 2 years for stable
     simple-httpd
     dsvn
-    findr
+    ;; findr
     mwe-log-commands
-    noflet
     db
     creole
     web
@@ -160,11 +150,11 @@ locate PACKAGE."
 (require-package 'gitconfig-mode)
 
 (require-package 'request)
-(require-package 'findr)
+;; (require-package 'jump)
+;; (require-package 'findr)
 (require-package 'diredfl) ; font lock for `dired-mode'
 (require-package 'pinyinlib)
 (require-package 'find-by-pinyin-dired)
-(require-package 'jump)
 (require-package 'nvm)
 (require-package 'writeroom-mode)
 (require-package 'scss-mode)
@@ -225,8 +215,6 @@ locate PACKAGE."
 (require-package 'elpa-mirror)
 ;; {{ @see https://pawelbx.github.io/emacs-theme-gallery/
 (require-package 'visual-regexp) ;; Press "M-x vr-*"
-
-(require-package 'benchmark-init)
 
 ;; {{ Fixed expiring GNU ELPA keys
 ;; GNU ELPA GPG key will expire on Sep-2019. So we need install this package to
