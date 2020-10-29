@@ -17,8 +17,6 @@
 (add-hook 'after-init-hook 'save-place-mode)
 (add-hook 'after-init-hook 'amx-mode)
 
-(local-require 'general)
-
 (general-define-key
  "C-c C-u" (lambda (arg)
 			 (interactive (list (thing-at-point 'symbol)))
@@ -30,10 +28,17 @@
  "C-q" 'aya-open-line
  "M-o" 'ace-link
  "C-x C-o" 'ffap
+ "C-x C-c" (lambda () (interactive)
+			 (when (y-or-n-p (format "Are you sure you want to quit emacs? "))
+			   (save-buffers-kill-emacs)))
+ ;;
  "C-M-s" 'isearch-forward-regexp
  "C-M-r" 'isearch-backward-regexp
+ ;;
  "C-h C-f" 'find-function
- "C-h K" 'find-function-on-key)
+ "C-h K" 'find-function-on-key
+ ;;
+ "TAB" 'indent-for-tab-command)
 
 (defun backward-delete-word ()
   (interactive)
@@ -168,7 +173,6 @@ This function can be re-used by other major modes after compilation."
 (defun generic-prog-mode-hook-setup ()
   (when (buffer-too-big-p)
     ;; Turn off `linum-mode' when there are more than 5000 lines
-    (linum-mode -1)
     (when (should-use-minimum-resource)
       (font-lock-mode -1)))
 
@@ -223,9 +227,9 @@ This function can be re-used by other major modes after compilation."
 ;; (setq display-time-format "%a %b %e")
 
 ;; from RobinH, Time management
-(setq display-time-24hr-format t) ; the date in modeline is English too, magic!
-(setq display-time-day-and-date t)
-(add-hook 'after-init-hook 'display-time-mode) ; show date in modeline
+;; (setq display-time-24hr-format t) ; the date in modeline is English too, magic!
+;; (setq display-time-day-and-date t)
+;; (add-hook 'after-init-hook 'display-time-mode) ; show date in modeline
 ;; }}
 
 ;; (defalias 'list-buffers #'ibuffer)
@@ -495,12 +499,20 @@ If no region is selected, `kill-ring' or clipboard is used instead."
   (setq indent-tabs-mode (not indent-tabs-mode))
   (message "indent-tabs-mode=%s" indent-tabs-mode))
 
-;; {{ auto-save.el
-(when (local-require 'auto-save)
-  (add-to-list 'auto-save-exclude 'file-too-big-p t)
-  (setq auto-save-idle 1) ; 1 seconds
-  (setq auto-save-slient t)
-  (add-hook 'after-init-hook 'auto-save-enable))
+;; {{ auto-save - builtin emacs >= 26.1 package
+(setq auto-save-timeout 2)
+(setq auto-save-interval 100) ;; 100 characters interval
+(setq auto-save-default t)
+(setq auto-save-no-message t)
+(add-hook 'after-init-hook 'auto-save-mode)
+
+(setq auto-save-visited-interval 2) ;; in seconds
+(add-hook 'after-init-hook 'auto-save-visited-mode)
+;; (when (local-require 'auto-save)
+;;   (add-to-list 'auto-save-exclude 'file-too-big-p t)
+;;   (setq auto-save-idle 1) ; 1 seconds
+;;   (setq auto-save-slient t)
+;;   (add-hook 'after-init-hook 'auto-save-enable))
 ;; }}
 
 ;; {{ csv
@@ -719,10 +731,8 @@ If the shell is already opened in some buffer, switch to that buffer."
   (setq emms-source-file-default-directory "~/Music"
         emms-info-asynchronously t
         emms-show-format "♩♪ %s")
-  (setq emms-player-list '(emms-player-mplayer-playlist
-                           emms-player-mplayer
-                           emms-player-vlc
-                           emms-player-vlc-playlist)))
+  (setq emms-player-list '(emms-player-mplayer
+						   emms-player-mplayer-playlist)))
 ;; }}
 
 (add-hook 'after-init-hook 'transient-mark-mode)
@@ -896,11 +906,11 @@ Including indent-buffer, which should not be called automatically on save."
 ;; }}
 
 ;; {{ show current function name in `mode-line'
-(defun inc0n/which-func-update-hack (orig-func &rest args)
-  "`which-function-mode' scanning makes Emacs unresponsive in big buffer."
-  (unless (buffer-too-big-p)
-    (apply orig-func args)))
-(advice-add 'which-func-update :around #'inc0n/which-func-update-hack)
+;; (defun inc0n/which-func-update-hack (orig-func &rest args)
+;;   "`which-function-mode' scanning makes Emacs unresponsive in big buffer."
+;;   (unless (buffer-too-big-p)
+;;     (apply orig-func args)))
+;; (advice-add 'which-func-update :around #'inc0n/which-func-update-hack)
 
 (autoload 'which-function "which-func")
 ;; (with-eval-after-load 'which-function
@@ -991,20 +1001,13 @@ Including indent-buffer, which should not be called automatically on save."
 (setq-default browse-url-generic-args "--private-window")
 
 ;; {{ which-key-mode
-(when (local-require 'which-key)
-  (setq which-key-allow-imprecise-window-fit t) ; performance
-  (setq which-key-idle-delay 0.5)
-  (setq which-key-separator ":")
-  (setq which-key-show-remaining-keys nil)
-  (add-hook 'after-init-hook #'which-key-mode))
+(require-package 'which-key)
+(setq which-key-allow-imprecise-window-fit t) ; performance
+(setq which-key-idle-delay 0.5)
+(setq which-key-separator ":")
+(setq which-key-show-remaining-keys nil)
+(add-hook 'after-init-hook #'which-key-mode)
 ;; }}
-
-;; {{ eldoc
-(with-eval-after-load 'eldoc
-  ;; multi-line message should not display too soon
-  (setq eldoc-idle-delay 0.5)
-  (setq eldoc-echo-area-use-multiline-p t))
-;;}}
 
 ;; {{ fetch subtitles
 (defun inc0n/download-subtitles ()
