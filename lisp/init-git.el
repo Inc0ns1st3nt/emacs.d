@@ -71,7 +71,7 @@ Show the diff between current working code and git head."
   (git-gutter:set-start-revision nil)
   (message "git-gutter reset"))
 
-(global-git-gutter-mode t)
+(add-hook 'after-init-hook 'global-git-gutter-mode)
 
 (unless (fboundp 'global-display-line-numbers-mode)
  ;; git-gutter's workaround for linum-mode bug.
@@ -248,9 +248,9 @@ If USER-SELECT-BRANCH is not nil, rebase on the tag or branch selected by user."
     (save-excursion
       (while (<= linenum-start linenum-end)
         (goto-line linenum-start)
-        (let ((tmp-line (replace-regexp-in-string "^[ \t]*" ""
-												  (buffer-substring (line-beginning-position)
-																	(line-end-position)))))
+        (let ((tmp-line (replace-regexp-in-string
+						 "^[ \t]*" ""
+						 (util/line-str))))
           (when (> (length tmp-line) max-line-length)
 			(setq target-linenum linenum-start)
 			(setq target-line tmp-line)

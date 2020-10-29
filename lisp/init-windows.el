@@ -4,7 +4,8 @@
 (require-package 'winum)
 
 ;; Navigate window layouts with "C-c <left>" and "C-c <right>"
-(winner-mode 1)
+(add-hook 'after-init-hook #'winner-mode)
+
 ;; @see https://emacs-china.org/t/emacs-builtin-mode/11937/63
 ;; press u undo and r to redo
 (defun inc0n/transient-winner-undo ()
@@ -19,10 +20,14 @@
        (define-key map [?r] #'winner-redo)
        map)
      t)))
-(global-set-key (kbd "C-x 4 u") #'inc0n/transient-winner-undo)
 
-(global-set-key (kbd "C-x 2") #'split-window-vertically)
-(global-set-key (kbd "C-x 3") #'split-window-horizontally)
+(general-define-key
+ "C-x 4 u" #'inc0n/transient-winner-undo
+ "C-x 2" #'split-window-vertically
+ "C-x 3" #'split-window-horizontally
+ ;; https://github.com/abo-abo/ace-window
+ ;; `M-x ace-window ENTER m` to swap window
+ "C-x o" #'ace-window)
 
 (defun scroll-other-window-up ()
   (interactive)
@@ -57,10 +62,6 @@
         (when this-win-2nd
           (other-window 1))))))
 
-;; https://github.com/abo-abo/ace-window
-;; `M-x ace-window ENTER m` to swap window
-(global-set-key (kbd "C-x o") #'ace-window)
-
 ;; {{ move focus between sub-windows
 (setq winum-keymap
 	  (let ((map (make-sparse-keymap)))
@@ -75,7 +76,7 @@
         (define-key map (kbd "M-8") 'winum-select-window-8)
         map))
 
-(util/ensure 'winum)
+(require 'winum)
 (with-eval-after-load 'winum
   (setq winum-format "%s")
   (setq winum-mode-line-position 0)

@@ -256,11 +256,12 @@ If the character before and after CH is space or tab, CH is NOT slash"
 	(interactive)
 	(if (or (util/delim-p (char-after))
 			(region-active-p))
-		(call-interactively paredit-fn)
+		(funcall paredit-fn)
 	  (and (functionp normal-fn)
 		   (call-interactively normal-fn)))))
 
 ;; (popup-tip (documentation 'paredit-copy-as-kill))
+(evil-global-set-key 'motion (kbd "TAB") 'indent-for-tab-command)
 
 (evil-declare-key '(normal visual) paredit-mode-map
   (kbd "c") (delim-or-normal #'paredit-copy-as-kill #'evil-change)
@@ -268,14 +269,13 @@ If the character before and after CH is space or tab, CH is NOT slash"
   ;; (kbd "r") #'evil-replace
   (kbd "R") (delim-or-normal #'paredit-raise-sexp #'evil-replace-state)
   (kbd "(") #'paredit-wrap-round
-  (kbd "[") (handle-error #'paredit-backward-up #'backward-paragraph)
+  (kbd "[") (handle-error #'paredit-backward #'backward-paragraph)
   (kbd "]") (handle-error #'paredit-forward-down #'forward-paragraph)
   (kbd "\"") #'paredit-meta-doublequote
   (kbd "<") #'paredit-forward-barf-sexp
   (kbd ">") #'paredit-forward-slurp-sexp
   (kbd "+") #'paredit-join-sexps
-  (kbd "-") #'paredit-split-sexp
-  (kbd "TAB") #'indent-for-tab-command)
+  (kbd "-") #'paredit-split-sexp)
 
 ;; As a general rule, mode specific evil leader keys started
 ;; with upper cased character or 'g' or special character except "=" and "-"
@@ -285,6 +285,7 @@ If the character before and after CH is space or tab, CH is NOT slash"
   "^" 'org-beginning-of-line ; ditto
   "<" (org-op-on-tree-and-subtree #'org-do-promote)
   ">" (org-op-on-tree-and-subtree #'org-do-demote) ; indent
+  (kbd "RET") 'newline-and-indent
   (kbd "TAB") 'org-cycle)
 
 (evil-declare-key 'normal markdown-mode-map
@@ -460,14 +461,14 @@ If INCLUSIVE is t, the text object is inclusive."
 ;; @see https://github.com/noctuid/evil-guide#further-integrating-evil-and-emacs
 ;; (with-eval-after-load 'dired-mode
 ;;   (general-override-mode t))
+;; (add-hook 'after-init-hook 'general-override-mode)
 
 (general-create-definer inc0n/space-leader-def
   :prefix "SPC"
-  :states '(normal visual)
-  :keymaps 'override)
+  :states '(normal visual))
 
 ;; Please check "init-ediff.el" which contains `inc0n/space-leader-def' code too
-(inc0n/space-leader-def
+(inc0n/space-leader-def :keymaps 'override
   "0" 'winum-select-window-0
   "1" 'winum-select-window-1
   "2" 'winum-select-window-2
@@ -493,9 +494,8 @@ If INCLUSIVE is t, the text object is inclusive."
   ;;   "bl" 'buf-move-right
   ;; comment
   "ci" 'comment-operator
-  "co" 'comment-operator
-  "cl" 'comment-line
-  "cc" 'copy-and-comment-line
+  "cl" 'copy-and-comment-line
+  "cc" 'copy-to-clipboard
   "cp" 'comment-or-uncomment-paragraph
   "ct" 'evilnc-comment-or-uncomment-html-tag ; evil-nerd-commenter v3.3.0 required
   ;; org
@@ -574,9 +574,6 @@ If INCLUSIVE is t, the text object is inclusive."
   "mf" 'mark-defun
   "mp" 'pop-to-mark-command;; 'avy-pop-mark
 
-  "nh" 'inc0n/goto-next-hunk
-  "ni" 'newline-and-indent
-
   "oa" 'selectrum-org-agenda-headlines
   "oc" 'org-capture
   "og" 'org-agenda
@@ -586,10 +583,14 @@ If INCLUSIVE is t, the text object is inclusive."
   "o<" 'org-do-promote                  ; `C-c C-<'
   "o>" 'org-do-demote                   ; `C-c C->'
 
+  "nh" 'inc0n/goto-next-hunk
+  "ni" 'newline-and-indent
   "ne" 'flymake-goto-next-error
+
   "pe" 'flymake-goto-prev-error
   "pd" 'pwd
-  "pp" 'inc0n/goto-previous-hunk
+  "ph" 'inc0n/goto-previous-hunk
+  "pp" 'paste-from-clipboard
 
   "rb" 'evilmr-replace-in-buffer
   "re" 'counsel-etags-recent-tag
@@ -647,7 +648,6 @@ If INCLUSIVE is t, the text object is inclusive."
   "x2" (lambda () (interactive) (split-window-vertically) (other-window 1))
   "x3" (lambda () (interactive) (split-window-horizontally) (other-window 1))
   ;; }}
-  "xr" 'ace-swap-window
   "uu" 'inc0n/transient-winner-undo
   ;; "ut" 'undo-tree-visualize
   ;; counsel
@@ -656,6 +656,7 @@ If INCLUSIVE is t, the text object is inclusive."
 
   "wf" 'popup-which-function
   "ww" 'narrow-or-widen-dim
+  "ws" 'ace-swap-window
   ;;
   ;; "+" 'surround-with-char ;; use evil-surround instead
   "SPC" 'just-one-space)
@@ -681,6 +682,7 @@ If INCLUSIVE is t, the text object is inclusive."
 
 (defun comment-operator (beg end)
   ;; TODO - readkey for a more evil like comment operator
+  ;; comment-line
   "my implementation of a comment-operator"
   (interactive (if (region-active-p)
 				   (list (region-beginning) (region-end))

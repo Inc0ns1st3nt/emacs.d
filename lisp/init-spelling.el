@@ -11,8 +11,8 @@
 (with-eval-after-load 'flyspell
   ;; {{ flyspell setup for web-mode
   (defun inc0n/web-mode-flyspell-verify ()
-    (let ((f
-		   (get-text-property (- (point) 1) 'face)))
+    (let ((f (get-text-property
+			  (- (point) 1) 'face)))
 	  (or
        ;; Check the words whose font face is NOT in below *blacklist*
 	   (not (memq f '(web-mode-html-attr-value-face
@@ -30,7 +30,7 @@
 					  web-mode-type-face
 					  web-mode-block-control-face)))
 	   ;; check attribute value under certain conditions
-	   (and (memq f '(web-mode-html-attr-value-face))
+	   (and (eq f 'web-mode-html-attr-value-face)
 			(save-excursion
 			  (search-backward-regexp "=['\"]" (line-beginning-position) t)
 			  (backward-char)
@@ -57,43 +57,32 @@
 (defun inc0n/detect-ispell-args (&optional run-together)
   "If RUN-TOGETHER is true, spell check the CamelCase words.
 Please note RUN-TOGETHER makes aspell less capable.  So it should be used in `prog-mode-hook' only."
-  ;; force the English dictionary, support Camel Case spelling check (tested with aspell 0.6)
+  ;; force the English dictionary, support Camel Case spelling check
   ;; For aspell's option "--lang", "two letter ISO 3166 country code after a underscore" is OPTIONAL.
+
+  ;; "--run-together-min" could not be 3, see `check` in
+  ;; "speller_impl.cpp".  The algorithm is not precise.
+  ;; Run `echo tasteTableConfig | aspell --lang=en_US -C
+  ;; --run-together-limit=16 --encoding=utf-8 -a` in shell.
+  ;; Kevin Atkinson said now aspell supports camel case directly
+  ;; @see https://github.com/redguardtoo/emacs.d/issues/796
   (let ((args (list
 			   "--sug-mode=ultra"
-			   (format "--lang=%s" inc0n/default-spell-check-language))))
-	;; "--run-together-min" could not be 3, see `check` in
-	;; "speller_impl.cpp".  The algorithm is not precise.  Run
-	;; `echo tasteTableConfig | aspell --lang=en_US -C
-	;; --run-together-limit=16 --encoding=utf-8 -a` in shell.
-	(when run-together
-      ;; Kevin Atkinson said now aspell supports camel case directly
-      ;; https://github.com/redguardtoo/emacs.d/issues/796
-      (if (string-match-p
-		   "--.*camel-case"
-		   (shell-command-to-string (concat ispell-program-name " --help")))
-		  (append args '("--camel-case"))
-		;; old aspell uses "--run-together". Please note we are not
-		;; dependent on this option to check camel case word. wucuo is
-		;; the final solution. This aspell options is just some extra
-		;; check to speed up the whole process.
-		(append args '("--run-together" "--run-together-limit=16"))))))
+			   (concat "--lang=" inc0n/default-spell-check-language))))
+	(if (string-match-p
+		 "--.*camel-case"
+		 (shell-command-to-string (concat ispell-program-name " --help")))
+		(append args '("--camel-case"))
+	  ;; old aspell uses "--run-together". Please note we are not
+	  ;; dependent on this option to check camel case word. wucuo is
+	  ;; the final solution. This aspell options is just some extra
+	  ;; check to speed up the whole process.
+	  (append args '("--run-together" "--run-together-limit=16")))))
 
-(setq ispell-program-name "aspell")
-
-(defun inc0n/ispell-word-hack (orig-func &rest args)
-  "Use Emacs original arguments when calling `ispell-word'.
-When fixing a typo, avoid pass camel case option to cli program."
-  (let ((old-ispell-extra-args ispell-extra-args))
-    (ispell-kill-ispell t)
-    ;; use emacs original arguments
-    (setq ispell-extra-args (inc0n/detect-ispell-args))
-    (apply orig-func args)
-    ;; restore our own ispell arguments
-    (setq ispell-extra-args old-ispell-extra-args)
-    (ispell-kill-ispell t)))
-(advice-add 'ispell-word :around #'inc0n/ispell-word-hack)
-(advice-add 'flyspell-auto-correct-word :around #'inc0n/ispell-word-hack)
+(setq ispell-program-name "aspell"
+	  ispell-silently-savep t
+	  ;; ispell-extra-args (inc0n/detect-ispell-args)
+	  )
 
 (defun text-mode-hook-setup ()
   ;; Turn off RUN-TOGETHER option when spell check text-mode

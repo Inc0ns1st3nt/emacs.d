@@ -4,6 +4,15 @@
 ;; @see http://emacs.stackexchange.com/questions/13820/inline-verbatim-and-code-with-quotes-in-org-mode
 
 (require-package 'org-re-reveal)
+(require-package 'org-superstar)
+
+(add-hook 'org-mode-hook 'org-superstar-mode)
+
+(with-eval-after-load 'org-superstar-mode
+  (setq org-superstar-cycle-headline-bullets t)
+  (setq org-hide-leading-stars t)
+  ;; (setq org-superstar-special-todo-items nil)
+  )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Org clock
@@ -104,7 +113,6 @@ ARG is ignored."
   ;; }}
 
   (util/ensure 'org-clock)
-  (util/ensure 'org-re-reveal)
 
   ;; odt export
   (add-to-list 'org-export-backends 'odt)
@@ -166,7 +174,8 @@ ARG is ignored."
     (when (and (string= (org-get-todo-state) "NEXT")
                (not (org-entry-get nil "ACTIVATED")))
       (org-entry-put nil "ACTIVATED" (format-time-string "[%Y-%m-%d]"))))
-  (add-hook 'org-after-todo-state-change-hook #'log-todo-next-creation-date)
+  (add-hook 'org-after-todo-state-change-hook
+			#'log-todo-next-creation-date)
 
   ;; {{ export org-mode in Chinese into PDF
   ;; @see http://freizl.github.io/posts/tech/2012-04-06-export-orgmode-file-in-Chinese.html
@@ -181,8 +190,8 @@ ARG is ignored."
 
   ;; misc
   (setq org-startup-with-latex-preview t
+		org-pretty-entities t ;; render entity
         org-log-done t
-        org-completion-use-ido t
         org-edit-src-content-indentation 0
         org-edit-timestamp-down-means-later t
         org-agenda-start-on-weekday nil
@@ -190,8 +199,7 @@ ARG is ignored."
         ;; org-agenda-include-diary t
         org-agenda-window-setup 'current-window
         org-fast-tag-selection-single-key 'expert
-        org-export-kill-product-buffer-when-displayed t
-        ;; org-startup-indented t
+        org-startup-indented t
         ;; {{ org 8.2.6 has some performance issue. Here is the workaround.
         ;; @see http://punchagan.muse-amuse.in/posts/how-i-learnt-to-use-emacs-profiler.html
         org-agenda-inhibit-startup t       ;; ~50x speedup
@@ -222,62 +230,85 @@ ARG is ignored."
                                (concat org-directory "notes.org")
                                (concat org-directory "todo.org")))
   (setq org-capture-templates
-        `(("t" "Todo" entry  (file "todo.org")
-           ,(concat "* TODO %?\n"
-                    "/Entered on/ %U"))
-          ("s" "Schedule" entry (file+headline "agenda.org" "Future")
-           ,(concat "* TODO %?\n"
-                    "SCHEDULED: %t"))
-          ("r" "Respond" entry (file "agenda.org")
-           ,(concat "* NEXT Respond to %:from on %:subject\n"
-                    "SCHEDULED: %t\n"
-                    "%U\n"
-                    "%a\n"))
-          ("n" "Note" entry  (file "notes.org")
-           ,(concat "* Note (%a)\n"
-                    "/Entered on/ %U\n" "\n" "%?"))
-          ("a" "Analysis" entry (file "analysis.org")
-           "* TODO %? [%<%Y-%m-%d %a>]\n")
-          ("d" "Diary" entry (file+datetree "diary.org")
-           "* %?\n%U\n")
-          ("e" "Event" entry (file+headline "agenda.org" "Future")
-           ,(concat "* %? :event:\n"
-                    "SCHEDULED: <%<%Y-%m-%d %a %H:00>>"))
-          ("m" "Meeting" entry  (file+headline "agenda.org" "Future")
-           ,(concat "* %? :meeting:\n"
-                    "<%<%Y-%m-%d %a %H:00>>"))
-          ;; ("n" "note" entry (file "note.org")
-          ;;  "* %? :NOTE:\n%U\n%a\n")
-          ;; ("p" "Phone call" entry (file "refile.org")
-          ;;  "* PHONE %? :PHONE:\n%U")
-          ;; ("h" "Habit" entry (file "refile.org")
-          ;;  "* NEXT %?\n%U\n%a\nSCHEDULED: %(format-time-string \"%<<%Y-%m-%d %a .+1d/3d>>\")\n:PROPERTIES:\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:END:\n")
-          ))
+		`(("t" "Todo" entry  (file "todo.org")
+		   ,(concat "* TODO %?\n"
+					"/Entered on/ %U"))
+		  ("s" "Schedule" entry (file+headline "agenda.org" "Future")
+		   ,(concat "* %?\n"
+					"SCHEDULED: %t"))
+		  ("d" "Deadline" entry (file+headline "agenda.org" "Deadline")
+		   ,(concat "* %?\n"
+					"DEADLINE: %t"))
+		  ("r" "Respond" entry (file "agenda.org")
+		   ,(concat "* NEXT Respond to %:from on %:subject\n"
+					"SCHEDULED: %t\n"
+					"%U\n"
+					"%a\n"))
+		  ("n" "Note" entry  (file "notes.org")
+		   ,(concat "* Note (%a)\n"
+					"/Entered on/ %U\n" "\n" "%?"))
+		  ("a" "Analysis" entry (file "analysis.org")
+		   "* TODO %? [%<%Y-%m-%d %a>]\n")
+		  ;; ("d" "Diary" entry (file+datetree "diary.org")
+		  ;;  "* %?\n%U\n")
+		  ("e" "Event" entry (file+headline "agenda.org" "Future")
+		   ,(concat "* %? :event:\n"
+					"SCHEDULED: <%<%Y-%m-%d %a %H:00>>"))
+		  ("m" "Meeting" entry  (file+headline "agenda.org" "Future")
+		   ,(concat "* %? :meeting:\n"
+					"<%<%Y-%m-%d %a %H:00>>"))
+		  ;; ("n" "note" entry (file "note.org")
+		  ;;  "* %? :NOTE:\n%U\n%a\n")
+		  ;; ("p" "Phone call" entry (file "refile.org")
+		  ;;  "* PHONE %? :PHONE:\n%U")
+		  ;; ("h" "Habit" entry (file "refile.org")
+		  ;;  "* NEXT %?\n%U\n%a\nSCHEDULED: %(format-time-string \"%<<%Y-%m-%d %a .+1d/3d>>\")\n:PROPERTIES:\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:END:\n")
+		  ))
   (setq org-agenda-custom-commands
         '(("n" "Agenda and all TODOs"
            ((tags "CLOSED>=\"<today>\""
                   ((org-agenda-overriding-header "Completed today")))
             (agenda ""
-                    ;; ((org-agenda-entry-types '(:deadline))
-                    ;;  (org-agenda-format-date "")
-                    ;;  (org-agenda-skip-function
-                    ;;   '(org-agenda-skip-entry-if 'deadline))
-                    ;;  (org-deadline-warning-days 0))
-                    )
+                    ((org-agenda-skip-function
+					  'org-agenda-skip-if-past-schedule)
+                     (org-deadline-warning-days 7)))
             ;; (tags-todo "TODO")
             (todo "TODO"
-                  ((org-agenda-format-date "")
-                   ;; (org-deadline-warning-days 7)
-                   (org-agenda-prefix-format " %i %-12:c [%e] ")
+                  (;; (org-agenda-format-date "")
+                   (org-agenda-prefix-format " %-10:c %s %l")
                    (org-agenda-overriding-header "Todo")))
             (todo "PROJECT"
                   ((org-agenda-overriding-header "Projects")))
             (todo "HOLD"
                   ((org-agenda-overriding-header "Maybe"))))))))
 
+(defun org-agenda-skip-if-past-schedule ()
+  "If this function returns nil, the current match should not be skipped.
+Otherwise, the function must return a position from where the search
+should be continued."
+  (when-let* ((subtree-end (save-excursion (org-end-of-subtree t)))
+			  (schedule (org-entry-get nil "SCHEDULED"))
+			  (scheduled-seconds
+			   (time-to-seconds
+				(org-time-string-to-time schedule)))
+			  (now (time-to-seconds (current-time))))
+    (and (not (string= (org-get-todo-state) "NEXT")) ;; never skip todo NEXT state
+		 scheduled-seconds
+         (<= scheduled-seconds now)
+         subtree-end)))
+
 (defun org-agenda-mode-setup ()
   (evil-mode 1)
   (evil-normal-state))
 (add-hook 'org-agenda-mode-hook #'org-agenda-mode-setup)
+
+(setq org-superstar-headline-bullets-list '(?◉ ?※ ?✸ ?▣))
+
+;; org-babel for gnuplot
+;; @see https://www.orgmode.org/worg/org-contrib/babel/languages/ob-doc-gnuplot.html
+
+(org-babel-do-load-languages
+ 'org-babel-load-languages
+ '((gnuplot . t)))
 
 (provide 'init-org)

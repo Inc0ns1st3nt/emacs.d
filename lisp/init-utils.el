@@ -225,6 +225,14 @@ Else use thing-at-point to get current string 'symbol."
 	 (match-string-no-properties 1))
 	(t ""))))
 
+(defun util/thing-at-point/deselect ()
+  "get thing at point.
+If region is active get region string and deactivate."
+  (if (not (use-region-p))
+	  (util/thing-at-point)
+	(prog1 (util/selected-str)
+	  (deactivate-mark))))
+
 (defun delete-this-buffer-and-file ()
   "Delete the current file, and kill the buffer."
   (interactive)
@@ -253,16 +261,15 @@ Else use thing-at-point to get current string 'symbol."
   ;; 5000 lines
   (> (buffer-size) (* 5000 80)))
 
-(defun file-too-big-p (file)
-  (> (nth 7 (file-attributes file))
-     (* 5000 64)))
+;; (defun file-too-big-p (file)
+;;   (> (nth 7 (file-attributes file))
+;;      (* 5000 64)))
 
 (defvar force-buffer-file-temp-p nil
   "When non-nil buffer file will be treated as temp file")
 
 (defun buffer-file-temp-p ()
   "If (buffer-file-name) is nil or a temp file or HTML file converted from org file."
-  (interactive)
   (and (not scratch-buffer) ;; treat scratch-buffer not as temp
 	   (let ((f (buffer-file-name)))
 		 (or

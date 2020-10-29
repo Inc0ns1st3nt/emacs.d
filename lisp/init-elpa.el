@@ -95,6 +95,8 @@ locate PACKAGE."
     evil-exchange
     evil-find-char-pinyin
 
+	which-key
+
     iedit
     undo-tree
     js-doc
@@ -210,7 +212,6 @@ locate PACKAGE."
 (require-package 'evil-mark-replace)
 (require-package 'counsel-css)
 (require-package 'auto-package-update)
-(require-package 'shackle)
 (require-package 'toc-org)
 (require-package 'elpa-mirror)
 ;; {{ @see https://pawelbx.github.io/emacs-theme-gallery/

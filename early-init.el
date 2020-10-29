@@ -35,6 +35,10 @@
 (add-to-list 'default-frame-alist
              '(font . "monaco-12"))
 
+;; transparency setup
+;; (set-frame-parameter (selected-frame) 'alpha '(85 . 50))
+;; (add-to-list 'default-frame-alist '(alpha . (85 . 50)))
+
 (defun show-scratch-buffer-message ()
   (if-let ((fortune-prog (or (executable-find "fortune-zh")
                              (executable-find "fortune"))))

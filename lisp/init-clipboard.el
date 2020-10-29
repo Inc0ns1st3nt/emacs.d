@@ -10,8 +10,8 @@
 ;; @see https://www.emacswiki.org/emacs/CopyAndPaste
 ;; So `C-y' could paste from clipbord if you are NOT using emacs-nox
 ;; I only use `paste-from-x-clipboard', not `C-y'.
-(setq x-select-enable-clipboard t
-      x-select-enable-primary t)
+(setq select-enable-clipboard nil  ;; if t might cause sway to crash
+      select-enable-primary t)
 
 ;; kill-ring and clipboard are same? No, it's annoying!
 (setq save-interprogram-paste-before-kill nil)
@@ -35,15 +35,26 @@ If N is not nil, copy file name and line number."
     (util/set-clip (file-truename buffer-file-name))
     (message "file full path => clipboard & yank ring")))
 
-(defun paste-from-x-clipboard (&optional n)
+(defun copy-to-clipboard (string)
   "paste string clipboard."
-  (interactive)
-  ;; (when (and (functionp 'evil-normal-state-p)
-  ;;            (functionp 'evil-move-cursor-back)
-  ;;            (evil-normal-state-p)
-  ;;            (not (eolp))
-  ;;            (not (eobp)))
-  ;;   (forward-char))
-  (insert (util/get-clip)))
+  (interactive (if (region-active-p)
+				   (list (util/selected-str))
+				 (message "no string selected")
+				 (list nil)))
+  (when string
+	(shell-command (concat "wl-copy " string))))
+
+(defun paste-from-clipboard (&optional n)
+  "Paste string clipboard. After the current cursor."
+  (interactive "P")
+  (when (and (functionp 'evil-normal-state-p)
+             (functionp 'evil-move-cursor-back)
+             (evil-normal-state-p)
+             (not (eolp))
+             (not (eobp)))
+    (forward-char))
+  (util/delete-selected-region)
+  (dotimes (_ (or n 1))
+	(insert (shell-command-to-string "wl-paste -n"))))
 
 (provide 'init-clipboard)

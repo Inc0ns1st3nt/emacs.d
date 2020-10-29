@@ -29,7 +29,6 @@
     comint-mode
     gnus-group-mode
     gud-mode
-    org-mode
     vc-git-log-edit-mode
     log-edit-mode
     term-mode
@@ -48,9 +47,10 @@
           ;; don't show line number for certain file extensions
           (should-use-minimum-resource))
       (setq display-line-numbers t)
-    (setq display-line-numbers 'relative)
-    (setq display-line-numbers-type 'relative)))
+    (setq display-line-numbers 'relative
+		  display-line-numbers-type 'relative)))
 (add-hook 'display-line-numbers-mode-hook #'display-line-numbers-mode-hook-setup)
-(global-display-line-numbers-mode t)
+(global-display-line-numbers-mode 1)
 
 (provide 'init-linum-mode)
+;; init-linum-mode.el ends here
