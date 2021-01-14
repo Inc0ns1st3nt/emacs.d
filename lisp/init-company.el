@@ -19,8 +19,8 @@
 (with-eval-after-load 'company
   ;; @see https://github.com/company-mode/company-mode/issues/348
   (company-statistics-mode)
-  (push 'company-cmake company-backends)
-  (push 'company-c-headers company-backends)
+  (add-to-list 'company-backends 'company-cmake)
+  (add-to-list 'company-backends 'company-c-headers)
   ;; can't work with TRAMP
   (setq company-backends (delete 'company-ropemacs company-backends))
 
@@ -66,16 +66,14 @@
 
 (with-eval-after-load 'company-ispell
   (defun inc0n/company-ispell-available-hack (orig-func &rest args)
-    (cond
-     ((and (derived-mode-p 'prog-mode)
-           (or (not (company-in-string-or-comment)) ; respect advice in `company-in-string-or-comment'
-               (not (comment-only-p (line-beginning-position)
-									(line-end-position)))))
-	  ;; auto-complete in comment only
-      ;; only use company-ispell in comment when coding
-      nil)
-     (t
-      (apply orig-func args))))
+    (unless
+		;; auto-complete in comment only
+		;; only use company-ispell in comment when coding
+		(and (derived-mode-p 'prog-mode)
+			 (or (not (company-in-string-or-comment)) ; respect advice in `company-in-string-or-comment'
+				 (not (comment-only-p (line-beginning-position)
+									  (line-end-position)))))
+      (apply orig-func args)))
   (advice-add 'company-ispell-available :around #'inc0n/company-ispell-available-hack))
 
 ;; {{ setup company-ispell
@@ -97,14 +95,22 @@
     (add-to-list 'company-backends 'company-ispell)
     ;; @see https://github.com/redguardtoo/emacs.d/issues/473
     (setq company-ispell-dictionary
-          (if (and (boundp 'ispell-alternate-dictionary)
+          (or (and (boundp 'ispell-alternate-dictionary)
                    ispell-alternate-dictionary)
-              ispell-alternate-dictionary
-            (inc0n/emacs-d "misc/english-words.txt")))))
+              (inc0n/emacs-d "misc/english-words.txt")))))
 
 ;; message-mode use company-bbdb.
 ;; So we should NOT turn on company-ispell
 (add-hook 'org-mode-hook #'company-ispell-setup)
 ;; }}
+
+;; yasnippet
+
+(defun company-yasnippet-tab-fix (orig-func &rest args)
+  (let ((yas-fallback-behavior nil))
+	(unless (yas-expand)
+	  (apply orig-func args))))
+
+(advice-add 'company-complete-common :around 'company-yasnippet-tab-fix)
 
 (provide 'init-company)

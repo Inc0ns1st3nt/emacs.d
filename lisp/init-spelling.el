@@ -47,7 +47,7 @@
     "Don't mark doublon (double words) as typo."
     (cl-destructuring-bind (beg end poss)
         args
-      (when (or nc0n/flyspell-check-doublon
+      (when (or inc0n/flyspell-check-doublon
 				(not (eq 'doublon poss)))
         (apply orig-func args))))
   (advice-add 'flyspell-highlight-incorrect-region

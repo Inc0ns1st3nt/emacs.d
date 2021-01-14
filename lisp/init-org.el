@@ -200,6 +200,7 @@ ARG is ignored."
         org-agenda-window-setup 'current-window
         org-fast-tag-selection-single-key 'expert
         org-startup-indented t
+		org-hide-leading-stars t
         ;; {{ org 8.2.6 has some performance issue. Here is the workaround.
         ;; @see http://punchagan.muse-amuse.in/posts/how-i-learnt-to-use-emacs-profiler.html
         org-agenda-inhibit-startup t       ;; ~50x speedup
@@ -211,7 +212,8 @@ ARG is ignored."
 		org-agenda-tags-column 80
 
         ;; Refile targets include this file and any file contributing to the agenda - up to 5 levels deep
-        org-refile-targets '(("projects.org" :regexp . "\\(?:\\(?:Note\\|Task\\)s\\)"))
+        org-refile-targets '(("projects.org" :regexp . "\\(?:\\(?:Note\\|Task\\)s\\)")
+							 ("agenda.org" :regexp . "Past"))
         org-refile-use-outline-path 'file
         org-outline-path-complete-in-steps nil
         org-todo-keywords '((sequence "TODO(t)" "NEXT(n)" "HOLD(h@/!)" "|" "DONE(d!/!)")
@@ -251,6 +253,8 @@ ARG is ignored."
 		   "* TODO %? [%<%Y-%m-%d %a>]\n")
 		  ;; ("d" "Diary" entry (file+datetree "diary.org")
 		  ;;  "* %?\n%U\n")
+		  ("p" "Project" entry (file "projects.org")
+		   ,(concat "* PROJECT [%<%Y-%m-%d %a>] %?"))
 		  ("e" "Event" entry (file+headline "agenda.org" "Future")
 		   ,(concat "* %? :event:\n"
 					"SCHEDULED: <%<%Y-%m-%d %a %H:00>>"))
@@ -280,7 +284,14 @@ ARG is ignored."
             (todo "PROJECT"
                   ((org-agenda-overriding-header "Projects")))
             (todo "HOLD"
-                  ((org-agenda-overriding-header "Maybe"))))))))
+                  ((org-agenda-overriding-header "Maybe")))))
+		  ("b" "buffer summary"
+		   ((agenda "" ((org-agenda-files (list (buffer-file-name)))))))))
+  ;; org-babel for gnuplot
+  ;; @see https://www.orgmode.org/worg/org-contrib/babel/languages/ob-doc-gnuplot.html
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((gnuplot . t))))
 
 (defun org-agenda-skip-if-past-schedule ()
   "If this function returns nil, the current match should not be skipped.
@@ -302,13 +313,9 @@ should be continued."
   (evil-normal-state))
 (add-hook 'org-agenda-mode-hook #'org-agenda-mode-setup)
 
-(setq org-superstar-headline-bullets-list '(?◉ ?※ ?✸ ?▣))
-
-;; org-babel for gnuplot
-;; @see https://www.orgmode.org/worg/org-contrib/babel/languages/ob-doc-gnuplot.html
-
-(org-babel-do-load-languages
- 'org-babel-load-languages
- '((gnuplot . t)))
+(with-eval-after-load 'org-superstar
+  (setq org-superstar-headline-bullets-list '(?◉ ?※ ?✸ ?▣))
+  (setq org-superstar-item-bullet-alist '((?\* . 8226) (?\+ . 10148) (?\- . ?\-)))
+  (org-superstar-restart))
 
 (provide 'init-org)

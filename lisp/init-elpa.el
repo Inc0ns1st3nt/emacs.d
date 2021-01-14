@@ -9,7 +9,8 @@
 
 (setq package-archives
 	  '(("melpa" . "https://melpa.org/packages/")
-		("melpa-stable" . "https://stable.melpa.org/packages/")))
+		("melpa-stable" . "https://stable.melpa.org/packages/")
+		("gnu" . "http://elpa.gnu.org/packages/")))
 ;; (add-to-list 'package-archives
 ;;              '("melpa" . "https://melpa.org/packages/") t)
 ;; (add-to-list 'package-archives
@@ -75,6 +76,7 @@ locate PACKAGE."
 ;; if it's not visible after  `list-packages'.
 (defvar inc0n/melpa-include-packages
   '(ace-window ; lastest stable is released on year 2014
+	ace-pinyin
     auto-package-update
     nov
     bbdb
@@ -95,6 +97,7 @@ locate PACKAGE."
     evil-exchange
     evil-find-char-pinyin
 
+	auctex
 	which-key
 
     iedit
@@ -175,7 +178,6 @@ locate PACKAGE."
 (require-package 'csv-mode)
 (require-package 'rust-mode)
 
-(require-package 'counsel-bbdb)
 
 (require-package 'command-log-mode)
 (require-package 'regex-tool)
@@ -184,6 +186,7 @@ locate PACKAGE."
 
 (require-package 'unfill)
 (require-package 'w3m)
+(require-package 'counsel-bbdb)
 (require-package 'counsel-gtags)
 (require-package 'buffer-move)
 
@@ -209,7 +212,6 @@ locate PACKAGE."
 (require-package 'web-mode)
 (require-package 'iedit)
 (require-package 'websocket) ; for debug debugging of browsers
-(require-package 'evil-mark-replace)
 (require-package 'counsel-css)
 (require-package 'auto-package-update)
 (require-package 'toc-org)
@@ -225,6 +227,7 @@ locate PACKAGE."
 (require-package 'gnu-elpa-keyring-update)
 ;; }}
 
+(require-package 'rainbow-mode)
 (require-package 'magit)
 
 ;; kill buffer without my confirmation

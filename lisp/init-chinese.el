@@ -37,6 +37,7 @@
 (advice-add 'evil-insert-state :around #'inc0n/evil-insert-state-hack)
 
 (global-set-key (kbd "C-\\") 'evil-toggle-input-method)
+(global-set-key (kbd "s-\\") 'evil-toggle-input-method)
 ;; }}
 
 ;; {{ pyim
@@ -53,45 +54,44 @@
 
   (setq default-input-method "pyim")
 
-  (cond
-   (inc0n/pyim-enable-wubi-dict
-    ;; load wubi dictionary
-    (let* ((dir (file-name-directory
-                 (locate-library "pyim-wbdict.el")))
-           (file (concat dir "pyim-wbdict-v98.pyim")))
-      (when (and (file-exists-p file) (featurep 'pyim))
-        (setq pyim-dicts
-              (list (list :name "wbdict-v98-elpa" :file file :elpa t))))))
-   (t
-    (setq pyim-fuzzy-pinyin-alist
+  (if inc0n/pyim-enable-wubi-dict
+      ;; load wubi dictionary
+      (let* ((dir (file-name-directory
+                   (locate-library "pyim-wbdict.el")))
+			 (file (concat dir "pyim-wbdict-v98.pyim")))
+		(when (and (file-exists-p file) (featurep 'pyim))
+          (setq pyim-dicts
+				(list (list :name "wbdict-v98-elpa" :file file :elpa t)))))
+	(setq pyim-fuzzy-pinyin-alist
           '(("en" "eng")
-            ("in" "ing")))
+			("in" "ing")))
 
-    ;;  pyim-bigdict is recommended (20M). There are many useless words in pyim-greatdict which also slows
-    ;;  down pyim performance
-    ;; `curl -L http://tumashu.github.io/pyim-bigdict/pyim-bigdict.pyim.gz | zcat > ~/.eim/pyim-bigdict.pyim`
+	;;  pyim-bigdict is recommended (20M). There are many useless words in pyim-greatdict which also slows
+	;;  down pyim performance
+	;; `curl -L http://tumashu.github.io/pyim-bigdict/pyim-bigdict.pyim.gz | zcat > ~/.eim/pyim-bigdict.pyim`
 
-    ;; don's use shortcode2word
-    (setq pyim-enable-shortcode nil)
+	;; don's use shortcode2word
+	(setq pyim-enable-shortcode nil)
 
-    ;; use memory efficient pyim engine for pinyin ime
-    (setq pyim-dcache-backend 'pyim-dregcache)
+	;; use memory efficient pyim engine for pinyin ime
+	(setq pyim-dcache-backend 'pyim-dregcache)
 
-    ;; automatically load pinyin dictionaries "*.pyim" under "~/.eim/"
-    ;; `directory-files-recursively' requires Emacs 25
-    (let ((files (and (file-exists-p inc0n/pyim-directory)
+	;; automatically load pinyin dictionaries "*.pyim" under "~/.eim/"
+	;; `directory-files-recursively' requires Emacs 25
+
+	(let ((files (and (file-exists-p inc0n/pyim-directory)
 					  (directory-files-recursively inc0n/pyim-directory "\.pyim$"))))
       (when (and files (> (length files) 0))
-        (setq pyim-dicts
+		(setq pyim-dicts
               (mapcar (lambda (f)
-                        (list :name (file-name-base f) :file f))
+						(list :name (file-name-base f) :file f))
                       files))
 		;; disable basedict if bigdict or greatdict is used
 		(when (cl-notany (lambda (f)
 						   (or (string= "pyim-bigdict" (file-name-base f))
 							   (string= "pyim-greatdict" (file-name-base f))))
 						 files)
-		  (pyim-basedict-enable))))))
+		  (pyim-basedict-enable)))))
 
   ;; don't use tooltip
   (setq pyim-use-tooltip 'popup))
@@ -164,7 +164,7 @@
 (defun inc0n/calendar-exit-hack (&optional arg)
   "Clean the cal-chinese-x setup."
   (advice-remove 'calendar-mark-holidays #'cal-china-x-mark-holidays))
-(advice-add 'calendar-exit :before #'inc0n/calendar-exit-hack)
+;; (advice-add 'calendar-exit :before #'inc0n/calendar-exit-hack)
 
 (defconst inc0n/chinese-pinyin-order-hash
   #s(hash-table size 30 test equal data

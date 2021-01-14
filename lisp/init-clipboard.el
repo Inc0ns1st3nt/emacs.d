@@ -47,14 +47,7 @@ If N is not nil, copy file name and line number."
 (defun paste-from-clipboard (&optional n)
   "Paste string clipboard. After the current cursor."
   (interactive "P")
-  (when (and (functionp 'evil-normal-state-p)
-             (functionp 'evil-move-cursor-back)
-             (evil-normal-state-p)
-             (not (eolp))
-             (not (eobp)))
-    (forward-char))
-  (util/delete-selected-region)
   (dotimes (_ (or n 1))
-	(insert (shell-command-to-string "wl-paste -n"))))
+	(util/insert-str (shell-command-to-string "wl-paste -n"))))
 
 (provide 'init-clipboard)

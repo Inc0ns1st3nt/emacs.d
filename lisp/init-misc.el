@@ -13,9 +13,14 @@
 ;; Set `auto-window-vscroll' to nil to avoid triggering `format-mode-line'.
 (setq auto-window-vscroll nil)
 
+;; midnight mode purges buffers which haven't been displayed in configured period
+;; (require-package 'midnight)
+(setq midnight-period (* 3600 24)) ;; 24 hours
+
 ;; @see http://www.emacswiki.org/emacs/SavePlace
 (add-hook 'after-init-hook 'save-place-mode)
 (add-hook 'after-init-hook 'amx-mode)
+(add-hook 'after-init-hook 'midnight-mode)
 
 (general-define-key
  "C-c C-u" (lambda (arg)
@@ -38,7 +43,8 @@
  "C-h C-f" 'find-function
  "C-h K" 'find-function-on-key
  ;;
- "TAB" 'indent-for-tab-command)
+ "TAB" 'indent-for-tab-command
+ [dead-grave] (lambda () (interactive) (insert ?`)))
 
 (defun backward-delete-word ()
   (interactive)
@@ -173,6 +179,7 @@ This function can be re-used by other major modes after compilation."
 (defun generic-prog-mode-hook-setup ()
   (when (buffer-too-big-p)
     ;; Turn off `linum-mode' when there are more than 5000 lines
+	;; (linum-mode -1)
     (when (should-use-minimum-resource)
       (font-lock-mode -1)))
 
@@ -181,8 +188,7 @@ This function can be re-used by other major modes after compilation."
   (unless (buffer-file-temp-p)
 
     ;; @see http://xugx2007.blogspot.com.au/2007/06/benjamin-rutts-emacs-c-development-tips.html
-    (setq compilation-finish-functions
-          '(compilation-finish-hide-buffer-on-success))
+    (setq compilation-finish-functions '(compilation-finish-hide-buffer-on-success))
 
     ;; enable for all programming modes
     ;; http://emacsredux.com/blog/2013/04/21/camelcase-aware-editing/
@@ -254,32 +260,33 @@ This function can be re-used by other major modes after compilation."
 (setq imenu-max-item-length 256)
 
 ;; {{ recentf-mode
-(setq recentf-keep '(file-remote-p file-readable-p))
-(setq recentf-max-saved-items 2048
-      recentf-exclude '("/tmp/"
-                        "/ssh:"
-                        "/sudo:"
-                        "recentf$"
-                        "company-statistics-cache\\.el$"
-                        ;; ctags
-                        "/TAGS$"
-                        ;; global
-                        "/GTAGS$"
-                        "/GRAGS$"
-                        "/GPATH$"
-                        ;; binary
-                        "\\.mkv$"
-                        "\\.mp[34]$"
-                        "\\.avi$"
-                        "\\.wav$"
-                        "\\.docx?$"
-                        "\\.xlsx?$"
-                        ;; sub-titles
-                        "\\.sub$"
-                        "\\.srt$"
-                        "\\.ass$"
-                        ;; "/home/[a-z]\+/\\.[a-df-z]" ; configuration file should not be excluded
-                        ))
+(with-eval-after-load 'recentf
+  (setq recentf-keep '(file-remote-p file-readable-p))
+  (setq recentf-max-saved-items 2048
+		recentf-exclude '("/tmp/"
+                          "/ssh:"
+                          "/sudo:"
+                          "recentf$"
+                          "company-statistics-cache\\.el$"
+                          ;; ctags
+                          "/TAGS$"
+                          ;; global
+                          "/GTAGS$"
+                          "/GRAGS$"
+                          "/GPATH$"
+                          ;; binary
+                          "\\.mkv$"
+                          "\\.mp[34]$"
+                          "\\.avi$"
+                          "\\.wav$"
+                          "\\.docx?$"
+                          "\\.xlsx?$"
+                          ;; sub-titles
+                          "\\.sub$"
+                          "\\.srt$"
+                          "\\.ass$"
+                          ;; "/home/[a-z]\+/\\.[a-df-z]" ; configuration file should not be excluded
+                          )))
 ;; }}
 
 ;; {{ popup functions
@@ -308,8 +315,8 @@ This function can be re-used by other major modes after compilation."
   (popup-tip (inc0n/which-function)))
 ;; }}
 
-;; (when (local-require 'ace-pinyin)
-;;   (add-hook 'after-init-hook 'ace-pinyin-global-mode))
+;; (require-package 'ace-pinyin)
+;; (add-hook 'after-init-hook 'ace-pinyin-global-mode)
 
 ;; {{ avy, jump between texts, like easymotion in vim
 ;; @see http://emacsredux.com/blog/2015/07/19/ace-jump-mode-is-dead-long-live-avy/ for more tips
@@ -327,10 +334,11 @@ This function can be re-used by other major modes after compilation."
 ;; check out https://willschenk.com/articles/2020/getting_websters/
 ;; # Langdao Chinese => English
 ;; curl http://abloz.com/huzheng/stardict-dic/zh_CN/stardict-langdao-ec-gb-2.4.2.tar.bz2 | tar jx -C ~/.stardict/dic
-(setq sdcv-dictionary-simple-list
-      '("Webster's Revised Unabridged Dictionary (1913)"))
-(setq sdcv-dictionary-complete-list
-      '("Webster's Revised Unabridged Dictionary (1913)"))
+(with-eval-after-load 'sdcv
+  (setq sdcv-dictionary-simple-list
+		'("Webster's Revised Unabridged Dictionary (1913)"))
+  (setq sdcv-dictionary-complete-list
+		'("Webster's Revised Unabridged Dictionary (1913)")))
 ;; }}
 
 ;; ANSI-escape coloring in compilation-mode
@@ -516,7 +524,8 @@ If no region is selected, `kill-ring' or clipboard is used instead."
 ;; }}
 
 ;; {{ csv
-(setq csv-separators '("," ";" "|" " "))
+(with-eval-after-load 'csv-mode
+  (setq csv-separators '("," ";" "|" " ")))
 ;; }}
 
 ;; {{ regular expression tools
@@ -532,16 +541,15 @@ If no region is selected, `kill-ring' or clipboard is used instead."
       (message (format "%s => kill-ring&clipboard" rlt)))))
 ;; }}
 
-(defun inc0n/get-total-hours ()
-  (interactive)
-  (let* ((str (if (region-active-p)
-                  (util/selected-str)
-                (util/buffer-str)))
-         (total-hours 0)
-         (lines (split-string str "[\r\n]+" t)))
+(defun inc0n/get-total-hours (str)
+  (interactive (list (if (region-active-p)
+						 (util/selected-str)
+					   (util/buffer-str))))
+  (let ((total-hours 0)
+        (lines (split-string str "[\r\n]+" t)))
     (dolist (l lines)
       (when (string-match " \\([0-9][0-9.]*\\)h[ \t]*$" l)
-        (setq total-hours (+ total-hours (string-to-number (match-string 1 l))))))
+		(cl-incf total-hours (string-to-number (match-string 1 l)))))
     (message "total-hours=%s" total-hours)))
 
 ;; {{ emmet (auto-complete html tags)
@@ -664,21 +672,24 @@ If no region is selected, `kill-ring' or clipboard is used instead."
 ;; {{ https://www.emacswiki.org/emacs/EmacsSession better than "desktop.el" or "savehist".
 (require-package 'session)
 ;; Any global variable matching `session-globals-regexp' is saved *automatically*.
-(setq session-save-file (inc0n/emacs-d ".session"))
-(setq session-globals-max-size 2048)
-;; can store 8Mb string
-(setq session-globals-max-string (* 8 1024 1024))
-(setq session-globals-include '(kill-ring
-                                (session-file-alist 100 t)
-                                inc0n/dired-commands-history
-                                file-name-history
-                                search-ring
-                                regexp-search-ring))
+
+(with-eval-after-load 'session
+  (setq session-save-file (inc0n/emacs-d ".session"))
+  (setq session-globals-max-size 2048)
+  ;; can store 8Mb string
+  (setq session-globals-max-string (* 8 1024 1024))
+  (setq session-globals-include '(kill-ring
+                                  (session-file-alist 100 t)
+                                  inc0n/dired-commands-history
+                                  file-name-history
+                                  search-ring
+                                  regexp-search-ring)))
 (add-hook 'after-init-hook #'session-initialize)
 ;; }}
 
 ;; {{
 (require-package 'adoc-mode) ; asciidoc files
+
 (defun adoc-imenu-index ()
   (let ((patterns '((nil "^=\\([= ]*[^=\n\r]+\\)" 1))))
     (save-excursion
@@ -706,23 +717,16 @@ If no region is selected, `kill-ring' or clipboard is used instead."
   "Switch to builtin shell.
 If the shell is already opened in some buffer, switch to that buffer."
   (interactive)
-  (let* ((buf-name "*ansi-term*")
-         (buf (get-buffer buf-name))
-         (wins (window-list))
-         current-frame-p)
-    (cond
-     ;; A shell buffer is already opened
-     ((buffer-live-p buf)
-      (dolist (win wins)
-        (when (and (string= (buffer-name (window-buffer win)) buf-name)
-                   (window-live-p win))
-          (setq current-frame-p t)
-          (select-window win)))
-      (unless current-frame-p
-        (switch-to-buffer buf)))
-     ;; Linux
-     (t
-      (ansi-term var/term-program)))))
+  (if-let ((win (get-window-with-predicate
+				 (lambda (w)
+				   (string= (buffer-name (window-buffer w))
+							buf-name)))))
+	  ;; A shell buffer is already opened
+	  (progn
+		(select-window win)
+		(switch-to-buffer (window-buffer win)))
+    ;; Linux
+	(ansi-term var/term-program)))
 
 ;; {{ emms
 (require-package 'emms)
@@ -735,11 +739,12 @@ If the shell is already opened in some buffer, switch to that buffer."
 						   emms-player-mplayer-playlist)))
 ;; }}
 
-(add-hook 'after-init-hook 'transient-mark-mode)
+(add-hook 'after-init-hook 'transient-mark-mode) ;; wanted
 
 (add-hook 'after-init-hook 'global-auto-revert-mode)
-(setq global-auto-revert-non-file-buffers t
-      auto-revert-verbose nil)
+(with-eval-after-load 'autorevert
+  (setq auto-revert-verbose nil
+		global-auto-revert-non-file-buffers t))
 
 ;; my screen is tiny, so I use minimum eshell prompt
 (with-eval-after-load 'eshell
@@ -810,7 +815,8 @@ Press \"C-u 0 w\" to copy full path."
   (let ((str (current-kill 0)))
     (util/set-clip str)
     (message "%s => clipboard" str)))
-(advice-add 'dired-copy-filename-as-kill :after #'inc0n/dired-copy-filename-as-kill-hack)
+(advice-add 'dired-copy-filename-as-kill :after
+			#'inc0n/dired-copy-filename-as-kill-hack)
 
 ;; from http://emacsredux.com/blog/2013/05/04/rename-file-and-buffer/
 (defun vc-rename-file-and-buffer ()
@@ -863,11 +869,6 @@ version control automatically."
 ;; Ctrl-X, u/l  to upper/lowercase regions without confirm
 (put 'downcase-region 'disabled nil)
 (put 'upcase-region 'disabled nil)
-
-;; midnight mode purges buffers which haven't been displayed in configured period
-;; (require-package 'midnight)
-(setq midnight-period (* 3600 24)) ;; 24 hours
-(add-hook 'after-init-hook 'midnight-mode)
 
 (defun cleanup-buffer ()
   "Perform a bunch of safe operations on the whitespace content of a buffer.
@@ -933,18 +934,26 @@ Including indent-buffer, which should not be called automatically on save."
 
 ;; {{ epub setup
 (require-package 'nov) ; read epub
-(defun nov-mode-hook-setup ()
-  "Set up of `nov-mode'."
-  (local-set-key (kbd "d")
-		         (lambda ()
-		           (interactive)
-		           ;; go to end of word to workaround `nov-mode' bug
-		           (forward-word)
-		           (forward-char -1)
-		           (sdcv-search-input (thing-at-point 'word))))
-  (local-set-key (kbd "w") #'mybigword-pronounce-word)
-  (local-set-key (kbd ";") #'avy-goto-char-2))
-(add-hook 'nov-mode-hook #'nov-mode-hook-setup)
+
+(with-eval-after-load 'nov
+  (setq nov-text-width t)
+  (add-to-list 'evil-emacs-state-modes 'nov-mode)
+  ;;
+  (general-define-key
+   :keymaps 'nov-mode-map
+   "j" 'next-line
+   "k" 'previous-line
+   "w" 'mybigword-pronounce-word
+   ";" 'avy-goto-char-2
+   "d" (lambda ()
+		 (interactive)
+		 ;; go to end of word to workaround `nov-mode' bug
+		 (forward-word)
+		 (forward-char -1)
+		 (sdcv-search-input (thing-at-point 'word))))
+  (add-hook 'nov-mode-hook (lambda ()
+							 "Set up of `nov-mode'."
+							 (display-line-numbers-mode -1))))
 ;; }}
 
 ;; {{ octave
@@ -992,22 +1001,23 @@ Including indent-buffer, which should not be called automatically on save."
   (add-hook 'after-init-hook 'edit-server-start))
 ;; }}
 
+;; {{ which-key-mode
+(require-package 'which-key)
+(setq which-key-allow-imprecise-window-fit t) ; performance
+(setq which-key-idle-delay 0.5)
+(setq which-key-separator ":"
+	  which-key-add-column-padding 1)
+(setq which-key-min-display-lines 2)
+(add-hook 'after-init-hook #'which-key-mode)
+;; }}
+
 (defun inc0n/browse-current-file ()
   "Open the current file as a URL using `browse-url'."
   (interactive)
   (browse-url-generic (concat "file://" (buffer-file-name))))
 
 (setq-default browse-url-generic-program "firefox")
-(setq-default browse-url-generic-args "--private-window")
-
-;; {{ which-key-mode
-(require-package 'which-key)
-(setq which-key-allow-imprecise-window-fit t) ; performance
-(setq which-key-idle-delay 0.5)
-(setq which-key-separator ":")
-(setq which-key-show-remaining-keys nil)
-(add-hook 'after-init-hook #'which-key-mode)
-;; }}
+(setq-default browse-url-generic-args '("--private-window"))
 
 ;; {{ fetch subtitles
 (defun inc0n/download-subtitles ()
@@ -1033,14 +1043,6 @@ See https://github.com/RafayGhafoor/Subscene-Subtitle-Grabber."
                    cmd-prefix
                    (file-name-base video-file))))
       (shell-command (format "%s --dir . &" cmd-prefix)))))
-;; }}
-
-;; {{ use pdf-tools to view pdf
-;; run "M-x pdf-tool-install" at debian and open pdf in GUI Emacs
-(require-package 'pdf-tools)
-(with-eval-after-load 'pdf-tools
-  (when (display-graphic-p)
-    (pdf-loader-install)))
 ;; }}
 
 ;; {{ cache files

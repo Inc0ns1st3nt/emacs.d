@@ -15,11 +15,9 @@
 (autoload 'js2hl-show-exits "js2hl" "" t)
 (autoload 'js2hl-rename-thing-at-point "js2hl" "" t)
 
-(autoload 'rainbow-mode "rainbow-mode" nil t)
 ;; (autoload 'workgroups-mode "workgroups2" nil t)
 ;; (autoload 'wg-create-workgroup "workgroups2" nil t)
 ;; (autoload 'wg-open-workgroup "workgroups2" nil t)
-(autoload 'roblox-mode "roblox-mode" nil t)
 (autoload 'csv-nav-mode "csv-nav-mode" "Major mode for navigating comma-separated value files." t)
 (autoload 'counsel-etags-find-tag-at-point "counsel-etags" "" t nil)
 (autoload 'counsel-etags-list-tag-in-current-file "counsel-etags" "" t nil)

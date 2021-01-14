@@ -59,9 +59,9 @@
 (defun inc0n/yas-camelcase-to-string-list (str)
   "Convert camelcase STR into string list."
   (let ((case-fold-search nil))
-    (let ((rlt (replace-regexp-in-string "\\([A-Z]+\\)" " \\1" str t))
-          (rlt (replace-regexp-in-string "\\([A-Z]+\\)\\([A-Z][a-z]+\\)" "\\1 \\2"
-                                         rlt t)))
+    (let* ((rlt (replace-regexp-in-string "\\([A-Z]+\\)" " \\1" str t))
+           (rlt (replace-regexp-in-string "\\([A-Z]+\\)\\([A-Z][a-z]+\\)" "\\1 \\2"
+                                          rlt t)))
       (split-string rlt " "))))
 
 (defun inc0n/yas-camelcase-to-downcase (str)
@@ -120,11 +120,11 @@
     "Use `yas-completing-prompt' for `yas-prompt-functions' but only here..."
     (let ((yas-prompt-functions '(yas-completing-prompt)))
       (apply orig-func args)))
-  (advice-add 'yas-insert-snippet :around #'inc0n/yas-insert-snippet-hack)
+  ;; (advice-add 'yas-insert-snippet :around #'inc0n/yas-insert-snippet-hack)
+  ;; (advice-remove 'yas-insert-snippet #'inc0n/yas-insert-snippet-hack)
 
   ;; how to add custom yasnippet directory
   ;; (add-to-list 'yas-snippet-dirs inc0n/yasnippets)
-
   (yas-reload-all))
 
 (provide 'init-yasnippet)

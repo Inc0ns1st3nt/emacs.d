@@ -201,8 +201,11 @@ If N is nil, use `ivy-mode' to browse `kill-ring'."
   (interactive "P")
   (inc0n/select-from-kill-ring
    (lambda (s)
-     (let ((plain-str (util/insert-str s)))
-       (kill-new plain-str)))))
+     (let ((plain-str (if (consp str)
+						  (cdr str)
+						str)))
+       (util/insert-str plain-str)
+	   (kill-new plain-str)))))
 
 (defun ivy-switch-buffer-matcher-pinyin (regexp candidates)
   (util/ensure 'pinyinlib)

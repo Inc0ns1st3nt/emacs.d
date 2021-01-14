@@ -22,12 +22,11 @@ Text-Width: 70
 ;;<x-color><param>#5C6370</param>----------------------------------------------------------------------------
 </x-color>;; <x-color><param>#5C6370</param>Adjust garbage collection thresholds during startup, and thereafter
 </x-color>;;<x-color><param>#5C6370</param>----------------------------------------------------------------------------
-</x-color><x-color><param>#61AFEF</param>(</x-color><x-color><param>#C678DD</param>let</x-color> <x-color><param>#98C379</param>(</x-color><x-color><param>#D19A66</param>(</x-color>normal-gc-cons-threshold <x-color><param>#56B6C2</param>(</x-color>* 24 1024 1024<x-color><param>#56B6C2</param>)</x-color><x-color><param>#D19A66</param>)</x-color> ;; <x-color><param>#5C6370</param>20mb
+</x-color><x-color><param>#61AFEF</param>(</x-color><x-color><param>#C678DD</param>let</x-color> <x-color><param>#98C379</param>(</x-color><x-color><param>#D19A66</param>(</x-color>normal-gc-cons-threshold <x-color><param>#56B6C2</param>(</x-color>* 24 1024 1024<x-color><param>#56B6C2</param>)</x-color><x-color><param>#D19A66</param>)</x-color> ;; <x-color><param>#5C6370</param>24mb
 </x-color>      <x-color><param>#D19A66</param>(</x-color>init-gc-cons-threshold <x-color><param>#56B6C2</param>(</x-color>* 128 1024 1024<x-color><param>#56B6C2</param>)</x-color><x-color><param>#D19A66</param>)</x-color><x-color><param>#98C379</param>)</x-color> ;; <x-color><param>#5C6370</param>128mb
 </x-color>  <x-color><param>#98C379</param>(</x-color><x-color><param>#C678DD</param>setq</x-color> gc-cons-threshold init-gc-cons-threshold<x-color><param>#98C379</param>)</x-color>
+  <x-color><param>#98C379</param>(</x-color><x-color><param>#C678DD</param>setq</x-color> gc-cons-percentage 0.5<x-color><param>#98C379</param>)</x-color>
   ;; <x-color><param>#5C6370</param>(setq garbage-collection-messages t) ; for debug
-</x-color>  <x-color><param>#98C379</param>(</x-color><x-color><param>#C678DD</param>setq</x-color> gc-cons-percentage 0.5<x-color><param>#98C379</param>)</x-color>
-  ;; <x-color><param>#5C6370</param>(run-with-idle-timer 5 t #'garbage-collect)
 </x-color>  <x-color><param>#98C379</param>(</x-color>add-hook 'emacs-startup-hook
             <x-color><param>#D19A66</param>(</x-color><x-color><param>#C678DD</param>lambda</x-color> <x-color><param>#56B6C2</param>()</x-color>
 
@@ -39,22 +38,35 @@ Text-Width: 70
 ;;<x-color><param>#5C6370</param>----------------------------------------------------------------------------
 </x-color>;; <x-color><param>#5C6370</param>Bootstrap config
 </x-color>;;<x-color><param>#5C6370</param>----------------------------------------------------------------------------
-</x-color><x-color><param>#61AFEF</param>(</x-color><x-color><param>#C678DD</param>setq</x-color> custom-file <x-color><param>#98C379</param>(</x-color>expand-file-name <x-color><param>#98C379</param>"custom.el"</x-color> user-emacs-directory<x-color><param>#98C379</param>)</x-color><x-color><param>#61AFEF</param>)</x-color>
-
+</x-color>
 
 <x-color><param>#61AFEF</param>(</x-color><x-color><param>#C678DD</param>defun</x-color> <x-color><param>#61AFEF</param>inc0n/vc-merge-p</x-color> <x-color><param>#98C379</param>()</x-color>
   "Use Emacs for git merge only?"
   <x-color><param>#98C379</param>(</x-color>boundp 'startup-now<x-color><param>#98C379</param>)</x-color><x-color><param>#61AFEF</param>)</x-color>
 
 
+<x-color><param>#61AFEF</param>(</x-color><x-color><param>#C678DD</param>setq</x-color> custom-file <x-color><param>#98C379</param>(</x-color>expand-file-name <x-color><param>#98C379</param>"custom.el"</x-color> user-emacs-directory<x-color><param>#98C379</param>)</x-color><x-color><param>#61AFEF</param>)</x-color>
+
 <x-color><param>#61AFEF</param>(</x-color><x-color><param>#C678DD</param>defvar</x-color> <x-color><param>#E06C75</param>inc0n/lisp-dir</x-color> <x-color><param>#98C379</param>(</x-color>expand-file-name <x-color><param>#98C379</param>"lisp"</x-color> user-emacs-directory<x-color><param>#98C379</param>)</x-color><x-color><param>#61AFEF</param>)</x-color>
 
 
-<x-color><param>#61AFEF</param>(</x-color><x-color><param>#C678DD</param>defun</x-color> <x-color><param>#61AFEF</param>require-init</x-color> <x-color><param>#98C379</param>(</x-color>pkg <x-color><param>#E5C07B</param>&optional</x-color> maybe-disabled<x-color><param>#98C379</param>)</x-color>
-  <x-color><param>#98C379</param>(</x-color><x-color><param>#C678DD</param>unless</x-color> maybe-disabled
-    <x-color><param>#D19A66</param>(</x-color>load <x-color><param>#56B6C2</param>(</x-color>file-truename <x-color><param>#C678DD</param>(</x-color>format <x-color><param>#98C379</param>"%s/%s"</x-color> inc0n/lisp-dir pkg<x-color><param>#C678DD</param>)</x-color><x-color><param>#56B6C2</param>)</x-color>
+<x-color><param>#61AFEF</param>(</x-color><x-color><param>#C678DD</param>defun</x-color> <x-color><param>#61AFEF</param>require-init</x-color> <x-color><param>#98C379</param>(</x-color>pkg<x-color><param>#98C379</param>)</x-color>
 
-          t t<x-color><param>#D19A66</param>)</x-color><x-color><param>#98C379</param>)</x-color><x-color><param>#61AFEF</param>)</x-color>
+  "require the init pkg files in init lisp directory"
+  <x-color><param>#98C379</param>(</x-color>load <x-color><param>#D19A66</param>(</x-color>file-truename <x-color><param>#56B6C2</param>(</x-color>format <x-color><param>#98C379</param>"%s/%s"</x-color> inc0n/lisp-dir pkg<x-color><param>#56B6C2</param>)</x-color><x-color><param>#D19A66</param>)</x-color>
+
+        t t<x-color><param>#98C379</param>)</x-color><x-color><param>#61AFEF</param>)</x-color>
+
+
+<x-color><param>#61AFEF</param>(</x-color><x-color><param>#C678DD</param>defun</x-color> <x-color><param>#61AFEF</param>inc0n/add-subdirs-to-load-path</x-color> <x-color><param>#98C379</param>(</x-color>parent-dir<x-color><param>#98C379</param>)</x-color>
+  "Adds every non-hidden subdir of PARENT-DIR to `<x-color><param>#56B6C2</param>load-path</x-color>'."
+  <x-color><param>#98C379</param>(</x-color><x-color><param>#C678DD</param>let</x-color> <x-color><param>#D19A66</param>(</x-color><x-color><param>#56B6C2</param>(</x-color>default-directory parent-dir<x-color><param>#56B6C2</param>)</x-color><x-color><param>#D19A66</param>)</x-color>
+    <x-color><param>#D19A66</param>(</x-color><x-color><param>#C678DD</param>setq</x-color> load-path
+          <x-color><param>#56B6C2</param>(</x-color>append
+           <x-color><param>#C678DD</param>(</x-color>cl-remove-if-not
+            #'file-directory-p
+            <x-color><param>#E5C07B</param>(</x-color>directory-files <x-color><param>#61AFEF</param>(</x-color>expand-file-name parent-dir<x-color><param>#61AFEF</param>)</x-color> t <x-color><param>#98C379</param>"^[</x-color><x-color><param>#56B6C2</param><x-color><param>#98C379</param>^</x-color></x-color><x-color><param>#98C379</param>\\.]"</x-color><x-color><param>#E5C07B</param>)</x-color><x-color><param>#C678DD</param>)</x-color>
+           load-path<x-color><param>#56B6C2</param>)</x-color><x-color><param>#D19A66</param>)</x-color><x-color><param>#98C379</param>)</x-color><x-color><param>#61AFEF</param>)</x-color>
 
 
 ;; <x-color><param>#5C6370</param>(defalias 'require-init
@@ -74,21 +86,21 @@ Text-Width: 70
 ;; <x-color><param>#5C6370</param>@see https://www.reddit.com/r/emacs/comments/3kqt6e/2_easy_little_known_steps_to_speed_up_emacs_start/
 </x-color>;; <x-color><param>#5C6370</param>Normally file-name-handler-alist is set to
 </x-color>;; <x-color><param>#5C6370</param>(("\\`/[</x-color><x-color><param>#56B6C2</param><x-color><param>#5C6370</param>^</x-color></x-color><x-color><param>#5C6370</param>/]*\\'" . tramp-completion-file-name-handler)
-</x-color>;; <x-color><param>#9ca0a4</param>("\\`/[<x-color><param>#4078f2</param>^</x-color>/|:][<x-color><param>#4078f2</param>^</x-color>/|]*:" . tramp-file-name-handler)
-</x-color>;; <x-color><param>#9ca0a4</param>("\\`/:" . file-name-non-special))
-</x-color>;; <x-color><param>#9ca0a4</param>Which means on every .el and .elc file loaded during start up, it has to runs those regexps against the filename.
-</x-color><x-color><param>#4078f2</param>(</x-color><x-color><param>#e45649</param>let</x-color>
+</x-color>;; <x-color><param>#5C6370</param>("\\`/[</x-color><x-color><param>#56B6C2</param><x-color><param>#5C6370</param>^</x-color></x-color><x-color><param>#5C6370</param>/|:][</x-color><x-color><param>#56B6C2</param><x-color><param>#5C6370</param>^</x-color></x-color><x-color><param>#5C6370</param>/|]*:" . tramp-file-name-handler)
+</x-color>;; <x-color><param>#5C6370</param>("\\`/:" . file-name-non-special))
+</x-color>;; <x-color><param>#5C6370</param>Which means on every .el and .elc file loaded during start up, it has to runs those regexps against the filename.
+</x-color><x-color><param>#61AFEF</param>(</x-color><x-color><param>#C678DD</param>let</x-color>
 
-	<x-color><param>#a626a4</param>(</x-color><x-color><param>#50a14f</param>(</x-color>file-name-handler-alist nil<x-color><param>#50a14f</param>)</x-color><x-color><param>#a626a4</param>)</x-color>
+	<x-color><param>#98C379</param>(</x-color><x-color><param>#D19A66</param>(</x-color>file-name-handler-alist nil<x-color><param>#D19A66</param>)</x-color><x-color><param>#98C379</param>)</x-color>
 
-  <x-color><param>#a626a4</param>(</x-color>require-init 'init-autoload<x-color><param>#a626a4</param>)</x-color>
-  ;; <x-color><param>#9ca0a4</param>`<x-color><param>#b751b6</param>package-initialize</x-color>' takes 35% of startup time
-</x-color>  ;; <x-color><param>#9ca0a4</param>need check https://github.com/hlissner/doom-emacs/wiki/FAQ#how-is-dooms-startup-so-fast for solution
-</x-color>  <x-color><param>#a626a4</param>(</x-color>require-init 'init-modeline<x-color><param>#a626a4</param>)</x-color>
-  <x-color><param>#a626a4</param>(</x-color>require-init 'init-utils<x-color><param>#a626a4</param>)</x-color>
-  <x-color><param>#a626a4</param>(</x-color>require-init 'init-file-type<x-color><param>#a626a4</param>)</x-color>
-  <x-color><param>#a626a4</param>(</x-color>require-init 'init-elpa<x-color><param>#a626a4</param>)</x-color>
-  <x-color><param>#a626a4</param>(</x-color>require-init 'init-exec-path<x-color><param>#a626a4</param>)</x-color> ;; <x-color><param>#9ca0a4</param>Set up $PATH
+  <x-color><param>#98C379</param>(</x-color>require-init 'init-autoload<x-color><param>#98C379</param>)</x-color>
+  ;; <x-color><param>#5C6370</param>`</x-color><x-color><param>#56B6C2</param><x-color><param>#5C6370</param>package-initialize</x-color></x-color><x-color><param>#5C6370</param>' takes 35% of startup time
+</x-color>  ;; <x-color><param>#5C6370</param>need check https://github.com/hlissner/doom-emacs/wiki/FAQ#how-is-dooms-startup-so-fast for solution
+</x-color>  <x-color><param>#98C379</param>(</x-color>require-init 'init-modeline<x-color><param>#98C379</param>)</x-color>
+  <x-color><param>#98C379</param>(</x-color>require-init 'init-utils<x-color><param>#98C379</param>)</x-color>
+  <x-color><param>#98C379</param>(</x-color>require-init 'init-file-type<x-color><param>#98C379</param>)</x-color>
+  <x-color><param>#98C379</param>(</x-color>require-init 'init-elpa<x-color><param>#98C379</param>)</x-color>
+  <x-color><param>#98C379</param>(</x-color>require-init 'init-exec-path<x-color><param>#98C379</param>)</x-color> ;; <x-color><param>#5C6370</param>Set up $PATH
 </x-color>  ;; <x-color><param>#5C6370</param>Any file use flyspell should be initialized after init-spelling.el
 </x-color>  <x-color><param>#98C379</param>(</x-color>require-init 'init-spelling<x-color><param>#98C379</param>)</x-color>
   <x-color><param>#98C379</param>(</x-color>require-init 'init-uniquify<x-color><param>#98C379</param>)</x-color>
@@ -110,13 +122,15 @@ Text-Width: 70
   <x-color><param>#98C379</param>(</x-color>require-init 'init-git<x-color><param>#98C379</param>)</x-color>
   <x-color><param>#98C379</param>(</x-color>require-init 'init-gtags<x-color><param>#98C379</param>)</x-color>
   <x-color><param>#98C379</param>(</x-color>require-init 'init-clipboard<x-color><param>#98C379</param>)</x-color>
-  <x-color><param>#98C379</param>(</x-color>require-init 'init-ctags<x-color><param>#98C379</param>)</x-color>
-  ;; <x-color><param>#5C6370</param>(require-init 'init-bbdb)
-</x-color>  ;; <x-color><param>#5C6370</param>(require-init 'init-gnus)
+  <x-color><param>#a626a4</param>(</x-color>require-init 'init-ctags<x-color><param>#a626a4</param>)</x-color>
+  ;; <x-color><param>#9ca0a4</param>(require-init 'init-bbdb)
+</x-color>  ;; <x-color><param>#9ca0a4</param>(require-init 'init-gnus)
 </x-color>  <x-color><param>#98C379</param>(</x-color>require-init 'init-lua-mode<x-color><param>#98C379</param>)</x-color>
   <x-color><param>#98C379</param>(</x-color>require-init 'init-term-mode<x-color><param>#98C379</param>)</x-color>
   <x-color><param>#98C379</param>(</x-color>require-init 'init-web-mode<x-color><param>#98C379</param>)</x-color>
   <x-color><param>#98C379</param>(</x-color>require-init 'init-haskell<x-color><param>#98C379</param>)</x-color>
+  <x-color><param>#98C379</param>(</x-color>require-init 'init-latex<x-color><param>#98C379</param>)</x-color>
+
   <x-color><param>#98C379</param>(</x-color>require-init 'init-company<x-color><param>#98C379</param>)</x-color>
   <x-color><param>#98C379</param>(</x-color>require-init 'init-chinese<x-color><param>#98C379</param>)</x-color> ;; <x-color><param>#5C6370</param>cannot be idle-require-initd
 </x-color>  ;; <x-color><param>#5C6370</param>(require-init 'init-counsel)

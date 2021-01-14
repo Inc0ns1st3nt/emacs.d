@@ -46,14 +46,16 @@
 
 (defun twm/play-typewriter-sound ()
   "Play sound."
-  (start-process-shell-command
-   "*play-typewriter-sound*" nil
-   (format twm/play-command (concat twm/sound-file-dir twm/sound-file))))
+  (when-let ((file-name (buffer-file-name)))
+	(when (file-exists-p file-name)
+	  (start-process-shell-command
+	   "*play-typewriter-sound*" nil
+	   (format twm/play-command (concat twm/sound-file-dir twm/sound-file))))))
 
 (defun twm/toggle-sound-style ()
   "Change typewriter sound between vintage and modern."
   (interactive)
-  (let* ((is-vintage (string-match-p "vintage.wav" twm/sound-file)))
+  (let ((is-vintage (string-match-p "vintage.wav" twm/sound-file)))
     (setq twm/sound-file (format "typewriter-key-%s.wav"
                                  (if is-vintage "modern" "vintage")))))
 
@@ -65,11 +67,9 @@
   ;; keymap
   nil
   :global t
-  (cond
-   (typewriter-mode
-    (add-hook 'post-self-insert-hook #'twm/play-typewriter-sound))
-   (t
-    (remove-hook 'post-self-insert-hook #'twm/play-typewriter-sound))))
+  (if typewriter-mode
+      (add-hook 'post-self-insert-hook #'twm/play-typewriter-sound)
+	(remove-hook 'post-self-insert-hook #'twm/play-typewriter-sound)))
 
 (provide 'typewriter-mode)
 ;;; typewriter-mode.el ends here

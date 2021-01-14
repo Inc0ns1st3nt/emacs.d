@@ -15,8 +15,6 @@
 
 ;; (setq-default line-spacing 0)
 
-;; amx
-
 ;; iedit quit fix
 (with-eval-after-load 'evil-iedit-state
   (fset 'iedit-cleanup 'iedit-lib-cleanup))
@@ -63,26 +61,6 @@
 ;; (setq x-select-enable-primary t) ;; enable os -> emacs clipboard
 
 ;; (setq show-paren-delay 0.125)
-
-;;;;
-;; functions
-;;;;
-
-(defun surround-with-char (beg end)
-  "Up-case the last letter of the word at point.
-Or region from `BEG' to `END'."
-  (interactive (if (use-region-p)
-                   (list (region-beginning) (region-end))
-                 (list (point) (1+ (point)))))
-  (let* ((selection (buffer-substring-no-properties beg end))
-		 (char (read-char "press char to surround: ")))
-	(save-excursion
-	  (goto-char (1- beg))
-	  (insert ))
-    (kill-region beg end)
-    (insert (format "%c%c" char char))
-    (backward-char)
-    (insert selection)))
 
 ;; (defun my-insert-char-aux ()
 ;;   "My aux fn for inserting charcter."

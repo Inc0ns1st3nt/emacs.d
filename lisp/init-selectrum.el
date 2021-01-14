@@ -10,20 +10,22 @@
 (require-package 'selectrum)
 
 (add-hook 'after-init-hook 'selectrum-mode)
-;; (selectrum-mode 1)
-
-(setq amx-backend 'selectrum)
-(setq-default selectrum-should-sort-p nil)
 
 ;; @see https://github.com/raxod502/prescient.el
 (when (maybe-require-package 'selectrum-prescient)
-  (selectrum-prescient-mode 1)
-  (prescient-persist-mode 1)
-  (setq prescient-filter-method '(literal regexp fuzzy)))
+  (add-hook 'after-init-hook
+			(lambda ()
+			  (selectrum-prescient-mode 1)
+			  (prescient-persist-mode 1)))
+  (with-eval-after-load 'selectrum-prescient
+	(setq prescient-filter-method '(literal regexp fuzzy))))
 
 (require 'selectsel)
 
-(global-set-key (kbd "C-s") #'selectrum-swiper)
+(with-eval-after-load 'selectrum
+  (setq amx-backend 'selectrum)
+  (setq-default selectrum-should-sort-p nil)
+  (global-set-key (kbd "C-s") #'selectrum-swiper))
 
 ;;
 
@@ -145,5 +147,10 @@
 	;; TODO - use region selection instead of kill
 	(save-excursion
 	  (insert cmd))))
+
+;; (defun selectrum-switch-tabs ()
+;;   (interactive)
+;;   (let ((selectrum-minibuffer-map))
+;; 	(read-buffer-to-switch "Switch to buffer: ")))
 
 (provide 'init-selectrum)

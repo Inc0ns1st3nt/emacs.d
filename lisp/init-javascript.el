@@ -53,42 +53,32 @@
   "List of line information of original imenu items.")
 
 (defun js2-imenu--get-line-start-end (pos)
-  (let* (b e)
-    (save-excursion
-      (goto-char pos)
-      (setq b (line-beginning-position))
-      (setq e (line-end-position)))
-    (list b e)))
+  (save-excursion
+    (goto-char pos)
+	(list (line-beginning-position) (line-end-position))))
 
 (defun js2-imenu--get-pos (item)
-  (let* (val)
-    (cond
-     ((integerp item)
-      (setq val item))
+  (cond
+   ((integerp item)
+    item)
 
-     ((markerp item)
-      (setq val (marker-position item))))
-
-    val))
+   ((markerp item)
+    (marker-position item))))
 
 (defun js2-imenu--get-extra-item-pos (item)
-  (let* (val)
-    (cond
-     ((integerp item)
-      (setq val item))
+  (cond
+   ((integerp item)
+    item)
 
-     ((markerp item)
-      (setq val (marker-position item)))
+   ((markerp item)
+    (marker-position item))
 
-     ;; plist
-     ((and (listp item) (listp (cdr item)))
-      (setq val (js2-imenu--get-extra-item-pos (cadr item))))
-
-     ;; alist
-     ((and (listp item) (not (listp (cdr item))))
-      (setq val (js2-imenu--get-extra-item-pos (cdr item)))))
-
-    val))
+   ;; plist
+   ((and (listp item) (listp (cdr item)))
+    (js2-imenu--get-extra-item-pos (cadr item)))
+   ;; alist
+   ((and (listp item) (not (listp (cdr item))))
+    (js2-imenu--get-extra-item-pos (cdr item)))))
 
 (defun js2-imenu--extract-line-info (item)
   "Recursively parse the original imenu items created by js2-mode.
@@ -117,11 +107,9 @@ The line numbers of items will be extracted."
 
 (defun js2-imenu--item-exist (pos lines)
   "Try to detect does POS belong to some LINE"
-  (let* (rlt)
-    (dolist (line lines)
-      (if (and (< pos (cadr line)) (>= pos (car line)))
-          (setq rlt t)))
-    rlt))
+  (cl-loop for line in lines
+		   when (and (< pos (cadr line)) (>= pos (car line)))
+		   return t))
 
 (defun js2-imenu--is-item-already-created (item)
   (unless (js2-imenu--item-exist
@@ -130,17 +118,14 @@ The line numbers of items will be extracted."
     item))
 
 (defun js2-imenu--check-single-item (r)
-  (cond
-   ((and (listp (cdr r)))
-    (let (new-types)
-      (setq new-types
-            (delq nil (mapcar 'js2-imenu--is-item-already-created (cdr r))))
-      (if new-types (setcdr r (delq nil new-types))
-        (setq r nil))))
-   (t (if (js2-imenu--item-exist (js2-imenu--get-extra-item-pos r)
-                                 js2-imenu-original-item-lines)
-          (setq r nil))))
-  r)
+  (and (if (and (listp (cdr r)))
+		   (let ((new-types
+				  (delq nil (mapcar 'js2-imenu--is-item-already-created (cdr r)))))
+			 (and new-types
+				  (setcdr r (delq nil new-types))))
+		 (js2-imenu--item-exist (js2-imenu--get-extra-item-pos r)
+								js2-imenu-original-item-lines))
+	   r))
 
 (defun inc0n/validate-json-or-js-expression (&optional not-json-p)
   "Validate buffer or select region as JSON.
@@ -159,17 +144,15 @@ If NOT-JSON-P is not nil, validate as Javascript expression instead of JSON."
       (util/ensure 'js2-mode)
       (js2-parse)
       (setq errs (js2-errors))
-      (cond
-       ((not errs)
-        (message "NO error found. Good job!"))
-       (t
+      (if (not errs)
+          (message "NO error found. Good job!")
         ;; yes, first error in buffer is the last element in errs
         (setq first-err (car (last errs)))
         (setq first-err-pos (+ first-err-pos (- (cadr first-err) jsbuf-offet)))
         (message "%d error(s), first at buffer position %d: %s"
                  (length errs)
                  first-err-pos
-                 (js2-get-msg (caar first-err))))))
+                 (js2-get-msg (caar first-err)))))
     (if first-err (goto-char first-err-pos))))
 
 (defun inc0n/print-json-path (&optional hardcoded-array-index)

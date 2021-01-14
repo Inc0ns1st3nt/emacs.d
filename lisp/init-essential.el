@@ -2,47 +2,11 @@
 
 ;; Like "init-misc.el", the difference is this file is always loaded
 
-(defun inc0n/multi-purpose-grep (n)
-  "Run different grep from N."
-  (interactive "P")
-  (cond
-   ((not n)
-    (counsel-etags-grep))
-   ((= n 1)
-    ;; grep references of current web component
-    ;; component could be inside styled-component like `const c = styled(Comp1)`
-    (let ((fb (if (string= "index" fb)
-                  (file-name-base
-                   (directory-file-name
-                    (file-name-directory (directory-file-name buffer-file-name))))
-                (file-name-base buffer-file-name))))
-      (counsel-etags-grep (format "(<%s( *$| [^ ])|styled\\\(%s\\))" fb fb))))
-   ((= n 2)
-    ;; grep web component attribute name
-    (counsel-etags-grep (format "^ *%s[=:]" (or (thing-at-point 'symbol)
-                                                (read-string "Component attribute name?")))))
-   ((= n 3)
-    ;; grep current file name
-    (counsel-etags-grep (format ".*%s" (file-name-nondirectory buffer-file-name))))
-   ((= n 4)
-    ;; grep js files which is imported
-    (counsel-etags-grep (format "from .*%s('|\\\.js');?"
-                                (file-name-base (file-name-nondirectory buffer-file-name)))))
-   ((= n 5)
-    ;; grep Chinese using pinyinlib.
-    ;; In ivy filter, trigger key must be pressed before filter chinese
-    (util/ensure 'pinyinlib)
-    (let ((counsel-etags-convert-grep-keyword
-           (lambda (keyword)
-             (if (and keyword (> (length keyword) 0))
-                 (pinyinlib-build-regexp-string keyword t)
-               keyword))))
-      (counsel-etags-grep)))))
-
 ;; {{ narrow region
 (defun narrow-to-region-indirect-buffer-maybe (start end use-indirect-buffer)
   "Indirect buffer could multiple widen on same file."
-  (if (region-active-p) (deactivate-mark))
+  (when (region-active-p)
+	(deactivate-mark))
   (if use-indirect-buffer
       (with-current-buffer (clone-indirect-buffer
                             (generate-new-buffer-name
@@ -62,7 +26,7 @@
 ;; @see https://gist.github.com/mwfogleman/95cc60c87a9323876c6c
 ;; fixed to behave correctly in org-src buffers; taken from:
 ;; https://lists.gnu.org/archive/html/emacs-orgmode/2019-09/msg00094.html
-(defun narrow-or-widen-dwim (&optional use-indirect-buffer)
+(defun narrow-or-widen-dim (&optional use-indirect-buffer)
   "If the buffer is narrowed, it widens.
  Otherwise, it narrows to region, or Org subtree.
 If USE-INDIRECT-BUFFER is not nil, use `indirect-buffer' to hold the widen content."

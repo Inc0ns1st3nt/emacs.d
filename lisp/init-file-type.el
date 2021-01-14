@@ -14,8 +14,6 @@
 ;; }}
 
 ;; {{ lisp like language
-;; racket
-(add-auto-mode 'lisp-mode "\\.rkt\\'")
 (add-auto-mode 'emacs-lisp-mode
                "\\.emacs-project\\'"
                "archive-contents\\'"
@@ -73,56 +71,12 @@
 (add-auto-mode 'verilog-mode "\\.[ds]?vh?\\'")
 ;; }}
 
-(add-auto-mode 'adoc-mode "\\.adoc\\'")
-
 (add-auto-mode 'texile-mode "\\.textile\\'")
 
 (add-auto-mode 'tcl-mode "Portfile\\'")
 
-;; epub
-(add-auto-mode 'nov-mode "\\.epub\\'")
-
-(add-auto-mode 'octave-mode "\\.m$")
-
 ;; pyim
 (add-auto-mode 'text-mode "\\.pyim\\'")
-
-;; {{ web/html
-(add-auto-mode 'web-mode
-               "\\.\\(cmp\\|app\\|page\\|component\\|wp\\|vue\\|tmpl\\|php\\|module\\|inc\\|hbs\\|tpl\\|[gj]sp\\|as[cp]x\\|erb\\|mustache\\|djhtml\\|ftl\\|[rp]?html?\\|xul?\\|eex?\\|xml?\\|jst\\|ejs\\|erb\\|rbxlx\\)$")
-;; }}
-
-;; {{js
-(add-auto-mode 'js-mode
-               "\\.ja?son$"
-               "\\.pac$"
-               "\\.jshintrc$")
-
-(add-auto-mode 'js2-mode "\\.js\\(\\.erb\\)?\\'")
-;; JSX
-
-(add-auto-mode 'rjsx-mode
-               "\\.jsx\\'"
-               "components\\/.*\\.js\\'")
-;; mock file
-
-(add-auto-mode 'js-mode "\\.mock.js\\'")
-(add-interpreter-mode 'js2-mode "node")
-
-
-(add-auto-mode 'typescript-mode "\\.ts$")
-
-
-(add-auto-mode 'markdown-mode "\\.\\(m[k]d\\|markdown\\)\\'")
-
-(add-auto-mode 'snippet-mode "\\.yasnippet\\'")
-
-;; python
-(add-interpreter-mode 'python-mode "python")
-
-;; roblox studio
-(add-auto-mode 'roblox-mode "\\.rbxlx\\'")
-;; }}
 
 ;; arduino setup
 (add-auto-mode 'c-mode "\\.\\(pde\\|ino\\)$")
@@ -130,5 +84,42 @@
 ;; objc-mode
 ;; (rx (or ".xm" ".x"))
 (add-to-list 'auto-mode-alist `(,(regexp-opt '(".xm" ".x") t) . objc-mode))
+
+;; {{ web/html
+(add-auto-mode 'web-mode
+               "\\.\\(cmp\\|app\\|page\\|component\\|wp\\|vue\\|tmpl\\|php\\|module\\|inc\\|hbs\\|tpl\\|[gj]sp\\|as[cp]x\\|erb\\|mustache\\|djhtml\\|ftl\\|[rp]?html?\\|xul?\\|eex?\\|xml?\\|jst\\|ejs\\|erb\\|rbxlx\\)$")
+;; }}
+
+(add-auto-mode 'snippet-mode "\\.yasnippet\\'")
+
+(add-auto-mode 'markdown-mode "\\.\\(m[k]d\\|markdown\\)\\'")
+
+(add-auto-mode 'nov-mode "\\.epub\\'")
+
+(add-auto-mode 'adoc-mode "\\.adoc\\'")
+
+(add-auto-mode 'octave-mode "\\.m$")
+
+;; racket
+(add-auto-mode 'lisp-mode "\\.rkt\\'")
+
+;; javascript
+(add-auto-mode 'js-mode
+               "\\.ja?son$"
+               "\\.pac$"
+               "\\.jshintrc$")
+
+(add-auto-mode 'js2-mode "\\.js\\(\\.erb\\)?\\'")
+;; JSX
+(add-auto-mode 'rjsx-mode
+               "\\.jsx\\'"
+               "components\\/.*\\.js\\'")
+
+;; mock file
+(add-auto-mode 'js-mode "\\.mock.js\\'")
+
+(add-auto-mode 'typescript-mode "\\.ts$")
+
+(add-interpreter-mode 'js2-mode "node")
 
 (provide 'init-file-type)

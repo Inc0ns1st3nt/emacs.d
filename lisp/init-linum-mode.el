@@ -33,6 +33,7 @@
     log-edit-mode
     term-mode
     w3m-mode
+	nov-mode
     speedbar-mode
     gnus-summary-mode
     gnus-article-mode
@@ -42,15 +43,17 @@
 (unless (fboundp 'global-display-line-numbers-mode)
   (error "global-display-line-numbers-mode not bound"))
 
+(setq-default display-line-numbers 'relative
+			  display-line-numbers-type 'relative)
+
 (defun display-line-numbers-mode-hook-setup ()
-  (if (or (memq major-mode inc0n/linum-inhibit-modes)
-          ;; don't show line number for certain file extensions
-          (should-use-minimum-resource))
-      (setq display-line-numbers t)
-    (setq display-line-numbers 'relative
-		  display-line-numbers-type 'relative)))
+  (when (or (memq major-mode inc0n/linum-inhibit-modes)
+			;; don't show line number for certain file extensions
+			(should-use-minimum-resource))
+    (setq-local display-line-numbers t
+				display-line-numbers-type t)))
 (add-hook 'display-line-numbers-mode-hook #'display-line-numbers-mode-hook-setup)
-(global-display-line-numbers-mode 1)
+(add-hook 'after-init-hook 'global-display-line-numbers-mode)
 
 (provide 'init-linum-mode)
 ;; init-linum-mode.el ends here

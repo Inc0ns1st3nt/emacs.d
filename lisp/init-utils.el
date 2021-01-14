@@ -40,22 +40,12 @@
        (memq major-mode '(typescript-mode
                           js-mode))))
 
-(defun inc0n/add-subdirs-to-load-path (parent-dir)
-  "Adds every non-hidden subdir of PARENT-DIR to `load-path'."
-  (let ((default-directory parent-dir))
-    (setq load-path
-          (append
-           (cl-remove-if-not
-            (lambda (dir) (file-directory-p dir))
-            (directory-files (expand-file-name parent-dir) t "^[^\\.]"))
-           load-path))))
-
 ;; {{ copied from http://ergoemacs.org/emacs/elisp_read_file_content.html
-(defun util/read-file-content (file)
-  "Return FILE's content."
-  (with-temp-buffer
-    (insert-file-contents file)
-    (buffer-string)))
+;; (defun util/read-file-content (file)
+;;   "Return FILE's content."
+;;   (with-temp-buffer
+;;     (insert-file-contents file)
+;;     (buffer-string)))
 
 (defun util/read-lines (file)
   "Return a list of lines of FILE."
@@ -120,17 +110,17 @@
     (when (string-match-p pattern file)
       file)))
 
-(defun util/prepare-candidate-fit-into-screen (s)
-  (let* ((w (frame-width))
-         ;; display kill ring item in one line
-         (key (replace-regexp-in-string "[ \t]*[\n\r]+[ \t]*" "\\\\n" s))
-         ;; strip the whitespace
-         (key (string-trim-left key "[ \t]+")))
-    ;; fit to the minibuffer width
-    (cons (if (> (length key) w)
-              (concat (substring key 0 (- w 4)) "...")
-            key)
-          s)))
+;; (defun util/prepare-candidate-fit-into-screen (s)
+;;   (let* ((w (frame-width))
+;;          ;; display kill ring item in one line
+;;          (key (replace-regexp-in-string "[ \t]*[\n\r]+[ \t]*" "\\\\n" s))
+;;          ;; strip the whitespace
+;;          (key (string-trim-left key "[ \t]+")))
+;;     ;; fit to the minibuffer width
+;;     (cons (if (> (length key) w)
+;;               (concat (substring key 0 (- w 4)) "...")
+;;             key)
+;;           s)))
 
 (defun inc0n/select-from-kill-ring (n)
   "If N > 1, yank the Nth item in `kill-ring'.
@@ -146,16 +136,8 @@ If N is nil, use `selectrum-mode' to browse `kill-ring'."
     (util/set-clip s)
     (message "%s => clipboard" s)))
 
-(defun util/delete-selected-region ()
-  "Delete selected region."
-  (when (region-active-p)
-    (delete-region (region-beginning) (region-end))))
-
 (defun util/insert-str (str)
   "Insert STR into current buffer."
-  ;; ivy8 or ivy9
-  (when (consp str)
-    (setq str (cdr str)))
   ;; evil-mode?
   (when (and (functionp 'evil-normal-state-p)
              (boundp 'evil-move-cursor-back)
@@ -164,7 +146,8 @@ If N is nil, use `selectrum-mode' to browse `kill-ring'."
              (not (eobp)))
     (forward-char))
 
-  (util/delete-selected-region)
+  (when (region-active-p)
+    (delete-region (region-beginning) (region-end)))
   (insert str))
 
 (defun util/line-str (&optional n)
@@ -228,9 +211,8 @@ Else use thing-at-point to get current string 'symbol."
 (defun util/thing-at-point/deselect ()
   "get thing at point.
 If region is active get region string and deactivate."
-  (if (not (use-region-p))
-	  (util/thing-at-point)
-	(prog1 (util/selected-str)
+  (prog1 (util/thing-at-point)
+	(when (region-active-p)
 	  (deactivate-mark))))
 
 (defun delete-this-buffer-and-file ()
@@ -364,5 +346,11 @@ If STEP is 1,  search in forward direction, or else in backward direction."
   "Get current input in shell."
   (let ((region (util/comint-current-input-region)))
     (string-trim (buffer-substring-no-properties (car region) (cdr region)))))
+
+;;
+
+(defun custom/reset-var (symbl)
+  "Reset SYMBL to its standard value."
+  (set symbl (eval (car (get symbl 'standard-value)))))
 
 (provide 'init-utils)

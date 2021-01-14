@@ -1,18 +1,18 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
-(require-package 'undo-fu)
-;; (require-package 'undo-tree)
 (require-package 'expand-region) ; I prefer stable version
 
 (require-package 'evil)
+(require-package 'evil-mark-replace)
 
 ;; enable evil-mode
 (evil-mode 1)
 
 ;; {{ replace undo-tree with undo-fu
 ;; @see https://github.com/emacs-evil/evil/issues/1074
+;; (require-package 'undo-tree)
 ;; (global-undo-tree-mode -1)
-(util/ensure 'undo-fu)
+(require 'undo-fu)
 ;; copied from doom-emacs
 (define-minor-mode undo-fu-mode
   "Enables `undo-fu' for the current session."
@@ -232,9 +232,9 @@ If the character before and after CH is space or tab, CH is NOT slash"
 ;; {{ https://github.com/syl20bnr/evil-escape
 (require-package 'evil-escape)
 ;; evil-escape will be disabled when input method is on
-(setq-default evil-escape-delay 0.3)
+(setq-default evil-escape-delay 0.2)
 (setq evil-escape-excluded-major-modes '(dired-mode))
-(setq-default evil-escape-key-sequence "kj")
+(setq-default evil-escape-key-sequence "fd")
 (add-hook 'after-init-hook 'evil-escape-mode)
 ;; }}
 
@@ -514,7 +514,8 @@ If INCLUSIVE is t, the text object is inclusive."
 
   "dc" 'inc0n/dired-redo-from-commands-history
   "dl" 'inc0n/dired-redo-last-command
-  "db" 'delete-this-buffer-and-file
+  "dt" 'delete-this-buffer-and-file
+  "rt" 'rename-this-buffer-and-file
 
   "eb" 'eval-buffer
   "ed" 'eval-defun
@@ -594,7 +595,7 @@ If INCLUSIVE is t, the text object is inclusive."
 
   "rb" 'evilmr-replace-in-buffer
   "re" 'counsel-etags-recent-tag
-  "rt" 'inc0n/rename-thing-at-point
+  "rn" 'inc0n/rename-thing-at-point
   "rjs" 'run-js
 
   "sr" 'scratch
@@ -649,10 +650,6 @@ If INCLUSIVE is t, the text object is inclusive."
   "x3" (lambda () (interactive) (split-window-horizontally) (other-window 1))
   ;; }}
   "uu" 'inc0n/transient-winner-undo
-  ;; "ut" 'undo-tree-visualize
-  ;; counsel
-  "qq" 'inc0n/multi-purpose-grep
-  "dd" 'counsel-etags-grep-current-directory
 
   "wf" 'popup-which-function
   "ww" 'narrow-or-widen-dim
@@ -704,7 +701,7 @@ If INCLUSIVE is t, the text object is inclusive."
   ;;  (with-eval-after-load 'avy
   ;;    (set-face-attribute 'avy-lead-face-0 nil :foreground "black")
   ;;    (set-face-attribute 'avy-lead-face-0 nil :background "#f86bf3"))
-  ";" 'ace-pinyin-jump-char-2
+  ;; ";" 'ace-pinyin-jump-char-2
   "w" 'avy-goto-word-or-subword-1
   "a" 'avy-goto-char-timer
   "db" 'sdcv-search-input ; details

@@ -53,7 +53,7 @@
     " --"
     ;; Don't show `minor-mode'
     ;; minor-mode-alist  ;; list of minor modes
-    "%-" ;; fill with '-'
+    ;; "%-" ;; fill with '-'
     ))
 
 (provide 'init-modeline)
