@@ -101,7 +101,7 @@
 (add-auto-mode 'octave-mode "\\.m$")
 
 ;; racket
-(add-auto-mode 'lisp-mode "\\.rkt\\'")
+(add-auto-mode 'racket-mode "\\.rkt$")
 
 ;; javascript
 (add-auto-mode 'js-mode

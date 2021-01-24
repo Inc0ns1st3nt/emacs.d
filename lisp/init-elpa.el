@@ -134,7 +134,8 @@ locate PACKAGE."
     company-c-headers
     company-statistics
     ;;
-    face-up
+	clean-mode ;; clean programming language
+    face-up ;; for racket mode
     racket-mode)
   "Packages to install from melpa-unstable.")
 

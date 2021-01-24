@@ -79,4 +79,8 @@
 
 ;; @see http://haskell.github.io/haskell-mode/manual/latest/Aligning-code.html#Aligning-code
 
+
+;;; clean
+;; (require-package 'clean-mode)
+
 (provide 'init-haskell)

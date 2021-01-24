@@ -615,7 +615,6 @@ If INCLUSIVE is t, the text object is inclusive."
   "ts" 'evilmr-tag-selected-region ;; recommended
   "tt" 'inc0n/toggle-day/night
   "tw" 'typewriter-mode
-  "tx" 'toggle-two-split-window
 
   "vf" 'vc-rename-file-and-buffer
   "vc" 'vc-copy-file-and-rename-buffer
@@ -654,6 +653,7 @@ If INCLUSIVE is t, the text object is inclusive."
   "wf" 'popup-which-function
   "ww" 'narrow-or-widen-dim
   "ws" 'ace-swap-window
+  "wr" 'rotate-two-split-window
   ;;
   ;; "+" 'surround-with-char ;; use evil-surround instead
   "SPC" 'just-one-space)

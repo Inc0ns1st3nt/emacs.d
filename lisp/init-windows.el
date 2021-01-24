@@ -34,7 +34,7 @@
   (scroll-other-window '-))
 
 ;; https://emacs.stackexchange.com/questions/46664/switch-between-horizontal-and-vertical-splitting
-(defun toggle-two-split-window ()
+(defun rotate-two-split-window ()
   "Toggle two window layout vertically or horizontally."
   (interactive)
   (when (= (count-windows) 2)

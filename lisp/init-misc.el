@@ -636,7 +636,7 @@ If no region is selected, `kill-ring' or clipboard is used instead."
 
 ;; {{ typewriter
 (local-require 'typewriter-mode)
-(add-hook 'after-init-hook #'typewriter-mode)
+;; (add-hook 'after-init-hook #'typewriter-mode)
 ;; }}
 
 (with-eval-after-load 'grep

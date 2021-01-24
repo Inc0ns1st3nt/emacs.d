@@ -318,4 +318,5 @@ should be continued."
   (setq org-superstar-item-bullet-alist '((?\* . 8226) (?\+ . 10148) (?\- . ?\-)))
   (org-superstar-restart))
 
+;; org-emphasis-alist
 (provide 'init-org)

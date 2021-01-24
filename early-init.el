@@ -29,11 +29,11 @@
 ;; "DejaVu Sans Mono"
 ;; "Source Code Pro"
 ;; "Fira Code", "monaco"
-;; (set-face-attribute 'default nil :font "monaco" :height 120)
+;; (set-face-attribute 'default nil :font "Fira Code" :height 120)
 
 ;; https://emacs.stackexchange.com/questions/29289/my-change-to-the-default-font-size-reverts-at-startup
 (add-to-list 'default-frame-alist
-             '(font . "monaco-12"))
+             '(font . "Fira Code-12"))
 
 ;; transparency setup
 ;; (set-frame-parameter (selected-frame) 'alpha '(85 . 50))
