@@ -6,7 +6,8 @@
 (require-package 'company-c-headers)
 (require-package 'company-statistics)
 
-(add-hook 'after-init-hook #'global-company-mode)
+(add-hook 'after-init-hook
+		  (lambda () (run-with-idle-timer 1 nil #'global-company-mode)))
 
 (when (fboundp 'evil-declare-change-repeat)
   (mapc #'evil-declare-change-repeat
@@ -23,6 +24,32 @@
   (add-to-list 'company-backends 'company-c-headers)
   ;; can't work with TRAMP
   (setq company-backends (delete 'company-ropemacs company-backends))
+
+  ;; company completion with just numbering
+  (defun inc0n/company-number ()
+	"Forward to `company-complete-number'. Unless the number is
+	potentially part of the candidate. In that case, insert the
+	number."
+	(interactive)
+	(let* ((k (this-command-keys))
+		   (re (concat "^" company-prefix k))
+		   (n (if (string= k "0")
+				  10
+				  (string-to-number k))))
+	  (if (or (cl-find-if (lambda (s) (string-match re s))
+						  company-candidates)
+			  (null (cdr company-candidates)) ;; if list is single (len==1)
+			  (> n (length company-candidates))
+			  (looking-back "[0-9]+\\.[0-9]*" (line-beginning-position)))
+		  (self-insert-command 1)
+		(company-complete-number n))))
+  (dotimes (i 10)
+	(define-key company-active-map
+	  (number-to-string i)
+	  'inc0n/company-number))
+
+  (setq company-auto-commit nil
+		company-auto-commit-chars nil)
 
   ;; company-ctags is much faster out of box. No further optimiation needed
   (unless (featurep 'company-ctags)
@@ -44,7 +71,7 @@
         company-idle-delay 0.05
         company-clang-insert-arguments nil
         company-require-match nil
-        company-ctags-ignore-case t ; I use company-ctags instead
+        company-ctags-ignore-case t		; I use company-ctags instead
         ;; @see https://github.com/company-mode/company-mode/issues/146
         company-tooltip-align-annotations t)
 

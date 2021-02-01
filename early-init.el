@@ -29,7 +29,7 @@
 ;; "DejaVu Sans Mono"
 ;; "Source Code Pro"
 ;; "Fira Code", "monaco"
-;; (set-face-attribute 'default nil :font "Fira Code" :height 120)
+;; (set-face-attribute 'default nil :font "Fira Code" :height 130)
 
 ;; https://emacs.stackexchange.com/questions/29289/my-change-to-the-default-font-size-reverts-at-startup
 (add-to-list 'default-frame-alist
@@ -53,18 +53,22 @@
             (or user-login-name "")
             " - Emacs loves you!\n\n")))
 
-(setq initial-scratch-message nil
+(setq initial-scratch-message
       ;; (show-scratch-buffer-message)
-      ;; (concat ";; Please wait "
-      ;;         (or user-login-name "")
-      ;;         " org agenda is being prepared for you")
-	  )
+      (concat ";; Please wait "
+              (or user-login-name "")
+              " org agenda is being prepared for you"))
 
-(setq initial-buffer-choice
-	  (lambda ()
-		(let ((org-agenda-window-setup 'only-window))
-		  (org-agenda nil "n"))
-		(current-buffer)))
+;; (setq initial-buffer-choice nil)
+(add-hook 'after-init-hook
+		  (lambda ()
+			(run-with-idle-timer
+			 0.5 nil
+			 (lambda ()
+			   (let ((org-agenda-window-setup
+					  'only-window))
+				 (org-agenda nil "n"))
+			   (current-buffer)))))
 ;; (fringe-mode '(3 . 0))
 
 (provide 'early-init)

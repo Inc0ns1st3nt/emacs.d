@@ -52,11 +52,12 @@
     (push '(?\[ . ("[[" . "]]")) evil-surround-pairs-alist) ; [
     (push '(?= . ("=" . "=")) evil-surround-pairs-alist))
 
+  (push '(?\( . ("(" . ")")) evil-surround-pairs-alist)
   (when (memq major-mode '(emacs-lisp-mode))
-    (push '(?\( . ("( " . ")")) evil-surround-pairs-alist)
     (push '(?` . ("`" . "'")) evil-surround-pairs-alist))
 
   (when (derived-mode-p 'js-mode)
+	(push '(?j . ("JSON.stringify(" . ")")) evil-surround-pairs-alist)
     (push '(?> . ("(e) => " . "(e)")) evil-surround-pairs-alist))
 
   ;; generic
@@ -247,9 +248,7 @@ If the character before and after CH is space or tab, CH is NOT slash"
 				  (funcall handler))))))
 
 (defun util/delim-p (c)
-  (or (char-equal ?\( c)
-	  (char-equal ?\" c)
-	  (char-equal ?\[ c)))
+  (memq (char-syntax c) '(?\( ?\) ?\")))
 
 (defun delim-or-normal (paredit-fn normal-fn)
   (lambda ()
@@ -261,16 +260,17 @@ If the character before and after CH is space or tab, CH is NOT slash"
 		   (call-interactively normal-fn)))))
 
 ;; (popup-tip (documentation 'paredit-copy-as-kill))
-(evil-global-set-key 'motion (kbd "TAB") 'indent-for-tab-command)
+;; (evil-global-set-key 'motion (kbd "TAB") 'indent-for-tab-command)
+(evil-global-set-key 'motion (kbd "RET") 'newline)
 
 (evil-declare-key '(normal visual) paredit-mode-map
   (kbd "c") (delim-or-normal #'paredit-copy-as-kill #'evil-change)
-  (kbd "X") (delim-or-normal #'paredit-kill #'evil-delete-char)
+  (kbd "X") 'kill-sexp
   ;; (kbd "r") #'evil-replace
   (kbd "R") (delim-or-normal #'paredit-raise-sexp #'evil-replace-state)
   (kbd "(") #'paredit-wrap-round
-  (kbd "[") (handle-error #'paredit-backward #'backward-paragraph)
-  (kbd "]") (handle-error #'paredit-forward-down #'forward-paragraph)
+  (kbd "[") (handle-error #'backward-sexp #'backward-paragraph)
+  (kbd "]") (handle-error #'forward-sexp #'forward-paragraph)
   (kbd "\"") #'paredit-meta-doublequote
   (kbd "<") #'paredit-forward-barf-sexp
   (kbd ">") #'paredit-forward-slurp-sexp
@@ -386,15 +386,15 @@ If the character before and after CH is space or tab, CH is NOT slash"
         (e (line-end-position)))
     (list (save-excursion
             (goto-char b)
-            (while (and (<!-- <!-- < (point) e)
-                        (not (eq (following-char) 61)))
+            (while (and (< (point) e)
+                        (not (= (following-char) 61)))
               (forward-char))
-            (if (eq (point) e)
+            (if (= (point) e)
                 b
               ;; skip '=' at point
               (goto-char (util/skip-white-space (1+ (point)) 1))
               (point)))
-          (if (eq (char-before e) 59)   ; ";"
+          (if (= (char-before e) ?\;)
               (util/skip-white-space (1- e) -1)
             e))))
 
@@ -465,10 +465,11 @@ If INCLUSIVE is t, the text object is inclusive."
 
 (general-create-definer inc0n/space-leader-def
   :prefix "SPC"
-  :states '(normal visual))
+  :states '(normal visual)
+  :keymaps 'override)
 
 ;; Please check "init-ediff.el" which contains `inc0n/space-leader-def' code too
-(inc0n/space-leader-def :keymaps 'override
+(inc0n/space-leader-def
   "0" 'winum-select-window-0
   "1" 'winum-select-window-1
   "2" 'winum-select-window-2
@@ -488,16 +489,11 @@ If INCLUSIVE is t, the text object is inclusive."
   "bd" 'paredit-backward-down
   ;; "bu" 'paredit-backward-up
   "bp" 'browse-url-at-point
-  ;;   "bk" 'buf-move-up
-  ;;   "bj" 'buf-move-down
-  ;;   "bh" 'buf-move-left
-  ;;   "bl" 'buf-move-right
   ;; comment
   "ci" 'comment-operator
   "cl" 'copy-and-comment-line
   "cc" 'copy-to-clipboard
   "cp" 'comment-or-uncomment-paragraph
-  "ct" 'evilnc-comment-or-uncomment-html-tag ; evil-nerd-commenter v3.3.0 required
   ;; org
   "c$" 'org-archive-subtree             ; `C-c $'
   "cam" 'org-tags-view ; `C-c a m': search items in org-file-apps by tag
@@ -505,7 +501,7 @@ If INCLUSIVE is t, the text object is inclusive."
   "cxo" 'org-clock-out ; `C-c C-x C-o'
   "cxr" 'org-clock-report               ; `C-c C-x C-r'
   ;;
-  "cf" 'counsel-grep           ; grep current buffer
+  ;; "cf" 'counsel-grep           ; grep current buffer
   "cg" 'counsel-git            ; find file
   ;;
   "da" 'diff-region-tag-selected-as-a
@@ -564,11 +560,11 @@ If INCLUSIVE is t, the text object is inclusive."
   ;;
   ;; TODO - transiant scroll other window
   "jj" 'scroll-other-window
-  "kb" 'kill-buffer-and-window ;; "k" is preserved to replace "C-g"
+  ;; "kb" 'kill-buffer-and-window ;; "k" is preserved to replace "C-g"
   "kc" 'inc0n/select-from-kill-ring
 
-  ;; "ls" 'highlight-symbol
-  ;; "lq" 'highlight-symbol-query-replace
+  "ls" 'highlight-symbol
+  "lq" 'highlight-symbol-query-replace
   ;; "ln" 'highlight-symbol-nav-mode ; use M-n/M-p to navigation between symbols
 
   "mm" 'lookup-doc-in-man
@@ -586,9 +582,10 @@ If INCLUSIVE is t, the text object is inclusive."
 
   "nh" 'inc0n/goto-next-hunk
   "ni" 'newline-and-indent
-  "ne" 'flymake-goto-next-error
 
+  "ne" 'flymake-goto-next-error
   "pe" 'flymake-goto-prev-error
+
   "pd" 'pwd
   "ph" 'inc0n/goto-previous-hunk
   "pp" 'paste-from-clipboard
@@ -629,12 +626,11 @@ If INCLUSIVE is t, the text object is inclusive."
   "xb" 'switch-to-buffer
   "xf" 'find-file
   "xh" 'mark-whole-buffer
-  "xm" 'execute-extended-command
-  "xk" 'kill-buffer
-  "xs" 'save-buffer
   "xc" 'execute-extended-command
+  "xm" 'execute-extended-command
+  "xk" 'transient/kill-buffer
+  "xs" 'save-buffer
   ;; "xx" 'er/expand-region
-  ;; "xo" 'ace-window
   ;; {{ window move
   ;; "wh" 'evil-window-left
   ;; "wl" 'evil-window-right
@@ -651,11 +647,11 @@ If INCLUSIVE is t, the text object is inclusive."
   "uu" 'inc0n/transient-winner-undo
 
   "wf" 'popup-which-function
-  "ww" 'narrow-or-widen-dim
+  "wo" 'ace-window
   "ws" 'ace-swap-window
   "wr" 'rotate-two-split-window
+  "ww" 'narrow-or-widen-dim
   ;;
-  ;; "+" 'surround-with-char ;; use evil-surround instead
   "SPC" 'just-one-space)
 ;; }}
 
@@ -677,17 +673,18 @@ If INCLUSIVE is t, the text object is inclusive."
    (progn (forward-paragraph n)
 		  (point))))
 
-(defun comment-operator (beg end)
-  ;; TODO - readkey for a more evil like comment operator
+(defun comment-operator (n)
   ;; comment-line
   "my implementation of a comment-operator"
-  (interactive (if (region-active-p)
-				   (list (region-beginning) (region-end))
-				 (list (line-beginning-position) (line-end-position))))
-  (comment-or-uncomment-region beg end))
+  (interactive "P")
+  (if n
+	  (comment-or-uncomment-region (point) (progn (forward-line n) (point)))
+	(if (region-active-p)
+		(comment-or-uncomment-region (region-beginning) (region-end))
+	  (comment-or-uncomment-region (line-beginning-position)
+								   (line-end-position)))))
 
 ;; "Press `dd' to delete lines in `wgrep-mode' in evil directly."
-;; (advice-add 'evil-delete :around #'inc0n/evil-delete-hack)
 
 ;; {{ Use `;` as leader key, for searching something
 (general-create-definer inc0n/semicolon-leader-def
@@ -801,12 +798,6 @@ If INCLUSIVE is t, the text object is inclusive."
 ;; {{ Evil’s f/F/t/T command can search PinYin ,
 (require-package 'evil-find-char-pinyin)
 (add-hook 'after-init-hook 'evil-find-char-pinyin-mode)
-;; }}
-
-;; {{ Port of vim-textobj-syntax.
-;; It provides evil text objects for consecutive items with same syntax highlight.
-;; press "vah" or "vih"
-(require 'evil-textobj-syntax)
 ;; }}
 
 ;; {{ evil-args

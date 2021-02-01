@@ -24,8 +24,9 @@
 
 (with-eval-after-load 'selectrum
   (setq amx-backend 'selectrum)
-  (setq-default selectrum-should-sort-p nil)
-  (global-set-key (kbd "C-s") #'selectrum-swiper))
+  (setq-default selectrum-should-sort-p nil))
+
+(global-set-key (kbd "C-s") #'selectrum-swiper)
 
 ;;
 

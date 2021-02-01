@@ -6,6 +6,7 @@
 ;; (setq package-user-dir
 ;;       (expand-file-name (format "elpa-%s.%s" emacs-major-version emacs-minor-version)
 ;;                         user-emacs-directory))
+;; (package-initialize)
 
 (setq package-archives
 	  '(("melpa" . "https://melpa.org/packages/")
@@ -84,7 +85,6 @@ locate PACKAGE."
     company-native-complete
     js2-mode ; need new features
     git-timemachine ; stable version is broken when git rename file
-    evil-textobj-syntax
     undo-fu
     command-log-mode
     ;; lsp-mode ; stable version has performance issue, but unstable version sends too many warnings
@@ -139,8 +139,8 @@ locate PACKAGE."
     racket-mode)
   "Packages to install from melpa-unstable.")
 
-(defvar inc0n/melpa-stable-banned-packages nil
-  "Banned packages from melpa-stable.")
+;; (defvar inc0n/melpa-stable-banned-packages nil
+;;   "Banned packages from melpa-stable.")
 
 ;;------------------------------------------------------------------------------
 ;; Fire up package.el and ensure the following packages are installed.
@@ -178,7 +178,6 @@ locate PACKAGE."
 (require-package 'vimrc-mode)
 (require-package 'csv-mode)
 (require-package 'rust-mode)
-
 
 (require-package 'command-log-mode)
 (require-package 'regex-tool)
@@ -232,6 +231,6 @@ locate PACKAGE."
 (require-package 'magit)
 
 ;; kill buffer without my confirmation
-(setq kill-buffer-query-functions (delq 'process-kill-buffer-query-function kill-buffer-query-functions))
+;; (setq kill-buffer-query-functions (delq 'process-kill-buffer-query-function kill-buffer-query-functions))
 
 (provide 'init-elpa)

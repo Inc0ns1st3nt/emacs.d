@@ -33,7 +33,8 @@
                "\\.\\([pP][Llm]\\|al\\)$"
                "\\.\\([pP][Llm]\\|al\\)$")
 
-(add-interpreter-mode 'cperl-mode "perl5?\\|minperl")
+(add-to-list 'interpreter-mode-alist
+			 (cons "perl5?\\|minperl" 'cperl-mode))
 ;; }}
 
 (add-auto-mode 'text-mode
@@ -120,6 +121,6 @@
 
 (add-auto-mode 'typescript-mode "\\.ts$")
 
-(add-interpreter-mode 'js2-mode "node")
+(add-to-list 'interpreter-mode-alist (cons "node" 'js2-mode))
 
 (provide 'init-file-type)

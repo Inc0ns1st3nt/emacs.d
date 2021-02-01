@@ -75,7 +75,8 @@ If USE-INDIRECT-BUFFER is not nil, use `indirect-buffer' to hold the widen conte
 
 ;; {{ Write backup files to its own directory
 ;; @see https://www.gnu.org/software/emacs/manual/html_node/tramp/Auto_002dsave-and-Backup.html
-(defvar inc0n/binary-file-name-regexp "\\.\\(avi\\|wav\\|pdf\\|mp[34g]\\|mkv\\|exe\\|3gp\\|rmvb\\|rm\\)$"
+(defvar inc0n/binary-file-name-regexp
+  "\\.\\(avi\\|wav\\|pdf\\|mp[34g]\\|mkv\\|exe\\|3gp\\|rmvb\\|rm\\)$"
   "Is binary file name?")
 
 (setq backup-enable-predicate
@@ -83,31 +84,50 @@ If USE-INDIRECT-BUFFER is not nil, use `indirect-buffer' to hold the widen conte
         (and (normal-backup-enable-predicate name)
              (not (string-match-p inc0n/binary-file-name-regexp name)))))
 
-(when (not (file-exists-p (expand-file-name "~/.backups")))
-  (make-directory (expand-file-name "~/.backups")))
+(let ((backup-dir (expand-file-name "~/.backups")))
+  (unless (file-exists-p backup-dir)
+	(make-directory backup-dir))
+  (setq backup-directory-alist (list (cons "." backup-dir))))
 
 (setq backup-by-copying t ; don't clobber symlinks
-      backup-directory-alist '(("." . "~/.backups"))
       delete-old-versions t
       version-control t  ;use versioned backups
       kept-new-versions 6
       kept-old-versions 2)
 
-;; Donot make backups of files, not safe
+;; Don't make backups of files, not safe
 ;; @see https://github.com/joedicastro/dotfiles/tree/master/emacs
 (setq vc-make-backup-files nil)
 ;; }}
 
 ;; {{ tramp setup
-(add-to-list 'backup-directory-alist
-             (cons tramp-file-name-regexp nil))
-(setq tramp-chunksize 8192)
-
-;; @see https://github.com/syl20bnr/spacemacs/issues/1921
-;; If you tramp is hanging, you can uncomment below line.
-;; (setq tramp-ssh-controlmaster-options "-o ControlMaster=auto -o ControlPath='tramp.%%C' -o ControlPersist=no")
+(with-eval-after-load 'tramp
+  (add-to-list 'backup-directory-alist
+               (cons tramp-file-name-regexp nil))
+  ;; @see https://github.com/syl20bnr/spacemacs/issues/1921
+  ;; If you tramp is hanging, you can uncomment below line.
+  ;; (setq tramp-ssh-controlmaster-options "-o ControlMaster=auto -o ControlPath='tramp.%%C' -o ControlPersist=no")
+  (setq tramp-chunksize 8192))
 ;; }}
 
 ;; Startup
+
+;; uniquify
+;; Nicer naming of buffers for files with identical names
+(setq uniquify-buffer-name-style 'forward)
+(setq uniquify-separator " • ")
+(setq uniquify-after-kill-buffer-p t)
+(setq uniquify-ignore-buffers-re "^\\*")
+
+;; hippie-expand
+;; Since we got company-ispell and `M-x toggle-company-ispell'
+;; Done, now we just use it as a clause in our make-hippie-expand-function (as above)
+(setq hippie-expand-try-functions-list
+      '(try-complete-file-name-partially
+        try-complete-file-name
+        try-expand-dabbrev
+        try-expand-dabbrev-all-buffers
+        try-expand-dabbrev-from-kill))
+(global-set-key (kbd "M-/") 'hippie-expand)
 
 (provide 'init-essential)

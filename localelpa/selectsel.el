@@ -40,7 +40,8 @@
   "set search item as str"
   (cond ((and (boundp 'evil-mode)
 			  evil-mode)
-		 (evil-search regex-str t t))
+		 (save-excursion ;; safe guard against fuzzy match
+		   (evil-search regex-str t t (line-beginning-position))))
 		(t
 		 (re-search-forward regex-str nil t)
 		 (isearch-mode t)
@@ -215,6 +216,44 @@ as deep as selectrum--search-file-max-depth"
 													   (util/selected-str)))))
 		(find-file cand))
 	(message "turn on recentf-mode first")))
+
+(defun selectsel--hash-coloured-modes ()
+  (let ((modes (make-hash-table :test #'equal)))
+	(map-do
+	 (lambda (var _)
+	   (when (and (boundp var)
+				  (symbol-value var))
+		 (puthash
+		  (or (get var :minor-mode-function) var)
+		  (propertize
+		   (symbol-name var)
+		   'face
+		   'compilation-mode-line-exit)
+		  modes)))
+	 minor-mode-alist)
+	modes))
+
+(defun selectsel-M-x ()
+  ""
+  (interactive)
+  (command-execute
+   (intern
+	(completing-read
+	 "M-x "
+	 (let ((modes (selectsel--hash-coloured-modes))
+		   (cmds nil))
+	   (obarray-map
+		(lambda (sym)
+		  (when (commandp sym)
+			(push
+			 (or (gethash sym modes)
+				 (symbol-name sym))
+			 cmds)))
+		obarray)
+	   cmds)
+	 nil
+	 'require-match))
+   'record))
 
 ;;;; ChangeLog:
 

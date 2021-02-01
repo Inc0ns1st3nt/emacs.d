@@ -4,7 +4,7 @@
   "Run a shell command `git COMMAND`' on the marked files.
 If no files marked, always operate on current line in dired-mode."
   (interactive
-   (let* ((files (dired-get-marked-files t current-prefix-arg)))
+   (let ((files (dired-get-marked-files t current-prefix-arg)))
      (list
       ;; Want to give feedback whether this file or marked files are used:
       (dired-read-shell-command "git command on %s: " current-prefix-arg files)
@@ -21,23 +21,21 @@ If no files marked, always operate on current line in dired-mode."
   (interactive)
   (let* ((files (dired-get-marked-files))
          (wnd (current-window-configuration)))
-    (cond
-     ((<= (length files) 2)
-      (let* ((file1 (car files))
-             (file2 (if (cdr files)
-                        (cadr files)
-                      (read-file-name
-                       "file: "
-                       (dired-dwim-target-directory)))))
-        (if (file-newer-than-file-p file1 file2)
-            (ediff-files file2 file1)
-          (ediff-files file1 file2))
-        (add-hook 'ediff-after-quit-hook-internal
-                  (lambda ()
-                    (setq ediff-after-quit-hook-internal nil)
-                    (set-window-configuration wnd)))))
-     (t
-      (error "no more than 2 files should be marked")))))
+    (if (<= (length files) 2)
+        (let ((file1 (car files))
+				  (file2 (if (cdr files)
+                         (cadr files)
+							  (read-file-name
+								"file: "
+								(dired-dwim-target-directory)))))
+			 (if (file-newer-than-file-p file1 file2)
+              (ediff-files file2 file1)
+				(ediff-files file1 file2))
+			 (add-hook 'ediff-after-quit-hook-internal
+                    (lambda ()
+							 (setq ediff-after-quit-hook-internal nil)
+							 (set-window-configuration wnd))))
+		(error "no more than 2 files should be marked"))))
 
 
 (with-eval-after-load 'dired-x
@@ -139,21 +137,29 @@ If no files marked, always operate on current line in dired-mode."
   (defun inc0n/dired-find-file-hack (orig-func &rest args)
     "Avoid accidentally editing huge file in dired."
     (let ((file (dired-get-file-for-visit)))
-      (cond
-       ((string-match-p inc0n/binary-file-name-regexp file)
-        ;; confirm before opening big file
-        (when (yes-or-no-p "Edit binary file?")
-          (apply orig-func args)))
-       (t
-        (when (and (file-directory-p file)
+      (if (string-match-p inc0n/binary-file-name-regexp file)
+			 ;; confirm before opening big file
+			 (when (yes-or-no-p "Edit binary file?")
+				(apply orig-func args))
+		  (when (and (file-directory-p file)
                    ;; don't add directory when user pressing "^" in `dired-mode'
                    (not (string-match-p "\\.\\." file)))
           (add-to-list 'inc0n/dired-directory-history file))
-        (apply orig-func args)))))
+		  (apply orig-func args))))
   (advice-add 'dired-find-file :around #'inc0n/dired-find-file-hack)
 
   ;; @see https://emacs.stackexchange.com/questions/5649/sort-file-names-numbered-in-dired/5650#5650
   (setq dired-listing-switches "-laGh1v")
-  (setq dired-recursive-deletes 'always))
+  (setq dired-recursive-deletes 'always)
+
+  (defun inc0n/dired-copy-filename-as-kill-hack (&optional arg)
+	 "Copy the file name or file path from dired into clipboard.
+Press \"w\" to copy file name.
+Press \"C-u 0 w\" to copy full path."
+	 (let ((str (current-kill 0)))
+		(util/set-clip str)
+		(message "%s => clipboard" str)))
+  (advice-add 'dired-copy-filename-as-kill :after
+				  #'inc0n/dired-copy-filename-as-kill-hack))
 
 (provide 'init-dired)

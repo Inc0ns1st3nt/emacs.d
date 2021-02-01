@@ -69,11 +69,6 @@
   (dolist (pattern patterns)
     (add-to-list 'auto-mode-alist (cons pattern mode))))
 
-(defun add-interpreter-mode (mode &rest patterns)
-  "Add entries to `interpreter-mode-alist' to use `MODE' for all given file `PATTERNS'."
-  (dolist (pattern patterns)
-    (add-to-list 'interpreter-mode-alist (cons pattern mode))))
-
 (defun font-belongs-to (pos fonts)
   "Current font at POS belongs to FONTS."
   (let ((fontfaces (get-text-property pos 'face)))
@@ -159,7 +154,7 @@ If N is nil, use `selectrum-mode' to browse `kill-ring'."
 (defun util/in-one-line-p (b e)
   (save-excursion
     (goto-char b)
-    (and (<= (line-beginning-position) b)
+    (and (<= (line-beginning-position) e)
          (<= e (line-end-position)))))
 
 (defun util/buffer-str ()
@@ -239,6 +234,8 @@ If region is active get region string and deactivate."
              (set-visited-file-name new-name)
              (set-buffer-modified-p nil)))))
 
+(defvar load-user-customized-major-mode-hook t)
+
 (defun buffer-too-big-p ()
   ;; 5000 lines
   (> (buffer-size) (* 5000 80)))
@@ -306,29 +303,33 @@ you can '(setq inc0n/mplayer-extra-opts \"-ao alsa -vo vdpau\")'.")
                                   (message "Failed to run \"%s\"." command))))))))
 
 ;; reply y/n instead of yes/no
-(fset 'yes-or-no-p 'y-or-n-p)
+;; (fset 'yes-or-no-p 'y-or-n-p)
 
 ;; {{ code is copied from https://liu233w.github.io/2016/09/29/org-python-windows.org/
-(defun util/setup-language-and-encode ()
-  "Set up LANGUAGE-NAME and CODING-SYSTEM at Windows.
-For example,
-- \"English\" and 'utf-16-le
-- \"Chinese-GBK\" and 'gbk"
-  (set-language-environment "UTF-8")
-  (prefer-coding-system 'utf-8))
+;; Set up LANGUAGE-NAME and CODING-SYSTEM at Windows.
+;; For example
+;; - "English" and 'utf-16-le
+;; - "Chinese-GBK" and 'gbk
+(set-language-environment "UTF-8")
+(prefer-coding-system 'utf-8)
 ;; }}
 
-(defun util/skip-white-space (start step)
-  "Skip white spaces from START, return position of first non-space character.
+(defun util/skip-white-space (begin step)
+  "Skip white spaces from BEGIN, return position of first non-space character.
 If STEP is 1,  search in forward direction, or else in backward direction."
-  (let ((b start)
-        (e (if (> step 0) (line-end-position) (line-beginning-position))))
-    (save-excursion
-      (goto-char b)
-      (while (and (not (eq b e)) (memq (following-char) '(9 32)))
-        (forward-char step))
+  (multiple-value-bind (compare-fn end)
+	  (if (> step 0)
+		  (values '> (line-end-position))
+		(values '< (line-beginning-position)))
+	(save-excursion
+      (goto-char begin)
+      (while (and (not (funcall compare-fn (point) end))
+				  ;; if encounter tabs or space
+				  (memq (following-char) '(?\t ?\s)))
+		(forward-char step))
       (point))))
-
+	  ;; "[^[:space:]]"
+	  ;; (re-search-forward (rx (not (or ?\t ?\s))) nil t 1)
 ;;
 
 (defun util/comint-current-input-region ()

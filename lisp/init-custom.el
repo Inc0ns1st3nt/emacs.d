@@ -13,8 +13,6 @@
 ;; (load-theme 'doom-dark+)
 ;; (load-theme 'solarized-dark)
 
-;; (setq-default line-spacing 0)
-
 ;; iedit quit fix
 (with-eval-after-load 'evil-iedit-state
   (fset 'iedit-cleanup 'iedit-lib-cleanup))

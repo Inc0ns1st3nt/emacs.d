@@ -1,4 +1,4 @@
-;;; xr.el --- Convert string regexp to rx notation   -*- lexical-binding: t -*-
+;; xr.el --- Convert string regexp to rx notation   -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2019 Free Software Foundation, Inc.
 
@@ -28,7 +28,7 @@
 ;; - Migrating existing code to rx form, for better readability and
 ;;   maintainability
 ;; - Understanding complex regexp strings and finding errors in them
-;;   
+;;
 ;; Please refer to `rx' for more information about the notation.
 ;;
 ;; In addition to Emacs regexps, this package can also parse and
@@ -258,7 +258,7 @@
               (xr--report warnings (max (aref this 2) (aref next 2))
                           (xr--escape-string message nil)))))
         (setq s (cdr s)))
-            
+
       ;; Gather ranges and single characters separately.
       ;; We make no attempts at merging adjacent intervals/characters,
       ;; nor at splitting short intervals such as "a-b"; if the user
@@ -270,7 +270,7 @@
               (push (aref interv 0) chars)
             (push (string (aref interv 0) ?- (aref interv 1))
                   ranges)))
-        
+
         ;; Note that we return (any) for non-negated empty sets,
         ;; such as [z-a]. (any) is not accepted by rx but at least we
         ;; are not hiding potential bugs from the user.
@@ -332,45 +332,45 @@ adjacent strings."
                     '((?\s . space-for-indent)
                       (?. . base)
                       (?0 . consonant)
-                      (?1 . base-vowel)                        
-                      (?2 . upper-diacritical-mark)            
-                      (?3 . lower-diacritical-mark)            
-                      (?4 . tone-mark)                 
-                      (?5 . symbol)                            
-                      (?6 . digit)                             
-                      (?7 . vowel-modifying-diacritical-mark)  
-                      (?8 . vowel-sign)                        
-                      (?9 . semivowel-lower)                   
-                      (?< . not-at-end-of-line)                
-                      (?> . not-at-beginning-of-line)          
-                      (?A . alpha-numeric-two-byte)            
-                      (?C . chinese-two-byte)                  
-                      (?G . greek-two-byte)                    
-                      (?H . japanese-hiragana-two-byte)        
-                      (?I . indian-two-byte)                   
-                      (?K . japanese-katakana-two-byte)        
+                      (?1 . base-vowel)
+                      (?2 . upper-diacritical-mark)
+                      (?3 . lower-diacritical-mark)
+                      (?4 . tone-mark)
+                      (?5 . symbol)
+                      (?6 . digit)
+                      (?7 . vowel-modifying-diacritical-mark)
+                      (?8 . vowel-sign)
+                      (?9 . semivowel-lower)
+                      (?< . not-at-end-of-line)
+                      (?> . not-at-beginning-of-line)
+                      (?A . alpha-numeric-two-byte)
+                      (?C . chinese-two-byte)
+                      (?G . greek-two-byte)
+                      (?H . japanese-hiragana-two-byte)
+                      (?I . indian-two-byte)
+                      (?K . japanese-katakana-two-byte)
                       (?L . strong-left-to-right)
-                      (?N . korean-hangul-two-byte)            
+                      (?N . korean-hangul-two-byte)
                       (?R . strong-right-to-left)
-                      (?Y . cyrillic-two-byte)         
-                      (?^ . combining-diacritic)               
-                      (?a . ascii)                             
-                      (?b . arabic)                            
-                      (?c . chinese)                           
-                      (?e . ethiopic)                          
-                      (?g . greek)                             
-                      (?h . korean)                            
-                      (?i . indian)                            
-                      (?j . japanese)                          
-                      (?k . japanese-katakana)         
-                      (?l . latin)                             
-                      (?o . lao)                               
-                      (?q . tibetan)                           
-                      (?r . japanese-roman)                    
-                      (?t . thai)                              
-                      (?v . vietnamese)                        
-                      (?w . hebrew)                            
-                      (?y . cyrillic)                          
+                      (?Y . cyrillic-two-byte)
+                      (?^ . combining-diacritic)
+                      (?a . ascii)
+                      (?b . arabic)
+                      (?c . chinese)
+                      (?e . ethiopic)
+                      (?g . greek)
+                      (?h . korean)
+                      (?i . indian)
+                      (?j . japanese)
+                      (?k . japanese-katakana)
+                      (?l . latin)
+                      (?o . lao)
+                      (?q . tibetan)
+                      (?r . japanese-roman)
+                      (?t . thai)
+                      (?v . vietnamese)
+                      (?w . hebrew)
+                      (?y . cyrillic)
                       (?| . can-break))))
          (item (list 'category (if sym (cdr sym) category-code))))
     (if negated (list 'not item) item)))
@@ -423,7 +423,7 @@ adjacent strings."
 UPPER may be nil, meaning infinity."
   (when (and upper (> lower upper))
     (error "Invalid repetition interval"))
-  ;; rx does not accept (= 0 ...) or (>= 0 ...), so we use 
+  ;; rx does not accept (= 0 ...) or (>= 0 ...), so we use
   ;; (repeat 0 0 ...) and (zero-or-more ...), respectively.
   ;; Note that we cannot just delete the operand if LOWER=UPPER=0,
   ;; since doing so may upset the group numbering.
@@ -440,7 +440,7 @@ UPPER may be nil, meaning infinity."
                    (cdr operand)
                  (list operand))))
     (append operator body)))
-  
+
 (defconst xr--zero-width-assertions
   '(bol eol bos eos bow eow word-boundary not-word-boundary
     symbol-start symbol-end point))
@@ -697,7 +697,7 @@ UPPER may be nil, meaning infinity."
              "")
             ((null (cdr item-seq))
              (car item-seq))
-            (t 
+            (t
              (cons 'seq item-seq))))))
 
 (defun xr--range-string-to-items (str)
@@ -898,7 +898,7 @@ single-character strings."
         (if (<= lo 1)
             (xr--superset-p (xr--make-seq a-body) b)
           (equal a b)))
-       
+
        ;; We do not expand through groups on the subset (b) side to
        ;; avoid false positives; "\\(a\\)\\|." should be without warning.
        (`(group . ,body)
@@ -1186,7 +1186,7 @@ The alists are mapping from the default choice.")
     (if (cdr keywords)
         (xr--substitute-keywords (cadr keywords) (cddr keywords) rx)
       rx)))
-  
+
 ;;;###autoload
 (defun xr (re-string &optional dialect)
   "Convert a regexp string to rx notation; the inverse of `rx'.
@@ -1342,7 +1342,7 @@ It does a slightly better job than standard `pp' for rx purposes."
                 (group "\n" (zero-or-more blank)))
             nil t)
       (replace-match " " t t nil 1))
-    
+
     ;; Reindent the buffer in case line breaks have been removed.
     (goto-char (point-min))
     (indent-sexp)

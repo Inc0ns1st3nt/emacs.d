@@ -94,10 +94,6 @@
 
 (global-set-key (kbd "C-x C-b") #'ibuffer)
 
-(defun rename-buffer-and-file ()
-  (interactive)
-  )
-
 (defun rename-file-and-buffer ()
   "Rename the current buffer and file it is visiting."
   (interactive)
@@ -109,5 +105,7 @@
         (rename-buffer new-name)
         (set-visited-file-name new-name)
         (set-buffer-modified-p nil)))))
+
+(defalias 'rename-buffer-and-file 'rename-file-and-buffer)
 
 (provide 'init-ibuffer)

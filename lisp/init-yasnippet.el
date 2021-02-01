@@ -27,7 +27,7 @@
       (org-cycle)
     (apply orig-func args)))
 (advice-add 'yas-expand-from-trigger-key
-            :around #'inc0n/yas-expand-from-trigger-key-hack)
+			:around #'inc0n/yas-expand-from-trigger-key-hack)
 
 (defun inc0n/yas-reload-all ()
   "Compile and reload snippets.  Run the command after adding new snippets."
@@ -58,11 +58,11 @@
 
 (defun inc0n/yas-camelcase-to-string-list (str)
   "Convert camelcase STR into string list."
-  (let ((case-fold-search nil))
-    (let* ((rlt (replace-regexp-in-string "\\([A-Z]+\\)" " \\1" str t))
-           (rlt (replace-regexp-in-string "\\([A-Z]+\\)\\([A-Z][a-z]+\\)" "\\1 \\2"
-                                          rlt t)))
-      (split-string rlt " "))))
+  (let* ((case-fold-search nil)
+		 (rlt (replace-regexp-in-string "\\([A-Z]+\\)" " \\1" str t))
+         (rlt (replace-regexp-in-string "\\([A-Z]+\\)\\([A-Z][a-z]+\\)" "\\1 \\2"
+                                        rlt t)))
+    (split-string rlt " ")))
 
 (defun inc0n/yas-camelcase-to-downcase (str)
   (let ((l (inc0n/yas-camelcase-to-string-list str))
@@ -121,7 +121,6 @@
     (let ((yas-prompt-functions '(yas-completing-prompt)))
       (apply orig-func args)))
   ;; (advice-add 'yas-insert-snippet :around #'inc0n/yas-insert-snippet-hack)
-  ;; (advice-remove 'yas-insert-snippet #'inc0n/yas-insert-snippet-hack)
 
   ;; how to add custom yasnippet directory
   ;; (add-to-list 'yas-snippet-dirs inc0n/yasnippets)

@@ -14,7 +14,6 @@
 
 ;; @see http://lua-users.org/wiki/LuaStyleGuide
 ;; indent 2 spaces by default
-(with-eval-after-load 'lua-mode
-  (setq-default lua-indent-level 2))
+(setq-default lua-indent-level 2)
 
 (provide 'init-lua-mode)

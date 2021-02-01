@@ -3,13 +3,14 @@
 (require-package 'haskell-mode)
 
 (custom-set-variables
- ;; '(haskell-process-type 'ghci)
  ;; '(haskell-interactive-types-for-show-ambiguous nil)
  '(haskell-interactive-mode-hide-multi-line-errors nil)
  '(haskell-process-log t)
- '(haskell-process-type (quote cabal-repl))
+ '(haskell-process-type 'cabal-repl) ;; 'ghci
  '(haskell-process-suggest-remove-import-lines t)
- '(haskell-svg-render-images t))
+ '(haskell-tags-on-save t)
+ '(haskell-svg-render-images t)
+ '(haskell-hasktags-path (expand-file-name "~/.cabal/bin/hasktags")))
 
 ;; (setq haskell-interactive-mode-eval-mode 'haskell-mode)
 
@@ -31,7 +32,8 @@
    ;; @see http://haskell.github.io/haskell-mode/manual/latest/Completion-support.html#Completion-support
    (setq-local company-backends
 			   (append '((company-capf company-dabbrev-code))
-					   company-backends))))
+					   company-backends))
+   (rainbow-delimiters-mode 1)))
 
 ;; Haskell Unicode support
 ;; (add-hook 'haskell-mode-hook 'turn-on-haskell-unicode-input-method)

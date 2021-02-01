@@ -16,11 +16,25 @@
 ;; midnight mode purges buffers which haven't been displayed in configured period
 ;; (require-package 'midnight)
 (setq midnight-period (* 3600 24)) ;; 24 hours
+(add-hook 'after-init-hook 'midnight-mode)
 
 ;; @see http://www.emacswiki.org/emacs/SavePlace
 (add-hook 'after-init-hook 'save-place-mode)
-(add-hook 'after-init-hook 'amx-mode)
-(add-hook 'after-init-hook 'midnight-mode)
+(add-hook 'after-init-hook (lambda () (run-with-idle-timer 1 nil 'amx-mode)))
+
+(setq confirm-kill-emacs 'y-or-n-p)
+
+(defun transient/kill-buffer ()
+  "Transient interface for `evil-jump'."
+  (interactive)
+  (let ((echo-keystrokes echo-keystrokes))
+	(call-interactively 'kill-buffer)
+	(message "kill-buffer: [k]ill more [q]uit")
+	(set-transient-map
+	 (let ((map (make-sparse-keymap)))
+	   (define-key map [?k] #'transient/kill-buffer)
+	   map)
+	 t)))
 
 (general-define-key
  "C-c C-u" (lambda (arg)
@@ -30,23 +44,17 @@
 			   (fmakunbound (intern arg))
 			   (message "fmakunbounded %s" arg)))
  "<C-backspace>" 'backward-delete-word
- "C-q" 'aya-open-line
- "M-o" 'ace-link
  "C-x C-o" 'ffap
- "C-x C-c" (lambda () (interactive)
-			 (when (y-or-n-p (format "Are you sure you want to quit emacs? "))
-			   (save-buffers-kill-emacs)))
- ;;
- "C-M-s" 'isearch-forward-regexp
- "C-M-r" 'isearch-backward-regexp
  ;;
  "C-h C-f" 'find-function
  "C-h K" 'find-function-on-key
+ "C-k" 'kill-sexp
  ;;
- "TAB" 'indent-for-tab-command
- [dead-grave] (lambda () (interactive) (insert ?`)))
+ "TAB" 'tab-out-delimiter) ;; 'indent-for-tab-command
+;; [dead-grave] (lambda () (interactive) (insert ?`))
 
 (defun backward-delete-word ()
+  "my function that doesn't actually register deleted word into clipboard"
   (interactive)
   (delete-region (point)
 				 (progn (forward-word -1)
@@ -58,16 +66,20 @@
 ;; - aya-create at first, input ~ to mark the thing next
 ;; - aya-expand to expand snippet
 ;; - aya-open-line to finish
+(global-set-key (kbd "C-q") 'aya-open-line)
 ;; }}
 
 ;; {{ ace-link
 (require-package 'ace-link)
 (with-eval-after-load 'ace-link
+  (global-set-key (kbd "M-o") 'ace-link)
   (ace-link-setup-default))
 ;; }}
 
 ;; {{ isearch
 ;; Use regex to search by default
+(global-set-key (kbd "C-M-s") 'isearch-forward-regexp)
+(global-set-key (kbd "C-M-r") 'isearch-backward-regexp)
 (define-key isearch-mode-map (kbd "C-o") 'isearch-occur)
 ;; }}
 
@@ -90,6 +102,7 @@
               ;; visible-bell has some issue
               ;; @see https://github.com/redguardtoo/mastering-emacs-in-one-year-guide/issues/9#issuecomment-97848938
               visible-bell nil)
+(setq-default line-spacing 1)
 
 ;; {{ find-file-in-project (ffip)
 (require-package 'find-file-in-project)
@@ -169,24 +182,49 @@ This function can be re-used by other major modes after compilation."
       (message "NO COMPILATION ERRORS!"))))
 
 (defun inc0n/electric-pair-inhibit (char)
-  (or
-   ;; input single/double quotes at the end of word
-   (and (memq char '(34 39))
-        (char-before (1- (point)))
-        (eq (char-syntax (char-before (1- (point)))) ?w))
-   (electric-pair-conservative-inhibit char)))
+  ;; (electric-pair-conservative-inhibit char)
+  (or (and (memq major-mode '(minibuffer-inactive-mode))
+		   (not (string-match "^Eval:" (buffer-string))))
+	  ;; input single/double quotes at the end of word
+	  (and (memq char '(?\" ?\'))
+           (char-before (1- (point)))
+           (eq (char-syntax (char-before (1- (point)))) ?w))
+	  ;; I find it more often preferable not to pair when the
+	  ;; same char is next.
+	  (eq char (char-after))
+	  ;; Don't pair up when we insert the second of "" or of ((.
+	  (and (eq char ?\")
+		   (eq char (char-before (1- (point)))))
+	  ;; I also find it often preferable not to pair next to a word.
+	  (eq (char-syntax (following-char)) ?w)))
+
+(defun tab-out-delimiter ()
+  "Move cursor out of a consecutive block of delimiters"
+  (interactive)
+  (if (not
+	   (memq (char-syntax (following-char)) '(?\) ?\")))
+	  (indent-for-tab-command)
+	(just-one-space 0) ;; delete any space before delimiter
+	(forward-char 1)))
+
+(with-eval-after-load 'elec-pair
+  (setq electric-pair-inhibit-predicate #'inc0n/electric-pair-inhibit))
+
+(defun my-prog-nuke-trailing-whitespace ()
+  (when (derived-mode-p 'prog-mode)
+	(delete-trailing-whitespace)))
+;; (add-hook 'before-save-hook 'my-prog-nuke-trailing-whitespace)
 
 (defun generic-prog-mode-hook-setup ()
   (when (buffer-too-big-p)
     ;; Turn off `linum-mode' when there are more than 5000 lines
-	;; (linum-mode -1)
+	(linum-mode -1)
     (when (should-use-minimum-resource)
       (font-lock-mode -1)))
 
   (company-ispell-setup)
 
   (unless (buffer-file-temp-p)
-
     ;; @see http://xugx2007.blogspot.com.au/2007/06/benjamin-rutts-emacs-c-development-tips.html
     (setq compilation-finish-functions '(compilation-finish-hide-buffer-on-success))
 
@@ -195,26 +233,24 @@ This function can be re-used by other major modes after compilation."
     (unless (derived-mode-p 'js2-mode)
       (subword-mode 1))
 
-    (setq-default electric-pair-inhibit-predicate #'inc0n/electric-pair-inhibit)
-    (electric-pair-mode 1)
-
-    ;; eldoc, show API doc in minibuffer echo area
-    ;; (turn-on-eldoc-mode)
-    ;; show trailing spaces in a programming mod
+    (electric-pair-mode 1) ;; auto insert pairing delimiter
+	(hs-minor-mode)			;; code/comment fold
+	(turn-on-auto-fill)		;; auto indent
+    (turn-on-eldoc-mode) ;; eldoc, show API doc in minibuffer echo area
     (setq show-trailing-whitespace t)))
 
 (add-hook 'prog-mode-hook #'generic-prog-mode-hook-setup)
 ;; some major-modes NOT inherited from prog-mode
-(add-hook 'css-mode-hook #'generic-prog-mode-hook-setup)
 
 ;; {{ display long lines in truncated style (end line with $)
-(add-hook 'grep-mode-hook (lambda () (toggle-truncate-lines 1)))
+(add-hook 'grep-mode-hook (lambda ()
+							(setf truncate-lines nil)))
 ;; }}
 
 ;; turn on auto-fill-mode, don't use `text-mode-hook' because for some
 ;; mode (org-mode for example), this will make the exported document
 ;; ugly!
-;; (add-hook 'markdown-mode-hook 'turn-on-auto-fill)
+(add-hook 'markdown-mode-hook 'turn-on-auto-fill)
 (add-hook 'change-log-mode-hook #'turn-on-auto-fill)
 (add-hook 'cc-mode-hook #'turn-on-auto-fill)
 
@@ -233,9 +269,9 @@ This function can be re-used by other major modes after compilation."
 ;; (setq display-time-format "%a %b %e")
 
 ;; from RobinH, Time management
-;; (setq display-time-24hr-format t) ; the date in modeline is English too, magic!
-;; (setq display-time-day-and-date t)
-;; (add-hook 'after-init-hook 'display-time-mode) ; show date in modeline
+(setq display-time-24hr-format t) ; the date in modeline is English too, magic!
+(setq display-time-day-and-date t)
+(add-hook 'after-init-hook 'display-time-mode) ; show date in modeline
 ;; }}
 
 ;; (defalias 'list-buffers #'ibuffer)
@@ -244,7 +280,7 @@ This function can be re-used by other major modes after compilation."
 (with-eval-after-load 'gnus
   (when (local-require 'gnus-article-treat-patch)
     (setq gnus-article-patch-conditions
-          '( "^@@ -[0-9]+,[0-9]+ \\+[0-9]+,[0-9]+ @@" ))))
+          '("^@@ -[0-9]+,[0-9]+ \\+[0-9]+,[0-9]+ @@"))))
 ;; }}
 
 (defun add-pwd-into-load-path ()
@@ -257,7 +293,7 @@ This function can be re-used by other major modes after compilation."
 
 (setq system-time-locale "C")
 
-(setq imenu-max-item-length 256)
+(setq imenu-max-item-length 128)
 
 ;; {{ recentf-mode
 (with-eval-after-load 'recentf
@@ -284,9 +320,7 @@ This function can be re-used by other major modes after compilation."
                           ;; sub-titles
                           "\\.sub$"
                           "\\.srt$"
-                          "\\.ass$"
-                          ;; "/home/[a-z]\+/\\.[a-df-z]" ; configuration file should not be excluded
-                          )))
+                          "\\.ass$")))
 ;; }}
 
 ;; {{ popup functions
@@ -306,6 +340,7 @@ This function can be re-used by other major modes after compilation."
              #'counsel-etags-imenu-default-create-index-function
            imenu-create-index-function))
         (imenu-auto-rescan-maxout (buffer-size)))
+	;; (delete (assoc "*Rescan*" items) items)
     (imenu--make-index-alist t))
   (which-function))
 
@@ -321,9 +356,9 @@ This function can be re-used by other major modes after compilation."
 ;; {{ avy, jump between texts, like easymotion in vim
 ;; @see http://emacsredux.com/blog/2015/07/19/ace-jump-mode-is-dead-long-live-avy/ for more tips
 ;; dired
-(add-hook 'dired-mode-hook 'diredfl-mode)
 (with-eval-after-load 'dired
   ;; (diredfl-global-mode 1)
+  (add-hook 'dired-mode-hook 'diredfl-mode)
   (define-key dired-mode-map (kbd ";") 'avy-goto-subword-1))
 ;; }}
 
@@ -350,18 +385,18 @@ This function can be re-used by other major modes after compilation."
   (add-hook 'compilation-filter-hook #'inc0n/colorize-compilation-buffer))
 ;; }}
 
-;; (defun inc0n/minibuffer-setup-hook ()
-;;   (local-set-key (kbd "C-k") #'kill-line)
-;;   (subword-mode 1) ; enable subword movement in minibuffer
-;;   (setq gc-cons-threshold most-positive-fixnum))
+(defun inc0n/minibuffer-setup-hook ()
+  ;; (local-set-key (kbd "C-k") #'kill-line)
+  (subword-mode 1) ; enable subword movement in minibuffer
+  (setq gc-cons-threshold most-positive-fixnum))
 
-;; (defun inc0n/minibuffer-exit-hook ()
-;;   ;; evil-mode also use minibuf
-;;   (setq gc-cons-threshold best-gc-cons-threshold))
+(defun inc0n/minibuffer-exit-hook ()
+  ;; evil-mode also use minibuf
+  (setq gc-cons-threshold normal-gc-cons-threshold))
 
 ;; @see http://bling.github.io/blog/2016/01/18/why-are-you-changing-gc-cons-threshold/
-;; (add-hook 'minibuffer-setup-hook #'inc0n/minibuffer-setup-hook)
-;; (add-hook 'minibuffer-exit-hook #'inc0n/minibuffer-exit-hook)
+(add-hook 'minibuffer-setup-hook #'inc0n/minibuffer-setup-hook)
+(add-hook 'minibuffer-exit-hook #'inc0n/minibuffer-exit-hook)
 
 ;; {{ Diff two regions
 ;; Step 1: Select a region and `M-x diff-region-tag-selected-as-a'
@@ -369,26 +404,26 @@ This function can be re-used by other major modes after compilation."
 ;; Press "q" in evil-mode or "C-c C-c" to exit the diff output buffer
 (defun diff-region-format-region-boundary (b e)
   "Make sure lines are selected and B is less than E"
-  ;; swap b e, make sure b < e
-  (when (> b e)
-    (let ((tmp b))
-      (setq b e)
-      (setq e tmp)))
-  ;; select lines
-  (save-excursion
-    ;; Another workaround for evil-visual-line bug:
-    ;; In evil-mode, if we use hotkey V or `M-x evil-visual-line` to select line,
-    ;; the (line-beginning-position) of the line which is after the last selected
-    ;; line is always (region-end)! Don't know why.
-    (when (and (> e b)
-               (save-excursion (goto-char e) (= e (line-beginning-position)))
-               (boundp 'evil-state) (eq evil-state 'visual))
-      (setq e (1- e)))
-    (goto-char b)
-    (setq b (line-beginning-position))
-    (goto-char e)
-    (setq e (line-end-position)))
-  (list b e))
+  (if (> b e)
+	  ;; swap b e, make sure b < e
+	  (diff-region-format-region-boundary e b)
+	;; select lines
+	(save-excursion
+	  ;; Another workaround for evil-visual-line bug:
+	  ;; In evil-mode, if we use hotkey V or `M-x evil-visual-line` to select line,
+	  ;; the (line-beginning-position) of the line which is after the last selected
+	  ;; line is always (region-end)! Don't know why.
+	  (when (and (> e b)
+				 (save-excursion
+				   (goto-char e)
+				   (= e (line-beginning-position)))
+				 (boundp 'evil-state)
+				 (eq evil-state 'visual))
+		(setq e (1- e)))
+	  (goto-char b)
+	  (let ((b (line-beginning-position)))
+		(goto-char e)
+		(list b (line-end-position))))))
 
 (defun diff-region-open-diff-output (content buffer-name)
   (let ((rlt-buf (get-buffer-create buffer-name)))
@@ -419,60 +454,53 @@ This function can be re-used by other major modes after compilation."
   "Compare current region with the region set by `diff-region-tag-selected-as-a'.
 If no region is selected, `kill-ring' or clipboard is used instead."
   (interactive)
-  (let (;; file A
-        (fa (make-temp-file (expand-file-name "diff-region"
-                                              (or small-temporary-file-directory
-                                                  temporary-file-directory))))
-        ;; file B
-        (fb (make-temp-file (expand-file-name "diff-region"
-                                              (or small-temporary-file-directory
-                                                  temporary-file-directory)))))
-    (when (and fa (file-exists-p fa)
-               fb (file-exists-p fb))
-      (cond
-       ((region-active-p)
-        ;; text from selected region
-        (let ((tmp
-               (diff-region-format-region-boundary (region-beginning) (region-end))))
-          (write-region (car tmp) (cadr tmp) fb)))
-       (t
-        ;; text from `kill-ring' or clipboard
-        (let* ((choice (completing-read "Since no region selected, compare text in:"
-                                        '("kill-ring" "clipboard")))
-               (txt (cond
-                     ((string= choice "kill-ring")
-                      (car kill-ring))
-                     ((string= choice "clipboard")
-                      (util/get-clip)))))
-          (with-temp-file fb
-            (insert txt)))))
-      ;; save region A as file A
-      (save-current-buffer
-        (set-buffer (get-buffer-create "*Diff-regionA*"))
-        (write-region (point-min) (point-max) fa))
-      ;; diff NOW!
-      ;; show the diff output
-      (let ((diff-output
-             (shell-command-to-string (format "%s -Nabur %s %s" diff-command fa fb))))
-        (cond
-         ((string-empty-p diff-output)
-          (message "Two regions are SAME!"))
-         ((executable-find "git")
-          (util/ensure 'magit)
-          (magit-diff-setup nil (list "--no-index" "--indent-heuristic" "--histogram")
-                            nil (list (magit-convert-filename-for-git
-                                       (expand-file-name fa))
-                                      (magit-convert-filename-for-git
-                                       (expand-file-name fb))))
-          (ffip-diff-mode))
-         (t
-          (diff-region-open-diff-output diff-output
-                                        "*Diff-region-output*"))))
-      ;; clean the temporary files
-      (when (and fa (file-exists-p fa))
-        (delete-file fa))
-      (when (and fb (file-exists-p fb))
-        (delete-file fb)))))
+  (let ((prefix (expand-file-name "diff-region"
+                                  (or small-temporary-file-directory
+                                      temporary-file-directory))))
+	(let ((fa (make-temp-file prefix))	;; file A
+		  (fb (make-temp-file prefix)))	;; file B
+	  (when (and fa (file-exists-p fa)
+				 fb (file-exists-p fb))
+		(if (region-active-p)
+			;; text from selected region
+			(let ((tmp
+				   (diff-region-format-region-boundary (region-beginning) (region-end))))
+			  (write-region (car tmp) (cadr tmp) fb))
+		  ;; text from `kill-ring' or clipboard
+		  (let* ((choice (completing-read "Since no region selected, compare text in:"
+										  '("kill-ring" "clipboard")))
+				 (txt (cond ((string= choice "kill-ring")
+							 (car kill-ring))
+							((string= choice "clipboard")
+							 (util/get-clip)))))
+			(with-temp-file fb
+			  (insert txt))))
+		;; save region A as file A
+		(save-current-buffer
+		  (set-buffer (get-buffer-create "*Diff-regionA*"))
+		  (write-region (point-min) (point-max) fa))
+		;; diff NOW!
+		;; show the diff output
+		(let ((diff-output
+			   (shell-command-to-string (format "%s -Nabur %s %s" diff-command fa fb))))
+		  (cond ((string-empty-p diff-output)
+				 (message "Two regions are SAME!"))
+				((executable-find "git")
+				 (util/ensure 'magit)
+				 (magit-diff-setup nil (list "--no-index" "--indent-heuristic" "--histogram")
+								   nil (list (magit-convert-filename-for-git
+											  (expand-file-name fa))
+											 (magit-convert-filename-for-git
+											  (expand-file-name fb))))
+				 (ffip-diff-mode))
+				(t
+				 (diff-region-open-diff-output diff-output
+											   "*Diff-region-output*"))))
+		;; clean the temporary files
+		(when (and fa (file-exists-p fa))
+		  (delete-file fa))
+		(when (and fb (file-exists-p fb))
+		  (delete-file fb))))))
 ;; }}
 
 (defun extract-list-from-package-json ()
@@ -501,16 +529,10 @@ If no region is selected, `kill-ring' or clipboard is used instead."
     (util/set-clip path)
     (message "%s => clipboard & yank ring" path)))
 
-;; indention management
-(defun inc0n/toggle-indentation ()
-  (interactive)
-  (setq indent-tabs-mode (not indent-tabs-mode))
-  (message "indent-tabs-mode=%s" indent-tabs-mode))
-
 ;; {{ auto-save - builtin emacs >= 26.1 package
 (setq auto-save-timeout 2)
 (setq auto-save-interval 100) ;; 100 characters interval
-(setq auto-save-default t)
+(setq auto-save-default nil)
 (setq auto-save-no-message t)
 (add-hook 'after-init-hook 'auto-save-mode)
 
@@ -535,21 +557,23 @@ If no region is selected, `kill-ring' or clipboard is used instead."
   (when (and kill-ring (> (length kill-ring) 0))
     (when (> n (length kill-ring))
       (setq n (length kill-ring)))
-    (let* ((rlt (mapconcat 'identity (subseq kill-ring 0 n) "|"))
-           (rlt (replace-regexp-in-string "(" "\\\\(" rlt)))
-      (util/set-clip rlt)
-      (message (format "%s => kill-ring&clipboard" rlt)))))
+    (let* ((str (mapconcat 'identity (subseq kill-ring 0 n) "|"))
+           (str (replace-regexp-in-string "(" "\\\\(" str)))
+      (util/set-clip str)
+      (message (format "%s => kill-ring&clipboard" str)))))
 ;; }}
 
 (defun inc0n/get-total-hours (str)
   (interactive (list (if (region-active-p)
 						 (util/selected-str)
 					   (util/buffer-str))))
-  (let ((total-hours 0)
-        (lines (split-string str "[\r\n]+" t)))
-    (dolist (l lines)
-      (when (string-match " \\([0-9][0-9.]*\\)h[ \t]*$" l)
-		(cl-incf total-hours (string-to-number (match-string 1 l)))))
+  (let ((total-hours
+		 (cl-reduce (lambda (total-hours line)
+					  (if (string-match " \\([0-9][0-9.]*\\)h[ \t]*$" line)
+						  (+ total-hours (string-to-number (match-string 1 line)))
+						total-hours))
+					(split-string str "[\r\n]+" t)
+					:initial-value 0)))
     (message "total-hours=%s" total-hours)))
 
 ;; {{ emmet (auto-complete html tags)
@@ -567,7 +591,6 @@ If no region is selected, `kill-ring' or clipboard is used instead."
   ;; let web-mode handle indentation by itself since it does not derive from `sgml-mode'
   (setq-local indent-region-function #'sgml-pretty-print))
 (add-hook 'sgml-mode-hook #'sgml-mode-hook-setup)
-
 
 ;; {{ xterm
 (defun run-after-make-frame-hooks (frame)
@@ -608,7 +631,7 @@ If no region is selected, `kill-ring' or clipboard is used instead."
   (when (and (inc0n/message-says-attachment-p)
              (not (inc0n/message-has-attachment-p)))
     (unless
-        (y-or-n-p "The message suggests that you may want to attach something, but no attachment is found. Send anyway?")
+		(y-or-n-p "The message suggests that you may want to attach something, but no attachment is found. Send anyway?")
       (error "It seems that an attachment is needed, but none was found. Aborting sending."))))
 (add-hook 'message-send-hook #'inc0n/message-pre-send-check-attachment)
 ;; }}
@@ -683,7 +706,8 @@ If no region is selected, `kill-ring' or clipboard is used instead."
                                   inc0n/dired-commands-history
                                   file-name-history
                                   search-ring
-                                  regexp-search-ring)))
+                                  regexp-search-ring))
+  (setq session-save-file-coding-system 'utf-8))
 (add-hook 'after-init-hook #'session-initialize)
 ;; }}
 
@@ -717,16 +741,11 @@ If no region is selected, `kill-ring' or clipboard is used instead."
   "Switch to builtin shell.
 If the shell is already opened in some buffer, switch to that buffer."
   (interactive)
-  (if-let ((win (get-window-with-predicate
-				 (lambda (w)
-				   (string= (buffer-name (window-buffer w))
-							buf-name)))))
-	  ;; A shell buffer is already opened
+  (if-let ((shell (get-buffer "*shell*")))
 	  (progn
-		(select-window win)
-		(switch-to-buffer (window-buffer win)))
-    ;; Linux
-	(ansi-term var/term-program)))
+		;;TODO: change directory to current directory of the buffer
+		(switch-to-buffer shell))
+	(shell)))
 
 ;; {{ emms
 (require-package 'emms)
@@ -746,12 +765,6 @@ If the shell is already opened in some buffer, switch to that buffer."
   (setq auto-revert-verbose nil
 		global-auto-revert-non-file-buffers t))
 
-;; my screen is tiny, so I use minimum eshell prompt
-(with-eval-after-load 'eshell
-  (setq eshell-prompt-function
-        (lambda ()
-          (concat (getenv "USER") " $ "))))
-
 (defun inc0n/insert-date (prefix)
   "Insert the current date. With prefix-argument, use ISO format. With
    two prefix arguments, write out the day and month name."
@@ -768,12 +781,6 @@ If the shell is already opened in some buffer, switch to that buffer."
   (let ((current-date-time-format "%a %b %d %H:%M %Z %Y"))
     (insert (format-time-string current-date-time-format (current-time)))))
 
-;; compute the length of the marked region
-(defun region-length ()
-  "Length of a selected region."
-  (interactive)
-  (message (format "%d" (- (region-end) (region-beginning)))))
-
 ;; show ascii table
 (defun ascii-table ()
   "Print the ascii table."
@@ -781,42 +788,22 @@ If the shell is already opened in some buffer, switch to that buffer."
   (switch-to-buffer "*ASCII*")
   (erase-buffer)
   (insert (format "ASCII characters up to number %d.\n" 254))
-  (let ((i 0))
-    (while (< i 254)
-      (setq i (+ i 1))
-      (insert (format "%4d %c\n" i i))))
-  (beginning-of-buffer))
+  (dotimes (i 255)
+	(insert (format "%4d %c\n" i i)))
+  (beginning-of-buffer)
+  (read-only-mode 1))
 
 ;; unique lines
-(defun uniq-lines ()
+(defun uniq-lines (beg end)
   "Delete duplicate lines in region or buffer."
-  (interactive)
-  (let* ((a (region-active-p))
-         (start (if a (region-beginning) (point-min)))
-         (end (if a (region-end) (point-max))))
-    (save-excursion
-      (while
-          (progn
-            (goto-char start)
-            (re-search-forward "^\\(.*\\)\n\\(\\(.*\n\\)*\\)\\1\n" end t))
-        (replace-match "\\1\n\\2")))))
-
-(defun inc0n/insert-file-link-from-clipboard ()
-  "Make sure the full path of file exist in clipboard.
-This command will convert full path into relative path.
-Then insert it as a local file link in `org-mode'."
-  (interactive)
-  (insert (format "[[file:%s]]" (file-relative-name (util/get-clip)))))
-
-(defun inc0n/dired-copy-filename-as-kill-hack (&optional arg)
-  "Copy the file name or file path from dired into clipboard.
-Press \"w\" to copy file name.
-Press \"C-u 0 w\" to copy full path."
-  (let ((str (current-kill 0)))
-    (util/set-clip str)
-    (message "%s => clipboard" str)))
-(advice-add 'dired-copy-filename-as-kill :after
-			#'inc0n/dired-copy-filename-as-kill-hack)
+  (interactive (if (region-active-p)
+				   (list (region-beginning) (region-end))
+				 (list (point-min) (point-max))))
+  (save-excursion
+    (while (progn
+			 (goto-char bed)
+			 (re-search-forward "^\\(.*\\)\n\\(\\(.*\n\\)*\\)\\1\n" end t))
+      (replace-match "\\1\n\\2"))))
 
 ;; from http://emacsredux.com/blog/2013/05/04/rename-file-and-buffer/
 (defun vc-rename-file-and-buffer ()
@@ -922,14 +909,14 @@ Including indent-buffer, which should not be called automatically on save."
 ;; {{ pomodoro
 (require-package 'pomodoro)
 (with-eval-after-load 'pomodoro
-  (setq pomodoro-play-sounds nil) ; *.wav is not installed
-  (setq pomodoro-break-time 2)
-  (setq pomodoro-long-break-time 5)
-  (setq pomodoro-work-time 15))
+  (setq pomodoro-play-sounds nil		; *.wav is not installed
+		pomodoro-break-time 2
+		pomodoro-long-break-time 5
+		pomodoro-work-time 15)
+  (push '(pomodoro-mode-line-string pomodoro-mode-line-string) mode-line-format))
 
-(unless (featurep 'pomodoro)
-  (require 'pomodoro)
-  (pomodoro-add-to-mode-line))
+;; (unless (featurep 'omodoro)
+;;   (require 'pomodoro))
 ;; }}
 
 ;; {{ epub setup
@@ -962,7 +949,9 @@ Including indent-buffer, which should not be called automatically on save."
   (abbrev-mode 1)
   (auto-fill-mode 1)
   (when (eq window-system 'x)
-    (font-lock-mode 1)))
+    (font-lock-mode 1))
+  (setq-local comment-start "%"
+			  comment-add 0))
 (add-hook 'octave-mode-hook #'octave-mode-hook-setup)
 ;; }}
 
@@ -981,19 +970,18 @@ Including indent-buffer, which should not be called automatically on save."
 (defun edit-server-start-hook-setup ()
   "Some web sites actually pass html to edit server."
   (let ((url (buffer-name)))
-    (cond
-     ((string-match "github.com" url)
-      (markdown-mode))
-     ((string-match "zhihu.com" url)
-      ;; `web-mode' plus `sgml-pretty-print' get best result
-      (web-mode)
-      ;; format html
-      (util/ensure 'sgml)
-      (sgml-pretty-print (point-min) (point-max))
-      (goto-char (point-min))
-      ;; insert text after removing br tag, that's required by zhihu.com
-      ;; unfortunately, after submit comment once, page need be refreshed.
-      (replace-regexp "<br data-text=\"true\">" "")))))
+    (cond ((string-match "github.com" url)
+		   (markdown-mode))
+		  ((string-match "zhihu.com" url)
+		   ;; `web-mode' plus `sgml-pretty-print' get best result
+		   (web-mode)
+		   ;; format html
+		   (util/ensure 'sgml)
+		   (sgml-pretty-print (point-min) (point-max))
+		   (goto-char (point-min))
+		   ;; insert text after removing br tag, that's required by zhihu.com
+		   ;; unfortunately, after submit comment once, page need be refreshed.
+		   (replace-regexp "<br data-text=\"true\">" "")))))
 (add-hook 'edit-server-start-hook #'edit-server-start-hook-setup)
 
 (when (require 'edit-server nil t)
@@ -1009,6 +997,12 @@ Including indent-buffer, which should not be called automatically on save."
 	  which-key-add-column-padding 1)
 (setq which-key-min-display-lines 2)
 (add-hook 'after-init-hook #'which-key-mode)
+;; }}
+
+;; {{ eldoc
+(with-eval-after-load 'eldoc
+  (setq eldoc-idle-delay 0.5
+		eldoc-echo-area-use-multiline-p t))
 ;; }}
 
 (defun inc0n/browse-current-file ()

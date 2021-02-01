@@ -91,9 +91,9 @@ Show the diff between current working code and git head."
   "Select commit id from current branch."
   (let* ((git-cmd "git --no-pager log --date=short --pretty=format:'%h|%ad|%s|%an'")
          (collection (util/shell-command-to-lines git-cmd))
-         (item (ffip-completing-read "git log:" collection)))
-    (and item
-		 (car (split-string item "|" t)))))
+         (item (completing-read "git log:" collection)))
+    (when item
+	  (car (split-string item "|" t)))))
 
 (defun inc0n/git-show-commit-internal ()
   "Show git commit."

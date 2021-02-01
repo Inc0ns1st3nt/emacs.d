@@ -1,7 +1,6 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
 (require-package 'pyim)
-(require-package 'pyim-wbdict) ; someone may use wubi IME, not me
 
 ;; {{ make IME compatible with evil-mode
 (defun evil-toggle-input-method ()
@@ -17,35 +16,30 @@
 	(unless (evil-insert-state-p)
 	  (evil-insert-state))
 	(toggle-input-method)
-    (cond
-     (current-input-method
-	  ;; evil-escape and pyim may conflict
-      ;; @see https://github.com/redguardtoo/emacs.d/issues/629
-      (evil-escape-mode -1)
-      (message "IME on!")
-	  (when (not (memq evil-previous-state '(normal)))
-		(evil-change-to-previous-state)))
-     (t
-      (evil-escape-mode 1)
-	  (message "IME off!")))))
+    (cond (current-input-method
+		   ;; evil-escape and pyim may conflict
+		   ;; @see https://github.com/redguardtoo/emacs.d/issues/629
+		   (evil-escape-mode -1)
+		   (message "IME on!")
+		   (when (not (memq evil-previous-state '(normal)))
+			 (evil-change-to-previous-state)))
+		  (t
+		   (evil-escape-mode 1)
+		   (message "IME off!")
+		   (evil-normal-state)))))
 
 (defun inc0n/evil-insert-state-hack (orig-func &rest args)
   "Notify user IME status."
   (apply orig-func args)
-  (when current-input-method
-	(message "IME on!")))
+  (when current-input-method (message "IME on!")))
 (advice-add 'evil-insert-state :around #'inc0n/evil-insert-state-hack)
 
 (global-set-key (kbd "C-\\") 'evil-toggle-input-method)
-(global-set-key (kbd "s-\\") 'evil-toggle-input-method)
 ;; }}
 
 ;; {{ pyim
 (defvar inc0n/pyim-directory "~/.eim"
   "The directory containing pyim dictionaries.")
-
-(defvar inc0n/pyim-enable-wubi-dict nil
-  "Use Pinyin dictionary for Pyim IME.")
 
 (with-eval-after-load 'pyim
   ;; use western punctuation
@@ -54,44 +48,38 @@
 
   (setq default-input-method "pyim")
 
-  (if inc0n/pyim-enable-wubi-dict
-      ;; load wubi dictionary
-      (let* ((dir (file-name-directory
-                   (locate-library "pyim-wbdict.el")))
-			 (file (concat dir "pyim-wbdict-v98.pyim")))
-		(when (and (file-exists-p file) (featurep 'pyim))
-          (setq pyim-dicts
-				(list (list :name "wbdict-v98-elpa" :file file :elpa t)))))
-	(setq pyim-fuzzy-pinyin-alist
-          '(("en" "eng")
-			("in" "ing")))
+  (setq pyim-fuzzy-pinyin-alist
+        '(("en" "eng")
+		  ("in" "ing")))
 
-	;;  pyim-bigdict is recommended (20M). There are many useless words in pyim-greatdict which also slows
-	;;  down pyim performance
-	;; `curl -L http://tumashu.github.io/pyim-bigdict/pyim-bigdict.pyim.gz | zcat > ~/.eim/pyim-bigdict.pyim`
+  ;;  pyim-bigdict is recommended (20M). There are many useless words in pyim-greatdict which also slows
+  ;;  down pyim performance
+  ;; `curl -L http://tumashu.github.io/pyim-bigdict/pyim-bigdict.pyim.gz | zcat > ~/.eim/pyim-bigdict.pyim`
 
-	;; don's use shortcode2word
-	(setq pyim-enable-shortcode nil)
+  ;; don's use shortcode2word
 
-	;; use memory efficient pyim engine for pinyin ime
-	(setq pyim-dcache-backend 'pyim-dregcache)
+  (setq pyim-enable-shortcode nil)
 
-	;; automatically load pinyin dictionaries "*.pyim" under "~/.eim/"
-	;; `directory-files-recursively' requires Emacs 25
+  ;; use memory efficient pyim engine for pinyin ime
+  (setq pyim-dcache-backend 'pyim-dregcache)
 
-	(let ((files (and (file-exists-p inc0n/pyim-directory)
-					  (directory-files-recursively inc0n/pyim-directory "\.pyim$"))))
-      (when (and files (> (length files) 0))
-		(setq pyim-dicts
-              (mapcar (lambda (f)
-						(list :name (file-name-base f) :file f))
-                      files))
-		;; disable basedict if bigdict or greatdict is used
-		(when (cl-notany (lambda (f)
-						   (or (string= "pyim-bigdict" (file-name-base f))
-							   (string= "pyim-greatdict" (file-name-base f))))
-						 files)
-		  (pyim-basedict-enable)))))
+  ;; automatically load pinyin dictionaries "*.pyim" under "~/.eim/"
+  ;; `directory-files-recursively' requires Emacs 25
+
+  (let ((files (and (file-exists-p inc0n/pyim-directory)
+					(directory-files-recursively inc0n/pyim-directory "\.pyim$"))))
+    (when (and files (> (length files) 0))
+	  (setq pyim-dicts
+            (mapcar (lambda (f)
+					  (list :name (file-name-base f) :file f))
+                    files))
+	  ;; disable "basedict" if bigdict or greatdict is used
+	  (when (cl-notany (lambda (f)
+						 (or (string= "pyim-another-dict" (file-name-base f))
+							 (string= "pyim-bigdict" (file-name-base f))
+							 (string= "pyim-greatdict" (file-name-base f))))
+					   files)
+		(pyim-basedict-enable))))
 
   ;; don't use tooltip
   (setq pyim-use-tooltip 'popup))

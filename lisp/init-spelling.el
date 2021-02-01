@@ -80,9 +80,8 @@ Please note RUN-TOGETHER makes aspell less capable.  So it should be used in `pr
 	  (append args '("--run-together" "--run-together-limit=16")))))
 
 (setq ispell-program-name "aspell"
-	  ispell-silently-savep t
 	  ;; ispell-extra-args (inc0n/detect-ispell-args)
-	  )
+	  ispell-silently-savep t)
 
 (defun text-mode-hook-setup ()
   ;; Turn off RUN-TOGETHER option when spell check text-mode

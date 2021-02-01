@@ -17,7 +17,8 @@
   (keyfreq-mode -1)
   (keyfreq-autosave-mode -1))
 
-(setq keyfreq-excluded-commands
+(with-eval-after-load 'keyfreq
+  (setq keyfreq-excluded-commands
       '(self-insert-command
         abort-recursive-edit
         ace-jump-done
@@ -248,14 +249,15 @@
         undo-fu-only-undo
         evil-digit-argument-or-evil-beginning-of-line
         undo-fu-only-redo))
-
-(with-eval-after-load 'keyfreq
   (util/make-file keyfreq-file "()"))
 
 ;; And use keyfreq-show to see how many times you used a command.
 ;; It's recommended to use `keyfreq-mode' (could be in "~/.custom.el").
 ;; It's reported keyfreq is not compatible with `latex-mode'
 ;; @see https://github.com/redguardtoo/emacs.d/issues/767
-(add-hook 'after-init-hook 'turnon-keyfreq-mode)
+(add-hook 'after-init-hook
+		  ;; Fire up keyfreq a few seconds later to start up Emacs faster
+		  (lambda ()
+			(run-with-idle-timer 2 nil 'turnon-keyfreq-mode)))
 
 (provide 'init-keyfreq)
