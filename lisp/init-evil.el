@@ -65,12 +65,6 @@
 (add-hook 'prog-mode-hook #'evil-surround-prog-mode-hook-setup)
 ;; }}
 
-;; {{ For example, press `viW*`
-(require-package 'evil-visualstar)
-(setq evil-visualstar/persistent t)
-(add-hook 'after-init-hook 'global-evil-visualstar-mode)
-;; }}
-
 ;; ffip-diff-mode (read only) evil setup
 (defun ffip-diff-mode-hook-setup ()
   (evil-local-set-key 'normal "q" (lambda () (interactive) (quit-window t)))
@@ -83,15 +77,13 @@
 ;; {{ define my own text objects, works on evil v1.0.9 using older method
 ;; @see http://stackoverflow.com/questions/18102004/emacs-evil-mode-how-to-create-a-new-text-object-to-select-words-with-any-non-sp
 (defmacro inc0n/evil-define-and-bind-text-object (key start-regex end-regex)
-  (let ((inner-name (make-symbol "inner-name"))
-        (outer-name (make-symbol "outer-name")))
-    `(progn
-       (evil-define-text-object ,inner-name (count &optional beg end type)
-         (evil-select-paren ,start-regex ,end-regex beg end type count nil))
-       (evil-define-text-object ,outer-name (count &optional beg end type)
-         (evil-select-paren ,start-regex ,end-regex beg end type count t))
-       (define-key evil-inner-text-objects-map ,key (quote ,inner-name))
-       (define-key evil-outer-text-objects-map ,key (quote ,outer-name)))))
+  `(progn
+     (evil-define-text-object inner-name (count &optional beg end type)
+       (evil-select-paren ,start-regex ,end-regex beg end type count nil))
+     (evil-define-text-object outer-name (count &optional beg end type)
+       (evil-select-paren ,start-regex ,end-regex beg end type count t))
+     (define-key evil-inner-text-objects-map ,key 'inner-name)
+     (define-key evil-outer-text-objects-map ,key 'outer-name)))
 
 ;; between equal signs
 (inc0n/evil-define-and-bind-text-object "=" "=" "=")
@@ -117,30 +109,23 @@
 (defun inc0n/evil-path-is-separator-char (ch)
   "Check ascii table that CH is slash characters.
 If the character before and after CH is space or tab, CH is NOT slash"
-  (let (prefix-ch postfix-ch)
-    (when (and (> (point) (point-min))
-               (< (point) (point-max)))
-      (save-excursion
-        (backward-char)
-        (setq prefix-ch (following-char)))
-      (save-excursion
-        (forward-char)
-        (setq postfix-ch (following-char))))
-    (and (not (or (= prefix-ch 32) (= postfix-ch 32)))
-         (or (= ch 47) (= ch 92)))))
+  (let ((prefix-ch (preceding-char))
+		(postfix-ch (char-after (1+ (point)))))
+    (and (not (or (= prefix-ch ?\s) (= postfix-ch ?\s)))
+         (or (= ch ?/) (= ch ?\\)))))
 
 (defun inc0n/evil-path-not-path-char (ch)
   "Check ascii table for character CH."
   (or (and (<= 0 ch) (<= ch 32))
       (memq ch
-            '(34 ; double quotes
+            '(?\"
               ?'
-              40 ; (
-              41 ; )
+              ?\(
+              ?\)
               ?<
               ?>
-              91 ; [
-              93 ; ]
+              ?\[
+              ?\]
               ?`
               ?{
               ?}
@@ -151,39 +136,32 @@ If the character before and after CH is space or tab, CH is NOT slash"
     (setq b (+ 1 b))
     (when (save-excursion
             (goto-char e)
-            (let ((f
-                   (inc0n/evil-path-search-forward-char
-                    #'inc0n/evil-path-is-separator-char t)))
-              (and f (>= f b))))
+            (when-let ((f
+						(inc0n/evil-path-search-forward-char
+						 #'inc0n/evil-path-is-separator-char t)))
+              (>= f b)))
       (list b (+ 1 f) (- e 1)))))
 
 (defun inc0n/evil-path-get-path-already-inside ()
-  (let ((b (save-excursion
-             (inc0n/evil-path-search-forward-char 'inc0n/evil-path-not-path-char t)))
-        (e (save-excursion
-             (when-let ((e (inc0n/evil-path-search-forward-char 'inc0n/evil-path-not-path-char)))
-               (goto-char (- e 1))
-               ;; example: hello/world,
-               (when (memq (following-char) '(?, ?.))
-                 (- e 1))))))
+  (let ((b (inc0n/evil-path-search-forward-char 'inc0n/evil-path-not-path-char t))
+        (e (when-let ((e (inc0n/evil-path-search-forward-char
+						  'inc0n/evil-path-not-path-char)))
+             ;; example: hello/world,
+             (and (memq (char-after (- e 1)) '(?, ?.))
+				  (- e 1)))))
     (inc0n/evil-path-calculate-path b e)))
 
 (defun inc0n/evil-path-search-forward-char (fn &optional backward)
-  (let (found
-        (limit (if backward (point-min) (point-max)))
-        out-of-loop)
+  (let ((limit
+		 (if backward (point-min) (point-max))))
     (save-excursion
-      (while (not out-of-loop)
-        (if (or
-             ;; for the char, exit
-             (setq found (apply fn (list (following-char))))
-             ;; reach the limit, exit
-             (= (point) limit))
-            (setq out-of-loop t)
-          ;; keep moving
-          (if backward (backward-char) (forward-char))))
-      (and found
-           (point)))))
+	  (while (and ;; (not found)
+				  (= (point) limit))
+		(if (funcall fn (following-char))
+			(return (point))
+		  (if backward
+			  (backward-char)
+			(forward-char -1)))))))
 
 (defun inc0n/evil-path-extract-region ()
   "Find the closest file path."
@@ -219,12 +197,11 @@ If the character before and after CH is space or tab, CH is NOT slash"
 
 (evil-define-text-object inc0n/evil-path-outer-text-object (&optional count begin end type)
   "Nearby path."
-  (let ((selected-region (inc0n/evil-path-extract-region)))
-    (when selected-region
-      (evil-range (car selected-region)
-                  (+ 1 (nth 2 selected-region))
-                  type
-                  :expanded t))))
+  (when-let ((selected-region (inc0n/evil-path-extract-region)))
+    (evil-range (car selected-region)
+                (+ 1 (nth 2 selected-region))
+                type
+                :expanded t)))
 
 (define-key evil-inner-text-objects-map "f" 'inc0n/evil-path-inner-text-object)
 (define-key evil-outer-text-objects-map "f" 'inc0n/evil-path-outer-text-object)
@@ -261,49 +238,52 @@ If the character before and after CH is space or tab, CH is NOT slash"
 
 ;; (popup-tip (documentation 'paredit-copy-as-kill))
 ;; (evil-global-set-key 'motion (kbd "TAB") 'indent-for-tab-command)
-(evil-global-set-key 'motion (kbd "RET") 'newline)
+(evil-global-set-key 'motion (kbd "RET") #'newline)
+(evil-global-set-key 'normal (kbd "RET") #'indent-for-tab-command)
 
 (evil-declare-key '(normal visual) paredit-mode-map
-  (kbd "c") (delim-or-normal #'paredit-copy-as-kill #'evil-change)
-  (kbd "X") 'kill-sexp
+  "c" (delim-or-normal #'paredit-copy-as-kill #'evil-change)
+  "X" #'kill-sexp
   ;; (kbd "r") #'evil-replace
-  (kbd "R") (delim-or-normal #'paredit-raise-sexp #'evil-replace-state)
-  (kbd "(") #'paredit-wrap-round
-  (kbd "[") (handle-error #'backward-sexp #'backward-paragraph)
-  (kbd "]") (handle-error #'forward-sexp #'forward-paragraph)
-  (kbd "\"") #'paredit-meta-doublequote
-  (kbd "<") #'paredit-forward-barf-sexp
-  (kbd ">") #'paredit-forward-slurp-sexp
-  (kbd "+") #'paredit-join-sexps
-  (kbd "-") #'paredit-split-sexp)
+  "R" (delim-or-normal #'paredit-raise-sexp #'evil-replace-state)
+  "(" #'paredit-wrap-round
+  "[" (handle-error #'backward-sexp #'backward-paragraph)
+  "]" (handle-error #'forward-sexp #'forward-paragraph)
+  "\"" #'paredit-meta-doublequote
+  "<" #'paredit-forward-barf-sexp
+  ">" #'paredit-forward-slurp-sexp
+  "+" #'paredit-join-sexps
+  "-" #'paredit-split-sexp)
 
 ;; As a general rule, mode specific evil leader keys started
 ;; with upper cased character or 'g' or special character except "=" and "-"
 (evil-declare-key 'normal org-mode-map
-  "gh" 'outline-up-heading
-  "$" 'org-end-of-line ; smarter behaviour on headlines etc.
+  "gh" #'outline-up-heading
+  "$" #'org-end-of-line ; smarter behaviour on headlines etc.
   "^" 'org-beginning-of-line ; ditto
   "<" (org-op-on-tree-and-subtree #'org-do-promote)
   ">" (org-op-on-tree-and-subtree #'org-do-demote) ; indent
-  (kbd "RET") 'newline-and-indent
-  (kbd "TAB") 'org-cycle)
+  (kbd "RET") #'newline-and-indent
+  (kbd "TAB") #'org-cycle)
 
 (evil-declare-key 'normal markdown-mode-map
-  "gh" 'outline-up-heading
-  (kbd "TAB") 'markdown-cycle)
+  "gh" #'outline-up-heading
+  (kbd "TAB") #'markdown-cycle)
 
 ;; I prefer Emacs way after pressing ":" in evil-mode
-(define-key evil-ex-completion-map (kbd "C-a") #'move-beginning-of-line)
-(define-key evil-ex-completion-map (kbd "C-b") #'backward-char)
-(define-key evil-ex-completion-map (kbd "M-p") #'previous-complete-history-element)
-(define-key evil-ex-completion-map (kbd "M-n") #'next-complete-history-element)
+(evil-declare-key nil evil-ex-completion-map
+  (kbd "C-a") #'move-beginning-of-line
+  (kbd "C-b") #'backward-char
+  (kbd "M-p") #'previous-complete-history-element
+  (kbd "M-n") #'next-complete-history-element)
 
-(define-key evil-normal-state-map "Y" (kbd "y$"))
-(define-key evil-normal-state-map "U" #'join-line)
+(evil-declare-key 'normal 'global
+  "Y" "y$"
+  "U" #'join-line
+  ;; (kbd "RET") 'ivy-switch-buffer-by-pinyin ; RET key is preserved for occur buffer
+  "go" #'avy-goto-subword-0
+  (kbd "C-]") #'counsel-etags-find-tag-at-point)
 
-;; (define-key evil-normal-state-map (kbd "RET") 'ivy-switch-buffer-by-pinyin) ; RET key is preserved for occur buffer
-;; (define-key evil-normal-state-map "go" 'goto-char)
-(define-key evil-normal-state-map (kbd "C-]") #'counsel-etags-find-tag-at-point)
 (define-key evil-visual-state-map (kbd "C-]") #'counsel-etags-find-tag-at-point)
 (define-key evil-insert-state-map (kbd "C-x C-n") #'evil-complete-next-line)
 (define-key evil-insert-state-map (kbd "C-x C-p") #'evil-complete-previous-line)
@@ -630,7 +610,6 @@ If INCLUSIVE is t, the text object is inclusive."
   "xm" 'execute-extended-command
   "xk" 'transient/kill-buffer
   "xs" 'save-buffer
-  ;; "xx" 'er/expand-region
   ;; {{ window move
   ;; "wh" 'evil-window-left
   ;; "wl" 'evil-window-right
@@ -724,9 +703,9 @@ If INCLUSIVE is t, the text object is inclusive."
 ;; }}
 
 ;; {{ change mode-line color by evil state
-(defconst inc0n/default-color (cons (face-background 'mode-line)
-                                    (face-foreground 'mode-line)))
-(defun inc0n/show-evil-state ()
+(defvar inc0n/default-color (cons (face-background 'mode-line)
+                                  (face-foreground 'mode-line)))
+(defun inc0n/update-modeline-face (&rest ignored)
   "Change mode line color to notify user evil current state."
   (let ((color (cond ((minibufferp) inc0n/default-color)
                      ((evil-insert-state-p) '("#e80000" . "#ffffff"))
@@ -735,14 +714,13 @@ If INCLUSIVE is t, the text object is inclusive."
                      (t inc0n/default-color))))
     (set-face-background 'mode-line (car color))
     (set-face-foreground 'mode-line (cdr color))))
-(add-hook 'post-command-hook #'inc0n/show-evil-state)
-;; }}
 
 ;; {{ evil-nerd-commenter
 ;; (require-package 'evil-nerd-commenter)
 ;; (evilnc-default-hotkeys t)
 ;; (define-key evil-motion-state-map "gc" 'evilnc-comment-operator) ; same as doom-emacs
 (define-key evil-motion-state-map "gc" 'comment-operator) ; same as doom-emacs
+;; }}
 
 (defun inc0n/current-line-html-p (paragraph-region)
   "Is current line html?"
@@ -850,7 +828,6 @@ If INCLUSIVE is t, the text object is inclusive."
   (setq evil-default-cursor t
         evil-auto-indent t
         evil-buffer-regexps nil
-        evil-want-C-i-jump t)
-  (evil-local-set-key 'motion (kbd "TAB") #'indent-for-tab-command))
+        evil-want-C-i-jump t))
 
 (provide 'init-evil)

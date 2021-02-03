@@ -8,6 +8,7 @@
 
 ;; @see https://github.com/raxod502/selectrum
 (require-package 'selectrum)
+(local-require 'selectsel)
 
 (add-hook 'after-init-hook 'selectrum-mode)
 
@@ -20,13 +21,16 @@
   (with-eval-after-load 'selectrum-prescient
 	(setq prescient-filter-method '(literal regexp fuzzy))))
 
-(require 'selectsel)
-
 (with-eval-after-load 'selectrum
   (setq amx-backend 'selectrum)
-  (setq-default selectrum-should-sort-p nil))
+  (setq-default selectrum-should-sort-p nil)
+  (setq selectrum-count-style 'matches))
 
-(global-set-key (kbd "C-s") #'selectrum-swiper)
+(global-set-key (kbd "C-s")
+				(lambda ()
+				  (interactive)
+				  (let ((prescient-filter-method '(regexp)))
+					(selectrum-swiper (util/thing-at-point/deselect)))))
 
 ;;
 
@@ -110,15 +114,46 @@
 					  do (goto-char end))))))
 	(selectrum-imenu)))
 
+(defun selectrum-org-agenda-headlines-candidates ()
+  (org-map-entries
+   (lambda ()
+	 (cl-destructuring-bind (level1 level2 todo priority text tags)
+		 (org-heading-components)
+	   (let ((headline (mapconcat
+						'identity
+						(cl-remove-if
+						 'null
+						 (list (make-string level1 ?*)
+							   ;; (and priority (format "[#%c]" priority))
+							   (mapconcat 'identity
+										  (append
+										   (org-get-outline-path)
+										   (list ""))
+										  "/")
+							   todo
+							   text
+							   tags))
+						" ")))
+		 (propertize headline
+					 'selectrum-candidate-display-prefix
+					 (propertize
+					  (format "%s:" (file-name-nondirectory buffer-file-name))
+					  'face 'completions-annotations)
+					 'file-name buffer-file-name
+					 'point (point)))))
+   nil
+   'agenda))
+
 (defun selectrum-org-agenda-headlines ()
   "Choose from headers of `org-mode' files in the agenda."
   (interactive)
-  ;; (require 'org)
-  (let ((minibuffer-allow-text-properties t))
-    (funcall counsel-org-agenda-headlines-action-goto
-			 (selectrum-read "Org headline: "
-							 (counsel-org-agenda-headlines--candidates)
-							 :history 'counsel-org-agenda-headlines-history))))
+  (when-let* ((headline (selectrum-read "Org headline: "
+										(selectrum-org-agenda-headlines-candidates)
+										;; :history
+										;; 'counsel-org-agenda-headlines-history
+										)))
+	(find-file (get-text-property 0 'file-name headline))
+	(goto-char (get-text-property 0 'point headline))))
 
 (defun inc0n/imenu-or-list-tag-in-current-file ()
   "Combine the power of counsel-etags and imenu."
@@ -135,19 +170,6 @@
 
 ;; selectrum evil mark
 ;; @see https://github.com/raxod502/selectrum/wiki/Useful-Commands#evil-marks
-
-(defun selectrum-bash-history ()
-  "Yank one command from the bash history."
-  (interactive)
-  (shell-command "history -r")          ; reload history
-  (let* ((collection
-          (nreverse
-           (util/read-lines (file-truename "~/.bash_history"))))
-		 (cmd
-		  (selectrum-read "Bash history: " collection)))
-	;; TODO - use region selection instead of kill
-	(save-excursion
-	  (insert cmd))))
 
 ;; (defun selectrum-switch-tabs ()
 ;;   (interactive)

@@ -414,9 +414,7 @@ This function can be re-used by other major modes after compilation."
 	  ;; the (line-beginning-position) of the line which is after the last selected
 	  ;; line is always (region-end)! Don't know why.
 	  (when (and (> e b)
-				 (save-excursion
-				   (goto-char e)
-				   (= e (line-beginning-position)))
+				 (bolp e) ;; beginning-of-line-p
 				 (boundp 'evil-state)
 				 (eq evil-state 'visual))
 		(setq e (1- e)))
@@ -658,7 +656,7 @@ If no region is selected, `kill-ring' or clipboard is used instead."
 ;; }}
 
 ;; {{ typewriter
-(local-require 'typewriter-mode)
+;; (local-require 'typewriter-mode)
 ;; (add-hook 'after-init-hook #'typewriter-mode)
 ;; }}
 
@@ -893,6 +891,10 @@ Including indent-buffer, which should not be called automatically on save."
     (setq epa-pinentry-mode 'loopback)))
 ;; }}
 
+(defun buffer-too-big-p ()
+  ;; 5000 lines
+  (> (buffer-size) (* 5000 80)))
+
 ;; {{ show current function name in `mode-line'
 ;; (defun inc0n/which-func-update-hack (orig-func &rest args)
 ;;   "`which-function-mode' scanning makes Emacs unresponsive in big buffer."
@@ -1012,6 +1014,7 @@ Including indent-buffer, which should not be called automatically on save."
 
 (setq-default browse-url-generic-program "firefox")
 (setq-default browse-url-generic-args '("--private-window"))
+(setq-default browse-url-firefox-arguments '("--private-window"))
 
 ;; {{ fetch subtitles
 (defun inc0n/download-subtitles ()
@@ -1040,11 +1043,10 @@ See https://github.com/RafayGhafoor/Subscene-Subtitle-Grabber."
 ;; }}
 
 ;; {{ cache files
-(unless (file-directory-p (inc0n/emacs-d "cache"))
-  (make-directory (inc0n/emacs-d "cache")))
-
 (cl-flet ((inc0n/emacs.d/cache (path)
-							   (inc0n/emacs-d (concat "cache/" path))))
+							   (inc0n/emacs-d (concat "var/" path))))
+  (unless (file-directory-p (inc0n/emacs-d "var"))
+	(make-directory (inc0n/emacs-d "var")))
   (setq amx-save-file (inc0n/emacs.d/cache "amx-items"))
   (setq ido-save-directory-list-file (inc0n/emacs.d/cache "ido.last"))
   (setq company-statistics-file (inc0n/emacs.d/cache "company-statistics-cache.el"))
@@ -1059,6 +1061,15 @@ See https://github.com/RafayGhafoor/Subscene-Subtitle-Grabber."
   (setq auto-save-list-file-prefix (inc0n/emacs.d/cache "auto-save-list/.saves-"))
   (setq keyfreq-file (inc0n/emacs.d/cache "keyfreq")
 		keyfreq-file-lock (inc0n/emacs.d/cache "keyfreq.lock")))
+;; }}
+
+;; {{ ligature
+(local-require 'ligature)
+;; (ligature-set-ligatures t '("www"))
+(setq ligature-composition-table nil)
+(ligature-set-ligatures 'prog-mode '("::" ":::" "->" "=>" "==" "!=" "++"
+									 ">=" "<=" ".." "&&" "||" "//"))
+(add-hook 'after-init-hook 'global-ligature-mode)
 ;; }}
 
 (provide 'init-misc)

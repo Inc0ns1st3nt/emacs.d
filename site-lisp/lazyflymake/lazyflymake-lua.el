@@ -23,7 +23,8 @@ If return nil, nothing need be done."
 (defun lazyflymake-lua-init ()
   "Lua syntax check init."
   (when (executable-find lazyflymake-lua-program)
-    (if lazyflymake-debug (message "lazyflymake-lua-init called"))
+    (when lazyflymake-debug
+	  (message "lazyflymake-lua-init called"))
     (list lazyflymake-lua-program
           (list "-p" (lazyflymake-sdk-code-file)))))
 

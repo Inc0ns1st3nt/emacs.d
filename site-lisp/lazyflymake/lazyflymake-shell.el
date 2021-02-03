@@ -29,10 +29,11 @@ If return nil, nothing need be done."
 (defun lazyflymake-shell-init ()
   "Shell script syntax linter for flymake."
   (when (executable-find lazyflymake-shell-program)
-    (if lazyflymake-debug (message "lazyflymake-shell-init called"))
-    (let* ((opts lazyflymake-shell-program-opts))
-      (setq opts (add-to-list 'opts (lazyflymake-sdk-code-file) t))
-      (list lazyflymake-shell-program opts))))
+    (when lazyflymake-debug
+	  (message "lazyflymake-shell-init called"))
+    (let ((opts lazyflymake-shell-program-opts))
+      (list lazyflymake-shell-program
+			(add-to-list 'opts (lazyflymake-sdk-code-file) t)))))
 
 (provide 'lazyflymake-shell)
 ;;; lazyflymake-shell.el ends here

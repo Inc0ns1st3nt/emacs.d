@@ -70,7 +70,7 @@ This variable is for debug and unit test only.")
   "Test the flymake version."
   (fboundp 'flymake-start))
 
-(defun lazyflymake-load(file-name-regexp mask)
+(defun lazyflymake-load (file-name-regexp mask)
   "Load flymake MASK for files matching FILE-NAME-REGEXP."
   (let* ((lib (intern (concat "lazyflymake-" (symbol-name mask))))
          (prefix (concat "lazyflymake-" (symbol-name mask)))
@@ -90,8 +90,8 @@ This variable is for debug and unit test only.")
                (not (cl-find-if `(lambda (e) (string= (car e) ,file-name-regexp))
                                 flymake-allowed-file-name-masks)))
       (unless (featurep lib) (require lib))
-      (let* ((pattern (funcall pattern-fn)))
-        (if lazyflymake-debug (message "pattern=%s" pattern))
+      (let ((pattern (funcall pattern-fn)))
+        (and lazyflymake-debug (message "pattern=%s" pattern))
         (when pattern
           (cond
            ((stringp (car pattern))
@@ -102,11 +102,9 @@ This variable is for debug and unit test only.")
 
 (defun lazyflymake-start-buffer-checking-process ()
   "Check current buffer right now."
-  (cond
-   ((lazyflymake-new-flymake-p)
-    (flymake-start nil t))
-   (t
-    (flymake-start-syntax-check))))
+  (if (lazyflymake-new-flymake-p)
+      (flymake-start nil t)
+	(flymake-start-syntax-check)))
 
 (defun lazyflymake-check-buffer ()
   "Spell check current buffer."
@@ -119,31 +117,25 @@ This variable is for debug and unit test only.")
    ((< (- (float-time (current-time)) (float-time lazyflymake-timer))
        lazyflymake-update-interval)
     ;; do nothing, avoid `flyspell-buffer' too often
-    (if lazyflymake-debug "Flymake syntax check skipped."))
+    (and lazyflymake-debug "Flymake syntax check skipped."))
 
    (t
     ;; check
     (setq lazyflymake-timer (current-time))
     (when (and (< (buffer-size) lazyflymake-check-buffer-max))
       (lazyflymake-start-buffer-checking-process)
-      (if lazyflymake-debug (message "Flymake syntax checking ..."))))))
+      (and lazyflymake-debug (message "Flymake syntax checking ..."))))))
 
 (defun lazyflymake-guess-shell-script-regexp ()
   "Guess shell script file name regex."
-  (let* ((ext (file-name-extension buffer-file-name)))
-    (cond
-     (ext
-      (format "\\.%s$" ext))
-     (t
-      (format "\\%s$" (file-name-base buffer-file-name))))))
+  (if-let ((ext (file-name-extension buffer-file-name)))
+	  (format "\\.%s$" ext)
+	(format "\\%s$" (file-name-base buffer-file-name))))
 
 (defun lazyflymake--extract-err (output idx)
   "Extract error informationfrom OUTPUT using IDX."
-  (cond
-   (idx
-    (match-string idx output))
-   (t
-    "nil")))
+  (and idx
+       (match-string idx output)))
 
 (defun lazyflymake--legacy-info-at-point ()
   "Get info of errors at point.  Only used by old version of flymake."
@@ -209,7 +201,8 @@ This variable is for debug and unit test only.")
     ;; File with `sh-mode' is shell script
     (lazyflymake-load (lazyflymake-guess-shell-script-regexp) 'shell))
 
-  (if lazyflymake-debug (message "flymake-allowed-file-name-masks=%s" flymake-allowed-file-name-masks))
+  (when lazyflymake-debug
+	(message "flymake-allowed-file-name-masks=%s" flymake-allowed-file-name-masks))
 
   ;; initialize some internal variables of `flymake-mode'
   (flymake-mode-on)
@@ -219,7 +212,7 @@ This variable is for debug and unit test only.")
    ;; for debug, unit test, and CI
    (lazyflymake-start-check-now
     (lazyflymake-start-buffer-checking-process)
-    (if lazyflymake-debug (message "Flymake syntax checking now ...")))
+    (and lazyflymake-debug (message "Flymake syntax checking now ...")))
 
    (t
     ;; local hook will override global hook. So have to use local hook

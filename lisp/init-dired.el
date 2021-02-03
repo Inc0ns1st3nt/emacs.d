@@ -134,32 +134,18 @@ If no files marked, always operate on current line in dired-mode."
         rlt)))
   (advice-add 'dired-guess-default :around #'inc0n/dired-guess-default-hack)
 
-  (defun inc0n/dired-find-file-hack (orig-func &rest args)
-    "Avoid accidentally editing huge file in dired."
-    (let ((file (dired-get-file-for-visit)))
-      (if (string-match-p inc0n/binary-file-name-regexp file)
-			 ;; confirm before opening big file
-			 (when (yes-or-no-p "Edit binary file?")
-				(apply orig-func args))
-		  (when (and (file-directory-p file)
-                   ;; don't add directory when user pressing "^" in `dired-mode'
-                   (not (string-match-p "\\.\\." file)))
-          (add-to-list 'inc0n/dired-directory-history file))
-		  (apply orig-func args))))
-  (advice-add 'dired-find-file :around #'inc0n/dired-find-file-hack)
-
   ;; @see https://emacs.stackexchange.com/questions/5649/sort-file-names-numbered-in-dired/5650#5650
   (setq dired-listing-switches "-laGh1v")
   (setq dired-recursive-deletes 'always)
 
   (defun inc0n/dired-copy-filename-as-kill-hack (&optional arg)
-	 "Copy the file name or file path from dired into clipboard.
+	"Copy the file name or file path from dired into clipboard.
 Press \"w\" to copy file name.
 Press \"C-u 0 w\" to copy full path."
-	 (let ((str (current-kill 0)))
-		(util/set-clip str)
-		(message "%s => clipboard" str)))
+	(let ((str (current-kill 0)))
+	  (util/set-clip str)
+	  (message "%s => clipboard" str)))
   (advice-add 'dired-copy-filename-as-kill :after
-				  #'inc0n/dired-copy-filename-as-kill-hack))
+			  #'inc0n/dired-copy-filename-as-kill-hack))
 
 (provide 'init-dired)

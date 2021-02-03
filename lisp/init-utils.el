@@ -215,8 +215,8 @@ If region is active get region string and deactivate."
   (interactive)
   (or (buffer-file-name)
       (error "No file is currently being edited"))
-  (when (yes-or-no-p (format "Really delete '%s'?"
-                             (file-name-nondirectory buffer-file-name)))
+  (when (y-or-n-p (format "Really delete file and buffer '%s'?"
+                          (file-name-nondirectory buffer-file-name)))
     (delete-file (buffer-file-name))
     (kill-this-buffer)))
 
@@ -229,16 +229,15 @@ If region is active get region string and deactivate."
            (message "Buffer '%s' is not visiting a file!" name))
           ((get-buffer new-name)
            (message "A buffer named '%s' already exists!" new-name))
-          (t (rename-file filename new-name 1)
-             (rename-buffer new-name)
-             (set-visited-file-name new-name)
-             (set-buffer-modified-p nil)))))
+          (t
+		   (let ((name (call-interactively 'find-file)))
+			 name)
+		   (rename-file filename new-name 1)
+           (rename-buffer new-name)
+           (set-visited-file-name new-name)
+           (set-buffer-modified-p nil)))))
 
 (defvar load-user-customized-major-mode-hook t)
-
-(defun buffer-too-big-p ()
-  ;; 5000 lines
-  (> (buffer-size) (* 5000 80)))
 
 ;; (defun file-too-big-p (file)
 ;;   (> (nth 7 (file-attributes file))

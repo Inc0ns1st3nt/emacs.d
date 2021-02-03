@@ -40,9 +40,6 @@
     calendar-mode)
   "Major modes without line number.")
 
-(unless (fboundp 'global-display-line-numbers-mode)
-  (error "global-display-line-numbers-mode not bound"))
-
 (setq-default display-line-numbers 'relative
 			  display-line-numbers-type 'relative)
 

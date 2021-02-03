@@ -24,7 +24,7 @@
 		(cands-fn (lambda (in)
 					(mapcar (lambda (c)
 							  (let ((str (replace-regexp-in-string regex-str in c)))
-								(string-match in)
+								(string-match in str)
 								(add-face-text-property
 								 (match-beginning 0)
 								 (match-end 0)
@@ -40,8 +40,9 @@
   "set search item as str"
   (cond ((and (boundp 'evil-mode)
 			  evil-mode)
-		 (save-excursion ;; safe guard against fuzzy match
-		   (evil-search regex-str t t (line-beginning-position))))
+		 ;; safe guard against fuzzy match
+		 ;; (save-excursion)
+		 (evil-search regex-str t t (line-beginning-position)))
 		(t
 		 (re-search-forward regex-str nil t)
 		 (isearch-mode t)
@@ -81,17 +82,18 @@
 (defun selectrum-swiper (&optional initial-input)
   "Search for a matching line and jump to the beginning of its text.  Obeys narrowing."
   (interactive (list (util/thing-at-point/deselect)))
-  (let* ((current-line-number (line-number-at-pos (point) t))
-         (cands (selectrum--swiper-candidates))
+  (let* ((cands (selectrum--swiper-candidates))
 		 (selectrum-minibuffer-map
 		  (let ((map (make-sparse-keymap)))
 			(set-keymap-parent map selectrum-minibuffer-map)
 			(define-key map (kbd "M-q")
-			  (lambda () (interactive)
+			  (lambda ()
+				(interactive)
 				(selectrum--replace-search
 				 selectrum--previous-input-string
 				 cands)))
 			map))
+		 (current-line-number (line-number-at-pos (point) t))
 		 (chosen-line
 		  (selectrum-read "Selectrum Swiper: "
 						  cands
@@ -136,7 +138,7 @@
 				 c))
 		 (cands (lambda (in)
 				  (if (< (length in) 3)
-					  (list "Input should more than 3 characters.")
+					  '("Input should more than 3 characters.")
 					(let* ((counsel--regex-look-around "--pcre2")
 						   (regex
 							(counsel--elisp-to-pcre in counsel--regex-look-around)))
@@ -154,14 +156,14 @@
 			(line-number (match-string-no-properties 2 cand))
 			(input selectrum--previous-input-string))
 		(find-file file-name)
-		(goto-line (string-to-number line-number))
+		(forward-line (string-to-number line-number))
 		(selectrum--yank-search input)
 		(recenter)))))
 
 ;; selectrum-ffip
 
 (defvar selectrum-search-file-max-depth 3
-  "the maximum depth selectrum-search-file-list will reach into, default is 3")
+  "the maximum depth `selectrum-search-file-list' will reach into, default is 3")
 
 (defun selectrum--ffip-project-root ()
   "Return project root or `default-directory'."
@@ -177,7 +179,7 @@
 
 (defun selectrum--dir-tree-list (root-path)
   "generate a list of files recursively starting from dir-path
-as deep as selectrum--search-file-max-depth"
+as deep as `selectrum--search-file-max-depth'"
   (cl-labels
       ((aux
         (dir-path depth)
@@ -209,29 +211,34 @@ as deep as selectrum--search-file-max-depth"
   "Find a file on `recentf-list'."
   (interactive)
   (if recentf-mode
-	  (let* ((files (mapcar 'abbreviate-file-name recentf-list))
+	  (let* ((files (mapcar 'abbreviate-file-name
+							(seq-subseq
+							 recentf-list 0 selectrum-num-candidates-displayed)))
+			 (selectrum-show-indices t)
 			 (cand (selectrum-read "Find recent file: " files
-								   :require-match t
+								   :require-match nil
 								   :initial-input (and (region-active-p)
 													   (util/selected-str)))))
 		(find-file cand))
 	(message "turn on recentf-mode first")))
 
 (defun selectsel--hash-coloured-modes ()
+  "selectsel created hashed table coloured modes"
   (let ((modes (make-hash-table :test #'equal)))
-	(map-do
-	 (lambda (var _)
-	   (when (and (boundp var)
-				  (symbol-value var))
-		 (puthash
-		  (or (get var :minor-mode-function) var)
-		  (propertize
-		   (symbol-name var)
-		   'face
-		   'compilation-mode-line-exit)
-		  modes)))
-	 minor-mode-alist)
+	(mapc (lambda (var)
+			(when (and (boundp var)
+					   (symbol-value var))
+			  (puthash
+			   (or (get var :minor-mode-function) var)
+			   (propertize (symbol-name var)
+						   'face
+						   'compilation-mode-line-exit)
+			   modes)))
+		  minor-mode-list)
 	modes))
+
+(defvar selectrum--M-x-history nil
+  "history for `selectsel-M-x'")
 
 (defun selectsel-M-x ()
   ""
@@ -252,7 +259,9 @@ as deep as selectrum--search-file-max-depth"
 		obarray)
 	   cmds)
 	 nil
-	 'require-match))
+	 'require-match
+	 nil
+	 'selectrum--M-x-history))
    'record))
 
 ;;;; ChangeLog:

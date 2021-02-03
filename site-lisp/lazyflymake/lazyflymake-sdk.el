@@ -19,18 +19,16 @@
 
 (defun lazyflymake-sdk-code-file ()
   "Get code file to check."
-  (let* ((rlt (cond
-               ((and (lazyflymake-sdk-file-exist-p)
-                     (not (buffer-narrowed-p)))
-                ;; save a little resource to create temp file
-                buffer-file-name)
-               (t
-                (flymake-init-create-temp-buffer-copy
-                 'flymake-create-temp-inplace)))))
-    ;; convert absolute path on Windows to relative path
-    (setq rlt (file-relative-name rlt))
-    (if lazyflymake-debug (message "lazyflymake-sdk-code-file => %s" rlt))
-    rlt))
+  (let* ((rlt (if (and (lazyflymake-sdk-file-exist-p)
+                       (not (buffer-narrowed-p)))
+                  ;; save a little resource to create temp file
+                  buffer-file-name
+				(flymake-init-create-temp-buffer-copy
+                 'flymake-create-temp-inplace)))
+		 ;; convert absolute path on Windows to relative path
+		 (rlt (file-relative-name rlt)))
+    (when lazyflymake-debug (message "lazyflymake-sdk-code-file => %s" rlt))
+	rlt))
 
 (provide 'lazyflymake-sdk)
 ;;; lazyflymake-sdk.el ends here

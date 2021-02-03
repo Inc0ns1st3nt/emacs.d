@@ -68,9 +68,12 @@ locate PACKAGE."
 (defun local-require (pkg)
   "Require PKG in site-lisp directory."
   (unless (featurep pkg)
-    (load (expand-file-name
-           (format "%s/%s/%s" inc0n/site-lisp-dir pkg pkg))
-          t t)))
+	(let* ((pkg (format "%s" pkg))
+		   (path (expand-file-name pkg inc0n/site-lisp-dir)))
+	  (load (if (file-exists-p path)
+				(expand-file-name pkg path)
+			  (file-truename path))
+			t t))))
 
 ;; List of visible packages from melpa-unstable (http://melpa.org).
 ;; Please add the package name into `melpa-include-packages'
@@ -134,7 +137,6 @@ locate PACKAGE."
     company-c-headers
     company-statistics
     ;;
-	clean-mode ;; clean programming language
     face-up ;; for racket mode
     racket-mode)
   "Packages to install from melpa-unstable.")

@@ -17,23 +17,23 @@ If return nil, nothing need be done."
 
 (defun lazyflymake-elisp-init ()
   "Emacs Lisp syntax linter for flymake."
-  (let* ((program-name (expand-file-name invocation-name invocation-directory)))
-    (if lazyflymake-debug (message "lazyflymake-elisp-init called."))
+  (let ((program-name (expand-file-name invocation-name invocation-directory)))
+    (when lazyflymake-debug
+	  (message "lazyflymake-elisp-init called."))
     (list program-name
           (list "-Q"
                 "--batch"
                 "--eval"
                 (prin1-to-string
-                 (quote
-                  (dolist (file command-line-args-left)
-                    (with-temp-buffer
+                 '(dolist (file command-line-args-left)
+					(with-temp-buffer
                       (insert-file-contents file)
                       (condition-case data
                           (scan-sexps (point-min) (point-max))
-                        (scan-error
+						(scan-error
                          (goto-char(nth 2 data))
                          (princ (format "%s:%s: error: Unmatched bracket or quote\n"
-                                        file (line-number-at-pos)))))))))
+										file (line-number-at-pos))))))))
                 (lazyflymake-sdk-code-file)))))
 
 (provide 'lazyflymake-elisp)

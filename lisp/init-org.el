@@ -173,7 +173,7 @@ ARG is ignored."
                (not (org-entry-get nil "ACTIVATED")))
       (org-entry-put nil "ACTIVATED" (format-time-string "[%Y-%m-%d]"))))
   (add-hook 'org-after-todo-state-change-hook
-				#'log-todo-next-creation-date)
+			#'log-todo-next-creation-date)
 
   ;; {{ export org-mode in Chinese into PDF
   ;; @see http://freizl.github.io/posts/tech/2012-04-06-export-orgmode-file-in-Chinese.html
@@ -188,7 +188,7 @@ ARG is ignored."
 
   ;; misc
   (setq org-startup-with-latex-preview t
-		  org-pretty-entities t ;; render entity
+		org-pretty-entities t ;; render entity
         org-log-done t
         org-edit-src-content-indentation 0
         org-edit-timestamp-down-means-later t
@@ -198,7 +198,7 @@ ARG is ignored."
         org-agenda-window-setup 'current-window
         org-fast-tag-selection-single-key 'expert
         org-startup-indented t
-		  org-hide-leading-stars t
+		org-hide-leading-stars t
         ;; {{ org 8.2.6 has some performance issue. Here is the workaround.
         ;; @see http://punchagan.muse-amuse.in/posts/how-i-learnt-to-use-emacs-profiler.html
         org-agenda-inhibit-startup t       ;; ~50x speedup
@@ -207,11 +207,11 @@ ARG is ignored."
         ;; org v8
         org-odt-preferred-output-format "doc"
         org-tags-column 80
-		  org-agenda-tags-column 80
+		org-agenda-tags-column 80
 
         ;; Refile targets include this file and any file contributing to the agenda - up to 5 levels deep
         org-refile-targets '(("projects.org" :regexp . "\\(?:\\(?:Note\\|Task\\)s\\)")
-									  ("agenda.org" :regexp . "Past"))
+							 ("agenda.org" :regexp . "Past"))
         org-refile-use-outline-path 'file
         org-outline-path-complete-in-steps nil
         org-todo-keywords '((sequence "TODO(t)" "NEXT(n)" "HOLD(h@/!)" "|" "DONE(d!/!)")
@@ -230,49 +230,49 @@ ARG is ignored."
                                (concat org-directory "notes.org")
                                (concat org-directory "todo.org")))
   (setq org-capture-templates
-		  `(("t" "Todo" entry  (file "todo.org")
-		     ,(concat "* TODO %?\n"
-						  "/Entered on/ %U"))
-			 ("s" "Schedule" entry (file+headline "agenda.org" "Future")
-		     ,(concat "* %?\n"
-						  "SCHEDULED: %t"))
-			 ("d" "Deadline" entry (file+headline "agenda.org" "Deadline")
-		     ,(concat "* %?\n"
-						  "DEADLINE: %t"))
-			 ("r" "Respond" entry (file "agenda.org")
-		     ,(concat "* NEXT Respond to %:from on %:subject\n"
-						  "SCHEDULED: %t\n"
-						  "%U\n"
-						  "%a\n"))
-			 ("n" "Note" entry  (file "notes.org")
-		     ,(concat "* Note (%a)\n"
-						  "/Entered on/ %U\n" "\n" "%?"))
-			 ("a" "Analysis" entry (file "analysis.org")
-		     "* TODO %? [%<%Y-%m-%d %a>]\n")
-			 ;; ("d" "Diary" entry (file+datetree "diary.org")
-			 ;;  "* %?\n%U\n")
-			 ("p" "Project" entry (file "projects.org")
-		     ,(concat "* PROJECT [%<%Y-%m-%d %a>] %?"))
-			 ("e" "Event" entry (file+headline "agenda.org" "Future")
-		     ,(concat "* %? :event:\n"
-						  "SCHEDULED: <%<%Y-%m-%d %a %H:00>>"))
-			 ("m" "Meeting" entry  (file+headline "agenda.org" "Future")
-		     ,(concat "* %? :meeting:\n"
-						  "<%<%Y-%m-%d %a %H:00>>"))
-			 ;; ("n" "note" entry (file "note.org")
-			 ;;  "* %? :NOTE:\n%U\n%a\n")
-			 ;; ("p" "Phone call" entry (file "refile.org")
-			 ;;  "* PHONE %? :PHONE:\n%U")
-			 ;; ("h" "Habit" entry (file "refile.org")
-			 ;;  "* NEXT %?\n%U\n%a\nSCHEDULED: %(format-time-string \"%<<%Y-%m-%d %a .+1d/3d>>\")\n:PROPERTIES:\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:END:\n")
-			 ))
+		`(("t" "Todo" entry  (file "todo.org")
+		   ,(concat "* TODO %?\n"
+					"/Entered on/ %U"))
+		  ("s" "Schedule" entry (file+headline "agenda.org" "Future")
+		   ,(concat "* %?\n"
+					"SCHEDULED: %t"))
+		  ("d" "Deadline" entry (file+headline "agenda.org" "Deadline")
+		   ,(concat "* %?\n"
+					"DEADLINE: %t"))
+		  ("r" "Respond" entry (file "agenda.org")
+		   ,(concat "* NEXT Respond to %:from on %:subject\n"
+					"SCHEDULED: %t\n"
+					"%U\n"
+					"%a\n"))
+		  ("n" "Note" entry  (file "notes.org")
+		   ,(concat "* Note (%a)\n"
+					"/Entered on/ %U\n" "\n" "%?"))
+		  ("a" "Analysis" entry (file "analysis.org")
+		   "* TODO %? [%<%Y-%m-%d %a>]\n")
+		  ;; ("d" "Diary" entry (file+datetree "diary.org")
+		  ;;  "* %?\n%U\n")
+		  ("p" "Project" entry (file "projects.org")
+		   ,(concat "* PROJECT [%<%Y-%m-%d %a>] %?"))
+		  ("e" "Event" entry (file+headline "agenda.org" "Future")
+		   ,(concat "* %? :event:\n"
+					"SCHEDULED: <%<%Y-%m-%d %a %H:00>>"))
+		  ("m" "Meeting" entry  (file+headline "agenda.org" "Future")
+		   ,(concat "* %? :meeting:\n"
+					"<%<%Y-%m-%d %a %H:00>>"))
+		  ;; ("n" "note" entry (file "note.org")
+		  ;;  "* %? :NOTE:\n%U\n%a\n")
+		  ;; ("p" "Phone call" entry (file "refile.org")
+		  ;;  "* PHONE %? :PHONE:\n%U")
+		  ;; ("h" "Habit" entry (file "refile.org")
+		  ;;  "* NEXT %?\n%U\n%a\nSCHEDULED: %(format-time-string \"%<<%Y-%m-%d %a .+1d/3d>>\")\n:PROPERTIES:\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:END:\n")
+		  ))
   (setq org-agenda-custom-commands
         '(("n" "Agenda and all TODOs"
            ((tags "CLOSED>=\"<today>\""
                   ((org-agenda-overriding-header "Completed today")))
             (agenda ""
                     ((org-agenda-skip-function
-							 'org-agenda-skip-if-past-schedule)
+					  'org-agenda-skip-if-past-schedule)
                      (org-deadline-warning-days 7)))
             ;; (tags-todo "TODO")
             (todo "TODO"
@@ -283,8 +283,8 @@ ARG is ignored."
                   ((org-agenda-overriding-header "Projects")))
             (todo "HOLD"
                   ((org-agenda-overriding-header "Maybe")))))
-			 ("b" "buffer summary"
-		     ((agenda "" ((org-agenda-files (list (buffer-file-name)))))))))
+		  ("b" "buffer summary"
+		   ((agenda "" ((org-agenda-files (list (buffer-file-name)))))))))
   ;; org-babel for gnuplot
   ;; @see https://www.orgmode.org/worg/org-contrib/babel/languages/ob-doc-gnuplot.html
   (org-babel-do-load-languages
@@ -292,11 +292,11 @@ ARG is ignored."
    '((gnuplot . t)))
 
   (defun inc0n/insert-file-link-from-clipboard ()
-	 "Make sure the full path of file exist in clipboard.
+	"Make sure the full path of file exist in clipboard.
 This command will convert full path into relative path.
 Then insert it as a local file link in `org-mode'."
-	 (interactive)
-	 (insert (format "[[file:%s]]" (file-relative-name (util/get-clip))))))
+	(interactive)
+	(insert (format "[[file:%s]]" (file-relative-name (util/get-clip))))))
 
 (defun org-agenda-skip-if-past-schedule ()
   "If this function returns nil, the current match should not be skipped.

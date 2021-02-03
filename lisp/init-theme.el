@@ -16,7 +16,10 @@
   "unload all other theme before loading `theme'"
   (dolist (i custom-enabled-themes)
     (disable-theme i))
-  (load-theme theme t))
+  (load-theme theme t)
+  ;; update colour for correct evil state mode line face colour
+  (setq inc0n/default-color (cons (face-background 'mode-line)
+                                  (face-foreground 'mode-line))))
 
 (defun load-day-theme ()
   ;; selectrum is okay with this
