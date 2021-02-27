@@ -10,7 +10,8 @@
 (require-package 'doom-themes)
 
 (defvar theme/night 'atom-one-dark)
-(defvar theme/day 'doom-one-light)
+(defvar theme/day 'doom-homage-white) ;;doom-one-light
+;; (defvar themes/day '(doom-homage-white doom-one-light))
 
 (defun load-theme-only (theme)
   "unload all other theme before loading `theme'"
@@ -28,17 +29,18 @@
 (defun load-night-theme ()
   ;; selectrum quick fix
   (load-theme-only theme/night)
-  (let ((class t))
-	(custom-theme-set-faces
-	 'atom-one-dark
-	 `(selectrum-current-candidate
-	   ((,class (:background "#3E4451"))))
-	 `(selectrum-primary-highlight
-	   ((,class (:foreground "#C678DD" :background "#2C323C" :underline t
-							 :weight semi-bold))))
-	 `(selectrum-secondary-highlight
-	   ((,class (:inherit selectrum-primary-highlight))))))
-  (enable-theme 'atom-one-dark))
+  ;; (let ((class t))
+  ;; 	(custom-theme-set-faces
+  ;; 	 'atom-one-dark
+  ;; 	 `(selectrum-current-candidate
+  ;; 	   ((,class (:background "#3E4451"))))
+  ;; 	 `(selectrum-primary-highlight
+  ;; 	   ((,class (:foreground "#C678DD" :background "#2C323C" :underline t
+  ;; 							 :weight semi-bold))))
+  ;; 	 `(selectrum-secondary-highlight
+  ;; 	   ((,class (:inherit selectrum-primary-highlight))))))
+  ;; (enable-theme 'atom-one-dark)
+  )
 
 (cl-labels ((time-abs (num)
                       (if (< num 0)

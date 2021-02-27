@@ -54,11 +54,8 @@
 ;; (setq evil-default-state 'emacs)
 
 ;; clipboard
-;; (fset 'evil-visual-update-x-selection 'ignore)
 ;; (setq x-select-enable-clipboard t) ;; enable emacs -> os clipboard
 ;; (setq x-select-enable-primary t) ;; enable os -> emacs clipboard
-
-;; (setq show-paren-delay 0.125)
 
 ;; (defun my-insert-char-aux ()
 ;;   "My aux fn for inserting charcter."

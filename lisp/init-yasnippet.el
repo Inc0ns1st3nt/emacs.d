@@ -58,11 +58,11 @@
 
 (defun inc0n/yas-camelcase-to-string-list (str)
   "Convert camelcase STR into string list."
-  (let* ((case-fold-search nil)
-		 (rlt (replace-regexp-in-string "\\([A-Z]+\\)" " \\1" str t))
-         (rlt (replace-regexp-in-string "\\([A-Z]+\\)\\([A-Z][a-z]+\\)" "\\1 \\2"
-                                        rlt t)))
-    (split-string rlt " ")))
+  (let ((case-fold-search nil))
+	(setq str (replace-regexp-in-string "\\([A-Z]+\\)" " \\1" str t))
+	(setq str (replace-regexp-in-string "\\([A-Z]+\\)\\([A-Z][a-z]+\\)" "\\1 \\2"
+										str t))
+    (split-string str " ")))
 
 (defun inc0n/yas-camelcase-to-downcase (str)
   (let ((l (inc0n/yas-camelcase-to-string-list str))
@@ -76,15 +76,15 @@
                " ")))
 
 (defun inc0n/yas-escape-string (s)
-  (let ((rlt (replace-regexp-in-string "'" "\\\\'" s)))
-    (replace-regexp-in-string "\"" "\\\\\"" rlt)))
+  (replace-regexp-in-string
+   "\"" "\\\\\""
+   (replace-regexp-in-string "'" "\\\\'" s)))
 
 (defun inc0n/read-n-from-kill-ring ()
   (let ((cands (subseq kill-ring 0 (min (read-number "fetch N `kill-ring'?" 1)
                                         (length kill-ring)))))
     (mapc (lambda (txt)
-            (set-text-properties 0 (length txt) nil txt)
-            txt)
+            (set-text-properties 0 (length txt) nil txt))
           cands)))
 
 (defun inc0n/yas-get-var-list-from-kill-ring ()
@@ -108,8 +108,11 @@
 
 (with-eval-after-load 'yasnippet
   ;; http://stackoverflow.com/questions/7619640/emacs-latex-yasnippet-why-are-newlines-inserted-after-a-snippet
+  (setq-default yas/prompt-functions
+				(delete 'yas-dropdown-prompt yas/prompt-functions))
   (setq-default mode-require-final-newline nil)
   ;; Use `yas-dropdown-prompt' if possible. It requires `dropdown-list'.
+  (local-require 'dropdown-list)
   (setq yas-prompt-functions '(yas-dropdown-prompt
                                yas-completing-prompt
 							   yas-maybe-ido-prompt))

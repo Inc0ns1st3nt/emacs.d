@@ -26,16 +26,15 @@
   (setq company-backends (delete 'company-ropemacs company-backends))
 
   ;; company completion with just numbering
-  (defun inc0n/company-number ()
+  (defun inc0n/company-number (num)
 	"Forward to `company-complete-number'. Unless the number is
 	potentially part of the candidate. In that case, insert the
 	number."
-	(interactive)
-	(let* ((k (this-command-keys))
-		   (re (concat "^" company-prefix k))
-		   (n (if (string= k "0")
-				  10
-				  (string-to-number k))))
+	(interactive (list (string-to-number (this-command-keys))))
+	(let ((n (if (zerop num)
+				 10
+			   num))
+		  (re (concat "^" company-prefix (number-to-string num))))
 	  (if (or (cl-find-if (lambda (s) (string-match re s))
 						  company-candidates)
 			  (null (cdr company-candidates)) ;; if list is single (len==1)
@@ -48,13 +47,21 @@
 	  (number-to-string i)
 	  'inc0n/company-number))
 
+  (defun inc0n/company-tab ()
+	(interactive)
+	(if (cl-find-if (lambda (s) (string-equal company-prefix s))
+					company-candidates)
+		(company-abort)
+	  (company-complete-common)))
+  (define-key company-active-map [tab] #'inc0n/company-tab)
+
   (setq company-auto-commit nil
 		company-auto-commit-chars nil)
 
   ;; company-ctags is much faster out of box. No further optimiation needed
   (unless (featurep 'company-ctags)
-    (local-require 'company-ctags))
-  (company-ctags-auto-setup)
+    (local-require 'company-ctags)
+	(company-ctags-auto-setup))
 
   ;; (setq company-backends (delete 'company-capf company-backends))
 
@@ -122,17 +129,16 @@
     (add-to-list 'company-backends 'company-ispell)
     ;; @see https://github.com/redguardtoo/emacs.d/issues/473
     (setq company-ispell-dictionary
-          (or (and (boundp 'ispell-alternate-dictionary)
-                   ispell-alternate-dictionary)
-              (inc0n/emacs-d "misc/english-words.txt")))))
+          (if (boundp 'ispell-alternate-dictionary)
+              ispell-alternate-dictionary
+			(inc0n/emacs-d "var/misc/english-words.txt")))))
 
 ;; message-mode use company-bbdb.
 ;; So we should NOT turn on company-ispell
 (add-hook 'org-mode-hook #'company-ispell-setup)
 ;; }}
 
-;; yasnippet
-
+;; yasnippet - yasnippet over company
 (defun company-yasnippet-tab-fix (orig-func &rest args)
   (let ((yas-fallback-behavior nil))
 	(unless (yas-expand)

@@ -63,7 +63,7 @@
 (add-hook 'after-init-hook
 		  (lambda ()
 			(run-with-idle-timer
-			 0.5 nil
+			 0.1 nil
 			 (lambda ()
 			   (let ((org-agenda-window-setup
 					  'only-window))

@@ -3,7 +3,7 @@
 (require-package 'expand-region) ; I prefer stable version
 
 (require-package 'evil)
-(require-package 'evil-mark-replace)
+(local-require 'evil-mark-replace)
 
 ;; enable evil-mode
 (evil-mode 1)
@@ -11,14 +11,14 @@
 ;; {{ replace undo-tree with undo-fu
 ;; @see https://github.com/emacs-evil/evil/issues/1074
 ;; (require-package 'undo-tree)
-;; (global-undo-tree-mode -1)
+;; (global-undo-tree-mode nil)
 (require 'undo-fu)
 ;; copied from doom-emacs
 (define-minor-mode undo-fu-mode
   "Enables `undo-fu' for the current session."
   :keymap (let ((map (make-sparse-keymap)))
             (define-key map [remap undo] #'undo-fu-only-undo)
-            (define-key map [remap redo] #'undo-fu-only-redo)
+            (define-key map [remap redo] #'undo-fu-only-redo-all)
             (define-key map (kbd "C-_")     #'undo-fu-only-undo)
             (define-key map (kbd "M-_")     #'undo-fu-only-redo)
             (define-key map (kbd "C-M-_")   #'undo-fu-only-redo-all)
@@ -29,6 +29,8 @@
   :global t)
 (undo-fu-mode 1)
 (evil-set-undo-system 'undo-fu)
+(setq evil-undo-system 'undo-fu)
+;; (evil-set-undo-system 'undo-tree)
 ;; }}
 
 ;; Store more undo history to prevent loss of data
@@ -49,7 +51,7 @@
         evil-surround-pairs-alist)
 
   (when (memq major-mode '(org-mode))
-    (push '(?\[ . ("[[" . "]]")) evil-surround-pairs-alist) ; [
+    (push '(?\[ . ("[[" . "]]")) evil-surround-pairs-alist)
     (push '(?= . ("=" . "=")) evil-surround-pairs-alist))
 
   (push '(?\( . ("(" . ")")) evil-surround-pairs-alist)
@@ -227,6 +229,7 @@ If the character before and after CH is space or tab, CH is NOT slash"
 (defun util/delim-p (c)
   (memq (char-syntax c) '(?\( ?\) ?\")))
 
+;; TODO: mark region if char syntax is ?\)
 (defun delim-or-normal (paredit-fn normal-fn)
   (lambda ()
 	(interactive)
@@ -237,12 +240,12 @@ If the character before and after CH is space or tab, CH is NOT slash"
 		   (call-interactively normal-fn)))))
 
 ;; (popup-tip (documentation 'paredit-copy-as-kill))
-;; (evil-global-set-key 'motion (kbd "TAB") 'indent-for-tab-command)
-(evil-global-set-key 'motion (kbd "RET") #'newline)
-(evil-global-set-key 'normal (kbd "RET") #'indent-for-tab-command)
+(evil-global-set-key 'motion (kbd "TAB") 'indent-for-tab-command)
+(evil-global-set-key 'motion (kbd "RET") 'newline)
+;; (evil-global-set-key 'normal (kbd "RET") #'indent-for-tab-command)
 
 (evil-declare-key '(normal visual) paredit-mode-map
-  "c" (delim-or-normal #'paredit-copy-as-kill #'evil-change)
+  "C" (delim-or-normal #'paredit-copy-as-kill #'evil-change)
   "X" #'kill-sexp
   ;; (kbd "r") #'evil-replace
   "R" (delim-or-normal #'paredit-raise-sexp #'evil-replace-state)
@@ -281,7 +284,7 @@ If the character before and after CH is space or tab, CH is NOT slash"
   "Y" "y$"
   "U" #'join-line
   ;; (kbd "RET") 'ivy-switch-buffer-by-pinyin ; RET key is preserved for occur buffer
-  "go" #'avy-goto-subword-0
+  "go" #'avy-goto-char-timer
   (kbd "C-]") #'counsel-etags-find-tag-at-point)
 
 (define-key evil-visual-state-map (kbd "C-]") #'counsel-etags-find-tag-at-point)
@@ -491,7 +494,7 @@ If INCLUSIVE is t, the text object is inclusive."
   "dc" 'inc0n/dired-redo-from-commands-history
   "dl" 'inc0n/dired-redo-last-command
   "dt" 'delete-this-buffer-and-file
-  "rt" 'rename-this-buffer-and-file
+  "rt" 'rename-this-file-and-buffer
 
   "eb" 'eval-buffer
   "ed" 'eval-defun
@@ -544,6 +547,7 @@ If INCLUSIVE is t, the text object is inclusive."
   "kc" 'inc0n/select-from-kill-ring
 
   "ls" 'highlight-symbol
+  "ln" 'highlight-symbol-next
   "lq" 'highlight-symbol-query-replace
   ;; "ln" 'highlight-symbol-nav-mode ; use M-n/M-p to navigation between symbols
 
@@ -580,8 +584,8 @@ If INCLUSIVE is t, the text object is inclusive."
   ;; "sc" 'shell-command
   "sh" 'inc0n/select-from-search-text-history
   "sc" 'selectrum-imenu-comments
-  "sf" 'selectrum-recentf
-  "sm" 'selectrum-evil-marks
+  "sf" 'selectsel-recentf
+  ;; "sm" 'selectrum-evil-marks
   "sk" 'selectrum-browse-kill-ring
   "ss" 'selectrum-rg
 
@@ -589,9 +593,9 @@ If INCLUSIVE is t, the text object is inclusive."
   ;; @see https://github.com/pidu/git-timemachine
   ;; p: previous; n: next; w:hash; W:complete hash; g:nth version; q:quit
   "tm" 'inc0n/git-timemachine
-  "ts" 'evilmr-tag-selected-region ;; recommended
   "tt" 'inc0n/toggle-day/night
   "tw" 'typewriter-mode
+  "ti" 'toggle-indent-tabs-mode
 
   "vf" 'vc-rename-file-and-buffer
   "vc" 'vc-copy-file-and-rename-buffer
@@ -634,7 +638,7 @@ If INCLUSIVE is t, the text object is inclusive."
   "SPC" 'just-one-space)
 ;; }}
 
-(defun copy-and-comment-line (n)
+(defun comment-and-copy-line (n)
   (interactive "p")
   (let ((str (if (region-active-p)
 				 (concat (util/selected-str) "\n")
@@ -649,19 +653,20 @@ If INCLUSIVE is t, the text object is inclusive."
   (interactive "p")
   (comment-or-uncomment-region
    (line-beginning-position)
-   (progn (forward-paragraph n)
+   (progn (forward-paragraph (or n 1))
 		  (point))))
 
 (defun comment-operator (n)
-  ;; comment-line
   "my implementation of a comment-operator"
   (interactive "P")
-  (if n
-	  (comment-or-uncomment-region (point) (progn (forward-line n) (point)))
-	(if (region-active-p)
-		(comment-or-uncomment-region (region-beginning) (region-end))
-	  (comment-or-uncomment-region (line-beginning-position)
-								   (line-end-position)))))
+  (if (region-active-p)
+	  (comment-or-uncomment-region (region-beginning) (region-end))
+	(beginning-of-line)
+	(comment-or-uncomment-region
+	 (point)
+	 (progn (forward-line (or n 1)) (point)))))
+
+(define-key evil-motion-state-map "gc" 'comment-operator) ; same as doom-emacs
 
 ;; "Press `dd' to delete lines in `wgrep-mode' in evil directly."
 
@@ -714,39 +719,7 @@ If INCLUSIVE is t, the text object is inclusive."
                      (t inc0n/default-color))))
     (set-face-background 'mode-line (car color))
     (set-face-foreground 'mode-line (cdr color))))
-
-;; {{ evil-nerd-commenter
-;; (require-package 'evil-nerd-commenter)
-;; (evilnc-default-hotkeys t)
-;; (define-key evil-motion-state-map "gc" 'evilnc-comment-operator) ; same as doom-emacs
-(define-key evil-motion-state-map "gc" 'comment-operator) ; same as doom-emacs
-;; }}
-
-(defun inc0n/current-line-html-p (paragraph-region)
-  "Is current line html?"
-  (let* ((line (buffer-substring-no-properties (line-beginning-position)
-                                               (line-end-position)))
-         (re (format "^[ \t]*\\(%s\\)?[ \t]*</?[a-zA-Z]+"
-                     (regexp-quote evilnc-html-comment-start))))
-    ;; current paragraph does contain html tag
-    (and (>= (point) (car paragraph-region))
-         (string-match-p re line))))
-
-(defun inc0n/evilnc-comment-or-uncomment-paragraphs (&optional num)
-  "Comment or uncomment NUM paragraphs which might contain html tags."
-  (interactive "p")
-  (util/ensure 'evil-nerd-commenter)
-  (let* ((paragraph-region (evilnc--get-one-paragraph-region))
-         (html-p (ignore-errors
-                   (or (save-excursion
-                         (sgml-skip-tag-backward 1)
-                         (inc0n/current-line-html-p paragraph-region))
-                       (save-excursion
-                         (sgml-skip-tag-forward 1)
-                         (inc0n/current-line-html-p paragraph-region))))))
-    (if html-p
-        (evilnc-comment-or-uncomment-html-paragraphs num)
-      (evilnc-comment-or-uncomment-paragraphs num))))
+(add-hook 'post-command-hook 'inc0n/update-modeline-face)
 ;; }}
 
 ;; {{ `evil-matchit'
@@ -758,10 +731,9 @@ If INCLUSIVE is t, the text object is inclusive."
 
 ;; {{ evil-exchange
 (require-package 'evil-exchange)
-;; press gx twice to exchange, gX to cancel
-;; change default key bindings (if you want) HERE
+;; press `evil-exchange-key' twice to exchange, gX to cancel
 (setq evil-exchange-key (kbd "zx"))
-(add-hook 'after-init-hook 'evil-exchange-install)
+(util/add-to-timed-init-hook 1 'evil-exchange-install)
 ;; }}
 
 ;; {{ @see https://github.com/syl20bnr/spacemacs/blob/master/doc/DOCUMENTATION.org#replacing-text-with-iedit
@@ -775,7 +747,7 @@ If INCLUSIVE is t, the text object is inclusive."
 
 ;; {{ Evil’s f/F/t/T command can search PinYin ,
 (require-package 'evil-find-char-pinyin)
-(add-hook 'after-init-hook 'evil-find-char-pinyin-mode)
+(util/add-to-timed-init-hook 2 'evil-find-char-pinyin-mode)
 ;; }}
 
 ;; {{ evil-args
@@ -808,6 +780,7 @@ If INCLUSIVE is t, the text object is inclusive."
 
   ;; don't add replaced text to `kill-ring'
   (setq evil-kill-on-visual-paste nil)
+  (fset 'evil-visual-update-x-selection 'ignore)
 
   ;; @see https://emacs.stackexchange.com/questions/9583/how-to-treat-underscore-as-part-of-the-word
   ;; uncomment below line to make "dw" has exact same behaviour in evil as as in vim

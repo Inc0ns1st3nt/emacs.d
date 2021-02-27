@@ -4,13 +4,6 @@
 (require-package 'rainbow-delimiters)
 (require-package 'paredit)
 
-;; {{ eldoc
-(with-eval-after-load 'eldoc
-  ;; multi-line message should not display too soon
-  (setq eldoc-idle-delay 0.5)
-  (setq eldoc-echo-area-use-multiline-p t))
-;;}}
-
 ;; elisp
 (defun set-up-hippie-expand-for-elisp ()
   "Locally set `hippie-expand' completion functions for use with Emacs Lisp."
@@ -47,6 +40,16 @@
 
 (defun gerbil-scheme-start-swank (file encoding)
   (format "%S\n\n" `(begin (import :drewc/r7rs/gerbil-swank) (start-swank ,file))))
+
+(with-eval-after-load 'slime
+  (require 'slime-media)
+  ;; in-case not loaded properly, i will do it mysel
+  (add-hook 'slime-event-hooks 'slime-dispatch-media-event)
+  ;; (setq slime-enable-evaluate-in-emacs nil)
+  ;;
+  (setq slime-lisp-implementations
+		'((sbcl ("/usr/bin/sbcl"))
+		  (gerbil-scheme ("gxi" "-:d-") :init gerbil-scheme-start-swank))))
 
 (defun slime-gerbil ()
   (interactive)

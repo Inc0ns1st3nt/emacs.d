@@ -255,9 +255,9 @@
 ;; It's recommended to use `keyfreq-mode' (could be in "~/.custom.el").
 ;; It's reported keyfreq is not compatible with `latex-mode'
 ;; @see https://github.com/redguardtoo/emacs.d/issues/767
-(add-hook 'after-init-hook
-		  ;; Fire up keyfreq a few seconds later to start up Emacs faster
-		  (lambda ()
-			(run-with-idle-timer 2 nil 'turnon-keyfreq-mode)))
+;; (add-hook 'after-init-hook
+;; 		  ;; Fire up keyfreq a few seconds later to start up Emacs faster
+;; 		  (lambda ()
+;; 			(run-with-idle-timer 2 nil 'turnon-keyfreq-mode)))
 
 (provide 'init-keyfreq)

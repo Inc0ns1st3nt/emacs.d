@@ -190,7 +190,6 @@ locate PACKAGE."
 (require-package 'w3m)
 (require-package 'counsel-bbdb)
 (require-package 'counsel-gtags)
-(require-package 'buffer-move)
 
 (require-package 'cmake-mode)
 (require-package 'cpputils-cmake)
@@ -210,7 +209,7 @@ locate PACKAGE."
 ;; (require-package 'git-gutter) ; use my patched version
 (require-package 'neotree)
 ;; (require-package 'hydra)
-(require-package 'ivy-hydra) ; @see https://oremacs.com/2015/07/23/ivy-multiaction/
+;; (require-package 'ivy-hydra) ; @see https://oremacs.com/2015/07/23/ivy-multiaction/
 (require-package 'web-mode)
 (require-package 'iedit)
 (require-package 'websocket) ; for debug debugging of browsers

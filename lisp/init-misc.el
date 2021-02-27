@@ -19,8 +19,9 @@
 (add-hook 'after-init-hook 'midnight-mode)
 
 ;; @see http://www.emacswiki.org/emacs/SavePlace
-(add-hook 'after-init-hook 'save-place-mode)
-(add-hook 'after-init-hook (lambda () (run-with-idle-timer 1 nil 'amx-mode)))
+;; (add-hook 'after-init-hook 'save-place-mode)
+(util/add-to-timed-init-hook 1 'save-place-mode)
+(util/add-to-timed-init-hook 1 'amx-mode)
 
 (setq confirm-kill-emacs 'y-or-n-p)
 
@@ -36,13 +37,20 @@
 	   map)
 	 t)))
 
+(defun inc0n/unbound-symbol (arg)
+  (interactive (list (thing-at-point 'symbol)))
+  (cond ((stringp arg)
+		 (inc0n/unbound-symbol (intern arg)))
+		((symbolp arg)
+		 (if (functionp arg)
+			 (progn (fmakunbound arg)
+					(message "fmakunbounded %s" arg))
+		   (makunbound arg)
+		   (message "makunbounded %s" arg)))
+		(t (message "unexpected %s" arg))))
+
 (general-define-key
- "C-c C-u" (lambda (arg)
-			 (interactive (list (thing-at-point 'symbol)))
-			 (if (not (stringp arg))
-				 (message "unexpected %s" arg)
-			   (fmakunbound (intern arg))
-			   (message "fmakunbounded %s" arg)))
+ "C-c C-u" 'inc0n/unbound-symbol
  "<C-backspace>" 'backward-delete-word
  "C-x C-o" 'ffap
  ;;
@@ -51,7 +59,6 @@
  "C-k" 'kill-sexp
  ;;
  "TAB" 'tab-out-delimiter) ;; 'indent-for-tab-command
-;; [dead-grave] (lambda () (interactive) (insert ?`))
 
 (defun backward-delete-word ()
   "my function that doesn't actually register deleted word into clipboard"
@@ -59,6 +66,15 @@
   (delete-region (point)
 				 (progn (forward-word -1)
 						(point))))
+
+(defun tab-out-delimiter ()
+  "Move cursor out of a consecutive block of delimiters"
+  (interactive)
+  (if (not
+	   (memq (char-syntax (following-char)) '(?\) ?\")))
+	  (indent-for-tab-command)
+	(just-one-space 0) ;; delete any space before delimiter
+	(forward-char 1)))
 
 ;; {{ auto-yasnippet
 (require-package 'auto-yasnippet)
@@ -91,8 +107,7 @@
               grep-highlight-matches t
               grep-scroll-output t
               indent-tabs-mode t
-              line-spacing 0
-              mouse-yank-at-point t
+              mouse-yank-at-point nil
               set-mark-command-repeat-pop t
               tooltip-delay 1.5
               ;; void problems with crontabs, etc.
@@ -101,8 +116,13 @@
               truncate-partial-width-windows nil
               ;; visible-bell has some issue
               ;; @see https://github.com/redguardtoo/mastering-emacs-in-one-year-guide/issues/9#issuecomment-97848938
-              visible-bell nil)
-(setq-default line-spacing 1)
+              visible-bell nil
+			  line-spacing 1)
+
+(defun toggle-indent-tabs-mode ()
+  (interactive)
+  (setq indent-tabs-mode (not indent-tabs-mode))
+  (message "indent-tabs-mode is turned %s" (if indent-tabs-mode "off" "on")))
 
 ;; {{ find-file-in-project (ffip)
 (require-package 'find-file-in-project)
@@ -126,7 +146,6 @@
         (neotree-find file-name))
     (message "Could not find git project root.")))
 ;; }}
-
 
 ;; {{ gradle
 (defun inc0n/run-gradle-in-shell (cmd)
@@ -163,9 +182,6 @@
 (setq minibuffer-prompt-properties
       '(read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt))
 
-(defvar inc0n/do-bury-compilation-buffer t
-  "Hide compilation buffer if compile successfully.")
-
 (defun compilation-finish-hide-buffer-on-success (buffer str)
   "Bury BUFFER whose name marches STR.
 This function can be re-used by other major modes after compilation."
@@ -173,12 +189,13 @@ This function can be re-used by other major modes after compilation."
       ;;there were errors
       (message "compilation errors, press C-x ` to visit")
     ;;no errors, make the compilation window go away in 0.5 seconds
-    (when (and inc0n/do-bury-compilation-buffer
-               (buffer-name buffer)
+    (when (and (buffer-name buffer)
                (string-match "*compilation*" (buffer-name buffer)))
       ;; @see http://emacswiki.org/emacs/ModeCompile#toc2
-      (bury-buffer "*compilation*")
-      (winner-undo)
+      (bury-buffer buffer)
+	  (with-selected-window (get-buffer-window buffer)
+		(delete-window))
+      ;; (winner-undo)
       (message "NO COMPILATION ERRORS!"))))
 
 (defun inc0n/electric-pair-inhibit (char)
@@ -198,22 +215,32 @@ This function can be re-used by other major modes after compilation."
 	  ;; I also find it often preferable not to pair next to a word.
 	  (eq (char-syntax (following-char)) ?w)))
 
-(defun tab-out-delimiter ()
-  "Move cursor out of a consecutive block of delimiters"
-  (interactive)
-  (if (not
-	   (memq (char-syntax (following-char)) '(?\) ?\")))
-	  (indent-for-tab-command)
-	(just-one-space 0) ;; delete any space before delimiter
-	(forward-char 1)))
-
 (with-eval-after-load 'elec-pair
   (setq electric-pair-inhibit-predicate #'inc0n/electric-pair-inhibit))
 
+
 (defun my-prog-nuke-trailing-whitespace ()
   (when (derived-mode-p 'prog-mode)
-	(delete-trailing-whitespace)))
-;; (add-hook 'before-save-hook 'my-prog-nuke-trailing-whitespace)
+	;; only operate in the visible region of the window
+	;; with exception to the current line
+	(let ((b (line-beginning-position))
+		  (e (line-end-position)))
+	  (if (or (< b (window-start))
+			  (> e (window-end)))
+		  (delete-trailing-whitespace (window-start)
+									  (window-end))
+		(delete-trailing-whitespace (window-start)
+									(line-beginning-position))
+		(delete-trailing-whitespace (line-end-position)
+									(window-end))))))
+(add-hook 'before-save-hook 'my-prog-nuke-trailing-whitespace)
+
+(defun buffer-too-big-p ()
+  ;; 5000 lines
+  (> (buffer-size) (* 5000 80)))
+
+(with-eval-after-load 'flymake
+  (setq flymake-gui-warnings-enabled nil))
 
 (defun generic-prog-mode-hook-setup ()
   (when (buffer-too-big-p)
@@ -221,6 +248,9 @@ This function can be re-used by other major modes after compilation."
 	(linum-mode -1)
     (when (should-use-minimum-resource)
       (font-lock-mode -1)))
+
+  (util/ensure 'lazyflymake)
+  (lazyflymake-start)
 
   (company-ispell-setup)
 
@@ -235,7 +265,7 @@ This function can be re-used by other major modes after compilation."
 
     (electric-pair-mode 1) ;; auto insert pairing delimiter
 	(hs-minor-mode)			;; code/comment fold
-	(turn-on-auto-fill)		;; auto indent
+	;; (turn-on-auto-fill)		;; auto indent
     (turn-on-eldoc-mode) ;; eldoc, show API doc in minibuffer echo area
     (setq show-trailing-whitespace t)))
 
@@ -263,7 +293,7 @@ This function can be re-used by other major modes after compilation."
 ;; NO automatic new line when scrolling down at buffer bottom
 (setq next-line-add-newlines nil)
 
-;; {{ time format
+;; {{ time format 'built-in'
 ;; If you want to customize time format, read document of `format-time-string'
 ;; and customize `display-time-format'.
 ;; (setq display-time-format "%a %b %e")
@@ -271,7 +301,7 @@ This function can be re-used by other major modes after compilation."
 ;; from RobinH, Time management
 (setq display-time-24hr-format t) ; the date in modeline is English too, magic!
 (setq display-time-day-and-date t)
-(add-hook 'after-init-hook 'display-time-mode) ; show date in modeline
+(util/add-to-timed-init-hook 1 'display-time-mode) ;; show date in modeline
 ;; }}
 
 ;; (defalias 'list-buffers #'ibuffer)
@@ -298,7 +328,7 @@ This function can be re-used by other major modes after compilation."
 ;; {{ recentf-mode
 (with-eval-after-load 'recentf
   (setq recentf-keep '(file-remote-p file-readable-p))
-  (setq recentf-max-saved-items 2048
+  (setq recentf-max-saved-items 512
 		recentf-exclude '("/tmp/"
                           "/ssh:"
                           "/sudo:"
@@ -387,7 +417,7 @@ This function can be re-used by other major modes after compilation."
 
 (defun inc0n/minibuffer-setup-hook ()
   ;; (local-set-key (kbd "C-k") #'kill-line)
-  (subword-mode 1) ; enable subword movement in minibuffer
+  (subword-mode t) ; enable subword movement in minibuffer
   (setq gc-cons-threshold most-positive-fixnum))
 
 (defun inc0n/minibuffer-exit-hook ()
@@ -467,10 +497,8 @@ If no region is selected, `kill-ring' or clipboard is used instead."
 		  ;; text from `kill-ring' or clipboard
 		  (let* ((choice (completing-read "Since no region selected, compare text in:"
 										  '("kill-ring" "clipboard")))
-				 (txt (cond ((string= choice "kill-ring")
-							 (car kill-ring))
-							((string= choice "clipboard")
-							 (util/get-clip)))))
+				 (txt (cond ((string= choice "kill-ring") (car kill-ring))
+							((string= choice "clipboard") (util/get-clip)))))
 			(with-temp-file fb
 			  (insert txt))))
 		;; save region A as file A
@@ -480,7 +508,8 @@ If no region is selected, `kill-ring' or clipboard is used instead."
 		;; diff NOW!
 		;; show the diff output
 		(let ((diff-output
-			   (shell-command-to-string (format "%s -Nabur %s %s" diff-command fa fb))))
+			   (shell-command-to-string
+				(format "%s -Nabur %s %s" diff-command fa fb))))
 		  (cond ((string-empty-p diff-output)
 				 (message "Two regions are SAME!"))
 				((executable-find "git")
@@ -504,28 +533,26 @@ If no region is selected, `kill-ring' or clipboard is used instead."
 (defun extract-list-from-package-json ()
   "Extract package list from package.json."
   (interactive)
-  (let* ((str (util/use-selected-string-or-ask))
-		 (str (replace-regexp-in-string ":.*$\\|\"" "" str))
-		 ;; join lines
-		 (str (replace-regexp-in-string "[\r\n \t]+" " " str)))
+  (let ((str (util/use-selected-string-or-ask))
+	(setq str (replace-regexp-in-string ":.*$\\|\"" "" str))
+	;; join lines)
+	(setq str (replace-regexp-in-string "[\r\n \t]+" " " str))
     (util/set-clip str)
-    (message "%s => clipboard & yank ring" str)))
+    (message "%s => clipboard & yank ring" str))))
 
 (defun inc0n/insert-absolute-path ()
   "Relative path to full path."
   (interactive)
-  (let* ((str (util/use-selected-string-or-ask "Input relative path"))
-         (path (file-truename str)))
-    (util/set-clip path)
-    (message "%s => clipboard & yank ring" path)))
+  (util/insert-str
+   (file-truename
+	(read-file-name "Input relative path"))))
 
 (defun inc0n/insert-relative-path ()
   "Full path to relative path."
   (interactive)
-  (let* ((str (util/use-selected-string-or-ask "Input absolute path"))
-         (path (file-relative-name str)))
-    (util/set-clip path)
-    (message "%s => clipboard & yank ring" path)))
+  (util/insert-str
+   (file-relative-name
+	(read-file-name "Input relative path"))))
 
 ;; {{ auto-save - builtin emacs >= 26.1 package
 (setq auto-save-timeout 2)
@@ -555,8 +582,10 @@ If no region is selected, `kill-ring' or clipboard is used instead."
   (when (and kill-ring (> (length kill-ring) 0))
     (when (> n (length kill-ring))
       (setq n (length kill-ring)))
-    (let* ((str (mapconcat 'identity (subseq kill-ring 0 n) "|"))
-           (str (replace-regexp-in-string "(" "\\\\(" str)))
+    (let ((str
+		   (mapconcat 'identity (subseq kill-ring 0 n) "|")))
+	  (setq str
+			(replace-regexp-in-string "(" "\\\\(" str))
       (util/set-clip str)
       (message (format "%s => kill-ring&clipboard" str)))))
 ;; }}
@@ -586,7 +615,8 @@ If no region is selected, `kill-ring' or clipboard is used instead."
 
 (defun sgml-mode-hook-setup ()
   "sgml/html mode setup."
-  ;; let web-mode handle indentation by itself since it does not derive from `sgml-mode'
+  ;; let web-mode handle indentation by itself since it does not
+  ;; derive from `sgml-mode'
   (setq-local indent-region-function #'sgml-pretty-print))
 (add-hook 'sgml-mode-hook #'sgml-mode-hook-setup)
 
@@ -611,11 +641,7 @@ If no region is selected, `kill-ring' or clipboard is used instead."
   (save-excursion
     (goto-char (point-min))
     (save-match-data
-      (let (search-result)
-        (while
-            (and (setq search-result (re-search-forward "\\(attach\\|pdf\\|file\\|screen ?shot\\)" nil t))
-                 (inc0n/message-current-line-cited-p)))
-        search-result))))
+      (re-search-forward "\\(attach\\|pdf\\|file\\|screen ?shot\\)" nil t))))
 
 (defun inc0n/message-has-attachment-p ()
   "Return t if an attachment is already attached to the message."
@@ -687,8 +713,7 @@ If no region is selected, `kill-ring' or clipboard is used instead."
     (add-to-list 'grep-find-ignored-files v))
 
   ;; wgrep and rgrep, inspired by http://oremacs.com/2015/01/27/inc0n/refactoring-workflow/
-  (define-key grep-mode-map
-    (kbd "C-x C-q") 'wgrep-change-to-wgrep-mode))
+  (define-key grep-mode-map (kbd "C-x C-q") 'wgrep-change-to-wgrep-mode))
 
 ;; {{ https://www.emacswiki.org/emacs/EmacsSession better than "desktop.el" or "savehist".
 (require-package 'session)
@@ -696,9 +721,9 @@ If no region is selected, `kill-ring' or clipboard is used instead."
 
 (with-eval-after-load 'session
   (setq session-save-file (inc0n/emacs-d ".session"))
-  (setq session-globals-max-size 2048)
-  ;; can store 8Mb string
-  (setq session-globals-max-string (* 8 1024 1024))
+  (setq session-globals-max-size 512)
+  ;; can store 4Mb string
+  (setq session-globals-max-string (* 4 1024))
   (setq session-globals-include '(kill-ring
                                   (session-file-alist 100 t)
                                   inc0n/dired-commands-history
@@ -740,9 +765,10 @@ If no region is selected, `kill-ring' or clipboard is used instead."
 If the shell is already opened in some buffer, switch to that buffer."
   (interactive)
   (if-let ((shell (get-buffer "*shell*")))
-	  (progn
-		;;TODO: change directory to current directory of the buffer
-		(switch-to-buffer shell))
+	  (let ((dir (file-name-directory (buffer-file-name))))
+		(with-current-buffer (switch-to-buffer shell)
+		  ;;TODO: change directory to current directory of the buffer
+		  (setq default-directory dir)))
 	(shell)))
 
 ;; {{ emms
@@ -891,10 +917,6 @@ Including indent-buffer, which should not be called automatically on save."
     (setq epa-pinentry-mode 'loopback)))
 ;; }}
 
-(defun buffer-too-big-p ()
-  ;; 5000 lines
-  (> (buffer-size) (* 5000 80)))
-
 ;; {{ show current function name in `mode-line'
 ;; (defun inc0n/which-func-update-hack (orig-func &rest args)
 ;;   "`which-function-mode' scanning makes Emacs unresponsive in big buffer."
@@ -922,7 +944,7 @@ Including indent-buffer, which should not be called automatically on save."
 ;; }}
 
 ;; {{ epub setup
-(require-package 'nov) ; read epub
+(require-package 'nov)
 
 (with-eval-after-load 'nov
   (setq nov-text-width t)
@@ -1003,43 +1025,24 @@ Including indent-buffer, which should not be called automatically on save."
 
 ;; {{ eldoc
 (with-eval-after-load 'eldoc
+  ;; multi-line message should not display too soon
   (setq eldoc-idle-delay 0.5
 		eldoc-echo-area-use-multiline-p t))
 ;; }}
 
-(defun inc0n/browse-current-file ()
-  "Open the current file as a URL using `browse-url'."
+(defun inc0n/browse-file ()
+  "Open the a file, ask for a file path via `find-file', points to the
+current file, as a URL via `browse-url'."
   (interactive)
-  (browse-url-generic (concat "file://" (buffer-file-name))))
+  (browse-url-generic
+   (read-file-name "New name: "
+				   (or (buffer-file-name)
+					   default-directory))))
 
+;; {{ `browse-url' setup
 (setq-default browse-url-generic-program "firefox")
 (setq-default browse-url-generic-args '("--private-window"))
 (setq-default browse-url-firefox-arguments '("--private-window"))
-
-;; {{ fetch subtitles
-(defun inc0n/download-subtitles ()
-  (interactive)
-  (shell-command "periscope.py -l en *.mkv *.mp4 *.avi &"))
-
-(defvar inc0n/fetch-subtitles-proxy nil
-  "http proxy to fetch subtitles, like http://127.0.0.1:8118 (privoxy).")
-
-(defun inc0n/fetch-subtitles (&optional video-file)
-  "Fetch subtitles of VIDEO-FILE.
-See https://github.com/RafayGhafoor/Subscene-Subtitle-Grabber."
-  (let ((cmd-prefix
-         (if inc0n/fetch-subtitles-proxy
-             (format "http_proxy=%s https_proxy=%s subgrab -l EN"
-                     inc0n/fetch-subtitles-proxy
-                     inc0n/fetch-subtitles-proxy)
-           "subgrab -l EN")))
-    (if video-file
-        (let ((default-directory (file-name-directory video-file)))
-          (shell-command
-           (format "%s -m \"%s\" &"
-                   cmd-prefix
-                   (file-name-base video-file))))
-      (shell-command (format "%s --dir . &" cmd-prefix)))))
 ;; }}
 
 ;; {{ cache files
@@ -1065,11 +1068,54 @@ See https://github.com/RafayGhafoor/Subscene-Subtitle-Grabber."
 
 ;; {{ ligature
 (local-require 'ligature)
-;; (ligature-set-ligatures t '("www"))
 (setq ligature-composition-table nil)
-(ligature-set-ligatures 'prog-mode '("::" ":::" "->" "=>" "==" "!=" "++"
-									 ">=" "<=" ".." "&&" "||" "//"))
-(add-hook 'after-init-hook 'global-ligature-mode)
+(ligature-set-ligatures 'prog-mode '("::" ":::" "->" "=>" "==" "!="
+									 "++" "<-" "/=" ">=" "<=" ".."
+									 "..." "&&" "||" "//"))
+(add-hook 'after-init-hook
+		  (lambda ()
+			(global-ligature-mode 0)))
 ;; }}
+
+;; {{
+;; (require-package 'highlight-thing)
+;; (global-highlight-thing-mode nil)
+;; (setq highlight-thing-delay-seconds 1.0
+;; 	  highlight-thing-limit-to-region-in-large-buffers-p t)
+;; }}
+
+(require-package 'highlight-symbol)
+(with-eval-after-load 'highlight-symbol
+  (setq highlight-symbol-colors
+		(delete "SpringGreen1"
+				(delete "yellow" highlight-symbol-colors))
+		highlight-symbol-idle-delay 1.0))
+
+(with-eval-after-load 'rainbow-delimiters
+  (setq rainbow-delimiters-max-face-count 1))
+
+(defun clean-backup-dir ()
+  "delete the files in the backup dir that are not in the list of
+`recentf-list'"
+  (cl-labels ((aux (x)
+				   (let ((x (subst-char-in-string ?! ?/ x)))
+					 (substring (subst-char-in-string ?! ?/ x)
+								0 (- (length x) 5)))))
+	(mapcar (lambda (dir-pair)
+			  (let* ((dir (cdr dir-pair))
+					 (files-to-delete
+					  (cl-set-difference
+					   (mapcar #'aux (butlast (directory-files dir) 2))
+					   recentf-list
+					   :test 'string=)))
+				(dolist (f files-to-delete)
+				  (dolist (f (directory-files
+							  dir
+							  t
+							  (concat "^" (file-name-nondirectory f) ".*")))
+					(delete-file f)))
+				(cons (car dir-pair)
+					  (length files-to-delete))))
+			backup-directory-alist)))
 
 (provide 'init-misc)

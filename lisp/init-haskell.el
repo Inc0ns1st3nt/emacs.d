@@ -25,26 +25,29 @@
                             "ghc-core-mode"
                             "org-mode")))))
 
-(add-hook
- 'haskell-mode-hook
- (lambda ()
+(defun haskell-mode-setup ()
+  "My `haskell-mode' setup"
    ;; Haskell smarter completion
    ;; @see http://haskell.github.io/haskell-mode/manual/latest/Completion-support.html#Completion-support
-   (setq-local company-backends
-			   (append '((company-capf company-dabbrev-code))
-					   company-backends))
-   (rainbow-delimiters-mode 1)))
+  (setq-local company-backends
+			  (append '((company-capf company-dabbrev-code))
+					  company-backends))
+  (when-let ((tag (locate-dominating-file default-directory "TAGS")))
+	(message "haskell mode, found tag: %s" tag)
+	(visit-tags-table tag t)) ;; local=t
+  ;; (rainbow-delimiters-mode 1)
+  ;; Haskell module auto insert template
+  (haskell-auto-insert-module-template)
+  ;; Haskell interactive mode
+  (interactive-haskell-mode t)
+  ;; Haskell declaration scanning like 'beginning-of-defun' 'end-of-defun'
+  (haskell-decl-scan-mode t))
 
-;; Haskell Unicode support
-;; (add-hook 'haskell-mode-hook 'turn-on-haskell-unicode-input-method)
-;; (add-hook 'haskell-interactive-mode-hook 'turn-on-haskell-unicode-input-method)
-;; Haskell module auto insert template
-(add-hook 'haskell-mode-hook 'haskell-auto-insert-module-template)
-;; Haskell interactive mode
-(add-hook 'haskell-mode-hook 'interactive-haskell-mode)
+(add-hook 'haskell-mode-hook 'haskell-mode-setup)
 
-;; Haskell declaration scanning like 'beginning-of-defun' 'end-of-defun'
-(add-hook 'haskell-mode-hook 'haskell-decl-scan-mode)
+;; disable input method since it i would have to reset it back to pyim
+;; manually after use
+(put 'haskell-unicode-input-method-enable 'disabled t)
 
 (general-create-definer inc0n/haskell-space-leader-def
   :prefix "SPC h"
@@ -56,13 +59,7 @@
   ;;  "t" 'haskell-process-do-type
   ;;  "i" 'haskell-process-do-info
   ;;  "l" 'haskell-process-load-file)
-  (general-define-key
-   :keymaps 'haskell-mode-map
-   ;; @see http://haskell.github.io/haskell-mode/manual/latest/Compilation.html#Compilation
-   "C-c C-c" 'haskell-compile
-
-   "M-." 'haskell-mode-jump-to-def)
-
+  ;; (evil-define-key 'insert haskell-mode-map (kbd "M-.") nil)
   (general-define-key
    :keymaps 'haskell-mode-map
    :states '(normal visual)
@@ -80,9 +77,5 @@
 ;; 'switch-to-haskell
 
 ;; @see http://haskell.github.io/haskell-mode/manual/latest/Aligning-code.html#Aligning-code
-
-
-;;; clean
-;; (require-package 'clean-mode)
 
 (provide 'init-haskell)

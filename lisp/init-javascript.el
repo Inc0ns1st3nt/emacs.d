@@ -36,10 +36,12 @@
     (imenu--generic-function javascript-common-imenu-regex-list)))
 
 (defun inc0n/common-js-setup ()
-  (local-require 'js-comint))
+  (local-require 'js-comint)
+  (subword-mode))
 
 (defun mo-js-mode-hook ()
-  (when (and (not (buffer-file-temp-p)) (not (derived-mode-p 'js2-mode)))
+  (when (and (not (buffer-file-temp-p))
+			 (not (derived-mode-p 'js2-mode)))
     (inc0n/common-js-setup)
     (setq imenu-create-index-function 'mo-js-imenu-make-index)))
 (add-hook 'js-mode-hook 'mo-js-mode-hook)
@@ -59,19 +61,13 @@
 
 (defun js2-imenu--get-pos (item)
   (cond
-   ((integerp item)
-    item)
-
-   ((markerp item)
-    (marker-position item))))
+   ((integerp item) item)
+   ((markerp item) (marker-position item))))
 
 (defun js2-imenu--get-extra-item-pos (item)
   (cond
-   ((integerp item)
-    item)
-
-   ((markerp item)
-    (marker-position item))
+   ((integerp item) item)
+   ((markerp item) (marker-position item))
 
    ;; plist
    ((and (listp item) (listp (cdr item)))
@@ -83,27 +79,27 @@
 (defun js2-imenu--extract-line-info (item)
   "Recursively parse the original imenu items created by js2-mode.
 The line numbers of items will be extracted."
-  (let* (val)
-    (if item
-        (cond
-         ;; Marker or line number
-         ((setq val (js2-imenu--get-pos item))
-          (push (js2-imenu--get-line-start-end val)
-                js2-imenu-original-item-lines))
+  (when item
+    (let ((val (js2-imenu--get-pos item)))
+	  (cond
+	   ;; Marker or line number
+	   (val
+		(push (js2-imenu--get-line-start-end val)
+			  js2-imenu-original-item-lines))
 
-         ;; The item is Alist, example: (hello . 163)
-         ((and (listp item) (not (listp (cdr item))))
-          (setq val (js2-imenu--get-pos (cdr item)))
-          (if val (push (js2-imenu--get-line-start-end val)
-                        js2-imenu-original-item-lines)))
+	   ;; The item is Alist, example: (hello . 163)
+	   ((and (listp item) (not (listp (cdr item))))
+		(setq val (js2-imenu--get-pos (cdr item)))
+		(if val (push (js2-imenu--get-line-start-end val)
+					  js2-imenu-original-item-lines)))
 
-         ;; The item is a Plist
-         ((and (listp item) (listp (cdr item)))
-          (js2-imenu--extract-line-info (cadr item))
-          (js2-imenu--extract-line-info (cdr item)))
+	   ;; The item is a Plist
+	   ((and (listp item) (listp (cdr item)))
+		(js2-imenu--extract-line-info (cadr item))
+		(js2-imenu--extract-line-info (cdr item)))
 
-         ;;Error handling
-         (t (message "Impossible to here! item=%s" item))))))
+	   ;;Error handling
+	   (t (message "Impossible to here! item=%s" item))))))
 
 (defun js2-imenu--item-exist (pos lines)
   "Try to detect does POS belong to some LINE"
@@ -119,10 +115,10 @@ The line numbers of items will be extracted."
 
 (defun js2-imenu--check-single-item (r)
   (and (if (and (listp (cdr r)))
-		   (let ((new-types
-				  (delq nil (mapcar 'js2-imenu--is-item-already-created (cdr r)))))
-			 (and new-types
-				  (setcdr r (delq nil new-types))))
+		   (when-let
+			   ((new-types
+				 (delq nil (mapcar 'js2-imenu--is-item-already-created (cdr r)))))
+			 (setcdr r (delq nil new-types)))
 		 (js2-imenu--item-exist (js2-imenu--get-extra-item-pos r)
 								js2-imenu-original-item-lines))
 	   r))
@@ -131,12 +127,12 @@ The line numbers of items will be extracted."
   "Validate buffer or select region as JSON.
 If NOT-JSON-P is not nil, validate as Javascript expression instead of JSON."
   (interactive "P")
-  (let* ((json-exp (if (region-active-p) (util/selected-str)
-                     (util/buffer-str)))
-         (jsbuf-offet (if not-json-p 0 (length "var a=")))
-         errs
-         first-err
-         (first-err-pos (if (region-active-p) (region-beginning) 0)))
+  (let ((json-exp (if (region-active-p) (util/selected-str)
+                    (util/buffer-str)))
+        (jsbuf-offet (if not-json-p 0 (length "var a=")))
+        errs
+        first-err
+        (first-err-pos (if (region-active-p) (region-beginning) 0)))
     (unless not-json-p
       (setq json-exp (format "var a=%s;"  json-exp)))
     (with-temp-buffer
@@ -159,22 +155,20 @@ If NOT-JSON-P is not nil, validate as Javascript expression instead of JSON."
   "Print the path to the JSON value under point, and save it in the kill ring.
 If HARDCODED-ARRAY-INDEX provided, array index in JSON path is replaced with it."
   (interactive "P")
-  (cond
-   ((memq major-mode '(js2-mode))
-    (js2-print-json-path hardcoded-array-index))
-   (t
-    (let* ((cur-pos (point))
-           (str (util/buffer-str)))
-      (when (string= "json" (file-name-extension buffer-file-name))
+  (if (memq major-mode '(js2-mode))
+      (js2-print-json-path hardcoded-array-index)
+	(let ((cur-pos (point))
+		  (str (util/buffer-str)))
+	  (when (string= "json" (file-name-extension buffer-file-name))
         (setq str (format "var a=%s;" str))
         (setq cur-pos (+ cur-pos (length "var a="))))
-      (util/ensure 'js2-mode)
-      (with-temp-buffer
+	  (util/ensure 'js2-mode)
+	  (with-temp-buffer
         (insert str)
         (js2-init-scanner)
         (js2-do-parse)
         (goto-char cur-pos)
-        (js2-print-json-path))))))
+        (js2-print-json-path)))))
 
 (defun js2-imenu--remove-duplicate-items (extra-rlt)
   (delq nil (mapcar 'js2-imenu--check-single-item extra-rlt)))
@@ -184,32 +178,31 @@ If HARDCODED-ARRAY-INDEX provided, array index in JSON path is replaced with it.
 EXTRA-RLT contains items parsed with simple regex.
 Merge RLT and EXTRA-RLT, items in RLT has *higher* priority."
   ;; Clear the lines.
-  (set (make-variable-buffer-local 'js2-imenu-original-item-lines) nil)
+  (setq-local js2-imenu-original-item-lines nil)
   ;; Analyze the original imenu items created from AST,
   ;; I only care about line number.
-  (dolist (item rlt)
-    (js2-imenu--extract-line-info item))
+  (mapc 'js2-imenu--extract-line-info rlt)
 
   ;; @see https://gist.github.com/redguardtoo/558ea0133daa72010b73#file-hello-js
   ;; EXTRA-RLT sample:
   ;; ((function ("hello" . #<marker 63>) ("bye" . #<marker 128>))
   ;;  (controller ("MyController" . #<marker 128))
   ;;  (hellworld . #<marker 161>))
-  (setq extra-rlt (js2-imenu--remove-duplicate-items extra-rlt))
-  (append rlt extra-rlt))
+  (append rlt (js2-imenu--remove-duplicate-items extra-rlt)))
 
 (with-eval-after-load 'js2-mode
   ;; {{ I hate the hotkeys to hide things
-  (define-key js2-mode-map (kbd "C-c C-e") nil)
-  (define-key js2-mode-map (kbd "C-c C-s") nil)
-  (define-key js2-mode-map (kbd "C-c C-f") nil)
-  (define-key js2-mode-map (kbd "C-c C-t") nil)
-  (define-key js2-mode-map (kbd "C-c C-o") nil)
-  (define-key js2-mode-map (kbd "C-c C-w") nil)
+  ;; (define-key js2-mode-map (kbd "C-c C-e") nil)
+  ;; (define-key js2-mode-map (kbd "C-c C-s") nil)
+  ;; (define-key js2-mode-map (kbd "C-c C-f") nil)
+  ;; (define-key js2-mode-map (kbd "C-c C-t") nil)
+  ;; (define-key js2-mode-map (kbd "C-c C-o") nil)
+  ;; (define-key js2-mode-map (kbd "C-c C-w") nil)
   ;; }}
   (defun inc0n/js2-mode-create-imenu-index-hack (orig-func &rest args)
-    (let* ((extra-items (save-excursion
-                          (imenu--generic-function javascript-common-imenu-regex-list))))
+    (let ((extra-items
+		   (save-excursion
+             (imenu--generic-function javascript-common-imenu-regex-list))))
       (inc0n/js2-imenu--merge-imenu-items (apply orig-func args) extra-items)))
   (advice-add 'js2-mode-create-imenu-index :around #'inc0n/js2-mode-create-imenu-index-hack))
 ;; }}
@@ -223,7 +216,7 @@ Merge RLT and EXTRA-RLT, items in RLT has *higher* priority."
     ;; counsel/ivy is more generic and powerful for refactoring
     ;; js2-mode has its own syntax linter
 
-   ;; call js-doc commands through `counsel-M-x'!
+	;; call js-doc commands through `counsel-M-x'!
 
     ;; @see https://github.com/mooz/js2-mode/issues/350
     (setq forward-sexp-function nil)))
@@ -240,29 +233,23 @@ Merge RLT and EXTRA-RLT, items in RLT has *higher* priority."
 INDENT-SIZE decide the indentation level.
 `sudo pip install jsbeautifier` to install js-beautify.'"
   (interactive "P")
-  (if (executable-find "js-beautify")
-      (progn
-        ;; detect indentation level
-        (unless indent-size
-          (setq indent-size (cond
-                             ((memq major-mode '(js-mode javascript-mode))
-                              js-indent-level)
-
-                             ((memq major-mode '(web-mode))
-                              web-mode-code-indent-offset)
-
-                             ((memq major-mode '(typescript-mode))
-                              typescript-indent-level)
-
-                             (t
-                              2))))
-        ;; do it!
-        (run-cmd-and-replace-region
-         (concat "js-beautify"
-                 " --stdin "
-                 " --jslint-happy --brace-style=end-expand --keep-array-indentation "
-                 (format " --indent-size=%d " indent-size))))
-    (message "js-beautify needs to be installed!")))
+  (if (not (executable-find "js-beautify"))
+	  (message "js-beautify needs to be installed!")
+    ;; detect indentation level
+    (unless indent-size
+      (setq indent-size
+			(cond
+             ((memq major-mode '(js-mode javascript-mode))
+              js-indent-level)
+             ((memq major-mode '(web-mode)) web-mode-code-indent-offset)
+             ((memq major-mode '(typescript-mode)) typescript-indent-level)
+             (t 2))))
+    ;; do it!
+    (run-cmd-and-replace-region
+     (concat "js-beautify"
+             " --stdin "
+             " --jslint-happy --brace-style=end-expand --keep-array-indentation "
+             (format " --indent-size=%d " indent-size)))))
 ;; }}
 
 ;; {{ js-comint

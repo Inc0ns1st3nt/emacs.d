@@ -18,6 +18,11 @@
           rev
           (make-string level ?^)))
 
+(defun util/add-to-timed-init-hook (secs fn)
+  (add-hook 'after-init-hook
+			(lambda ()
+			  (run-with-idle-timer secs nil fn))))
+
 (defun util/shell-command-to-lines (command)
   "Return lines of COMMAND output."
   (split-string (shell-command-to-string command)
@@ -72,7 +77,7 @@
 (defun font-belongs-to (pos fonts)
   "Current font at POS belongs to FONTS."
   (let ((fontfaces (get-text-property pos 'face)))
-    (when (not (listp fontfaces))
+    (unless (listp fontfaces)
       (setf fontfaces (list fontfaces)))
     (delq nil
           (mapcar (lambda (f)
@@ -102,8 +107,8 @@
 (defun path-in-directory-p (file directory)
   "FILE is in DIRECTORY."
   (let ((pattern (concat "^" (file-name-as-directory directory))))
-    (when (string-match-p pattern file)
-      file)))
+    (and (string-match-p pattern file)
+		 file)))
 
 ;; (defun util/prepare-candidate-fit-into-screen (s)
 ;;   (let* ((w (frame-width))
@@ -213,29 +218,28 @@ If region is active get region string and deactivate."
 (defun delete-this-buffer-and-file ()
   "Delete the current file, and kill the buffer."
   (interactive)
-  (or (buffer-file-name)
-      (error "No file is currently being edited"))
+  (unless (buffer-file-name)
+    (error "No file is currently being edited"))
   (when (y-or-n-p (format "Really delete file and buffer '%s'?"
                           (file-name-nondirectory buffer-file-name)))
     (delete-file (buffer-file-name))
     (kill-this-buffer)))
 
-(defun rename-this-file-and-buffer (new-name)
+(defun rename-this-file-and-buffer ()
   "Renames both current buffer and file it's visiting to NEW-NAME."
-  (interactive "sNew name: ")
+  (interactive)
   (let ((name (buffer-name))
         (filename (buffer-file-name)))
-    (cond ((not filename)
-           (message "Buffer '%s' is not visiting a file!" name))
-          ((get-buffer new-name)
-           (message "A buffer named '%s' already exists!" new-name))
-          (t
-		   (let ((name (call-interactively 'find-file)))
-			 name)
-		   (rename-file filename new-name 1)
-           (rename-buffer new-name)
-           (set-visited-file-name new-name)
-           (set-buffer-modified-p nil)))))
+    (if (not (and filename (file-exists-p filename)))
+        (message "Buffer '%s' is not visiting a file!" name)
+      (let ((new-name (read-file-name "New name: " filename)))
+		;; (if (get-buffer (file-name-nondirectory new-name))
+		;; 	(message "A buffer named '%s' already exists!"
+		;; 			 (file-name-nondirectory new-name)))
+		(rename-file filename new-name nil)
+		(rename-buffer new-name t)
+		(set-visited-file-name new-name)
+		(set-buffer-modified-p nil)))))
 
 (defvar load-user-customized-major-mode-hook t)
 
@@ -266,12 +270,7 @@ If region is active get region string and deactivate."
 you can '(setq inc0n/mplayer-extra-opts \"-ao alsa -vo vdpau\")'.")
 
 (defun inc0n/guess-mplayer-path ()
-  (format "mplayer -quiet -stop-xscreensaver %s" inc0n/mplayer-extra-opts))
-
-(defun inc0n/guess-image-viewer-path (file &optional is-stream)
-  (if is-stream
-      (format "curl -L %s | feh -F - &" file)
-    (format "feh -F %s &" file)))
+  (concat "mplayer -quiet -stop-xscreensaver " inc0n/mplayer-extra-opts))
 
 (defun util/get-clip ()
   "Get clipboard content."
@@ -279,8 +278,8 @@ you can '(setq inc0n/mplayer-extra-opts \"-ao alsa -vo vdpau\")'.")
 	  (car kill-ring)
 	""))
 
-(defalias 'util/set-clip #'kill-new
-  "Put STR-VAL into clipboard.")
+(defalias 'util/set-clip #'kill-new "Put STR-VAL into clipboard.")
+
 ;; }}
 
 (defun should-use-minimum-resource ()
@@ -290,16 +289,18 @@ you can '(setq inc0n/mplayer-extra-opts \"-ao alsa -vo vdpau\")'.")
 
 (defun inc0n/async-shell-command (command)
   "Execute string COMMAND asynchronously."
-  (let ((proc (start-process "Shell"
-                             nil
-                             shell-file-name
-                             shell-command-switch command)))
-    (set-process-sentinel proc
-                          (lambda (process signal)
-                            (let* ((status (process-status process)))
-                              (when (memq status '(exit signal))
-                                (unless (string= (substring signal 0 -1) "finished")
-                                  (message "Failed to run \"%s\"." command))))))))
+  (let ((proc (start-process
+			   "Shell"
+               nil
+               shell-file-name
+               shell-command-switch command)))
+    (set-process-sentinel
+	 proc
+     (lambda (process signal)
+       (let ((status (process-status process)))
+         (when (and (memq status '(exit signal))
+					(not (string= (substring signal 0 -1) "finished")))
+           (message "Failed to run \"%s\"." command)))))))
 
 ;; reply y/n instead of yes/no
 ;; (fset 'yes-or-no-p 'y-or-n-p)
@@ -331,21 +332,20 @@ If STEP is 1,  search in forward direction, or else in backward direction."
 	  ;; (re-search-forward (rx (not (or ?\t ?\s))) nil t 1)
 ;;
 
-(defun util/comint-current-input-region ()
+(defun util/comint-operate-on-input-region (fn)
   "Region of current shell input."
-  (cons (process-mark (get-buffer-process (current-buffer)))
-        (line-end-position)))
+  (funcall fn
+		   (process-mark (get-buffer-process (current-buffer)))
+           (line-end-position)))
 
 (defun util/comint-kill-current-input ()
   "Kill current input in shell."
-  (interactive)
-  (let ((region (util/comint-current-input-region)))
-    (kill-region (car region) (cdr region))))
+  (util/comint-operate-on-input-region 'kill-region))
 
 (defun util/comint-current-input ()
   "Get current input in shell."
-  (let ((region (util/comint-current-input-region)))
-    (string-trim (buffer-substring-no-properties (car region) (cdr region)))))
+  (string-trim
+   (util/comint-operate-on-input-region 'buffer-substring-no-properties)))
 
 ;;
 

@@ -20,13 +20,13 @@
 		   ;; evil-escape and pyim may conflict
 		   ;; @see https://github.com/redguardtoo/emacs.d/issues/629
 		   (evil-escape-mode -1)
-		   (message "IME on!")
 		   (when (not (memq evil-previous-state '(normal)))
-			 (evil-change-to-previous-state)))
+			 (evil-change-to-previous-state))
+		   (message "IME on!"))
 		  (t
 		   (evil-escape-mode 1)
-		   (message "IME off!")
-		   (evil-normal-state)))))
+		   ;; (evil-normal-state)
+		   (message "IME off!")))))
 
 (defun inc0n/evil-insert-state-hack (orig-func &rest args)
   "Notify user IME status."
@@ -57,7 +57,6 @@
   ;; `curl -L http://tumashu.github.io/pyim-bigdict/pyim-bigdict.pyim.gz | zcat > ~/.eim/pyim-bigdict.pyim`
 
   ;; don's use shortcode2word
-
   (setq pyim-enable-shortcode nil)
 
   ;; use memory efficient pyim engine for pinyin ime

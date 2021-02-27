@@ -149,7 +149,7 @@
 		   (url (w3mext-encode-specials url))
 		   (cmd (if (string= url "buffer://")
 					;; cache 2M data and don't block UI
-					(inc0n/guess-image-viewer-path url t)
+					(format "curl -L %s | feh -F - &" url)
 				  (format "%s -cache 2000 %s &" (inc0n/guess-mplayer-path) url))))
 	  (when url
 		(shell-command cmd)))))

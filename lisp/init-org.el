@@ -6,14 +6,6 @@
 (require-package 'org-re-reveal)
 (require-package 'org-superstar)
 
-(add-hook 'org-mode-hook 'org-superstar-mode)
-
-(with-eval-after-load 'org-superstar-mode
-  (setq org-superstar-cycle-headline-bullets t)
-  (setq org-hide-leading-stars t)
-  ;; (setq org-superstar-special-todo-items nil)
-  )
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Org clock
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -124,9 +116,6 @@ ARG is ignored."
     (interactive "P")
     (org-agenda arg "n"))
 
-  (setq-local browse-url-generic-program "firefox"
-              browse-url-generic-args '("--private-window"))
-
   (defun inc0n/org-publish-hack (orig-func &rest args)
     "Stop running `major-mode' hook when `org-publish'."
     (let ((load-user-customized-major-mode-hook nil))
@@ -188,6 +177,7 @@ ARG is ignored."
 
   ;; misc
   (setq org-startup-with-latex-preview t
+        org-startup-indented t
 		org-pretty-entities t ;; render entity
         org-log-done t
         org-edit-src-content-indentation 0
@@ -197,8 +187,7 @@ ARG is ignored."
         ;; org-agenda-include-diary t
         org-agenda-window-setup 'current-window
         org-fast-tag-selection-single-key 'expert
-        org-startup-indented t
-		org-hide-leading-stars t
+		org-hide-leading-stars nil
         ;; {{ org 8.2.6 has some performance issue. Here is the workaround.
         ;; @see http://punchagan.muse-amuse.in/posts/how-i-learnt-to-use-emacs-profiler.html
         org-agenda-inhibit-startup t       ;; ~50x speedup
@@ -214,8 +203,9 @@ ARG is ignored."
 							 ("agenda.org" :regexp . "Past"))
         org-refile-use-outline-path 'file
         org-outline-path-complete-in-steps nil
-        org-todo-keywords '((sequence "TODO(t)" "NEXT(n)" "HOLD(h@/!)" "|" "DONE(d!/!)")
-                            (sequence "PROJECT(P@)" "|" "CANCELLED(c@/!)"))
+        org-todo-keywords
+		'((sequence "TODO(t)" "STARTED(s@)" "NEXT(n)" "HOLD(h@/!)" "|" "DONE(d!/!)")
+          (sequence "PROJECT(P@)" "|" "CANCELLED(c@/!)"))
         org-imenu-depth 5
         ;; @see http://irreal.org/blog/1
         org-src-fontify-natively t)
@@ -289,14 +279,7 @@ ARG is ignored."
   ;; @see https://www.orgmode.org/worg/org-contrib/babel/languages/ob-doc-gnuplot.html
   (org-babel-do-load-languages
    'org-babel-load-languages
-   '((gnuplot . t)))
-
-  (defun inc0n/insert-file-link-from-clipboard ()
-	"Make sure the full path of file exist in clipboard.
-This command will convert full path into relative path.
-Then insert it as a local file link in `org-mode'."
-	(interactive)
-	(insert (format "[[file:%s]]" (file-relative-name (util/get-clip))))))
+   '((gnuplot . t))))
 
 (defun org-agenda-skip-if-past-schedule ()
   "If this function returns nil, the current match should not be skipped.
@@ -319,9 +302,14 @@ should be continued."
 (add-hook 'org-agenda-mode-hook #'org-agenda-mode-setup)
 
 (with-eval-after-load 'org-superstar
-  (setq org-superstar-headline-bullets-list '(?◉ ?※ ?✸ ?▣))
-  (setq org-superstar-item-bullet-alist '((?\* . 8226) (?\+ . 10148) (?\- . ?\-)))
+  (setq org-superstar-headline-bullets-list '(?◉ ?※ ?✸ ?▣)
+		org-superstar-item-bullet-alist '((?\* . 8226) (?\+ . 10148) (?\- . ?\-)))
+  (setq org-superstar-cycle-headline-bullets t
+		org-superstar-special-todo-items nil)
   (org-superstar-restart))
+
+(add-hook 'org-mode-hook 'org-superstar-mode)
+
 
 ;; org-emphasis-alist
 (provide 'init-org)

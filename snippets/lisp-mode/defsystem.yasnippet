@@ -9,6 +9,12 @@
   :maintainer "$2 <$3>"
   :description "$4"
   ;; :homepage "https://github.com/"
+  ;; :depends-on (#:)
   :components ((:file "package")
-               (:file "$5")))
+			   (:file "$5")
+			   (:module src
+				:components
+				((:file "vec3")
+				 (:file "camera" :depends-on ("")))
+				:serial t)))
 $0

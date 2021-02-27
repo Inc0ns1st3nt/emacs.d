@@ -18,13 +18,12 @@
 
 (with-eval-after-load 'counsel
   ;; automatically pick up cygwin cli tools for counsel
-  (cond
-   ((executable-find "rg")
+  (when (executable-find "rg")
     ;; ripgrep says that "-n" is enabled actually not,
     ;; so we manually add it
     (setq counsel-grep-base-command
-          (concat (executable-find "rg")
-                  " -n -M 512 --no-heading --color never -i \"%s\" %s"))))
+		  (concat (executable-find "rg")
+				  " -n -M 512 --no-heading --color never -i \"%s\" %s")))
 
   ;; @see https://oremacs.com/2015/07/23/ivy-multiaction/
   ;; press "M-o" to choose ivy action
@@ -63,40 +62,6 @@ For example, could be \"---author=MyName\"")
                           (acons file (file-truename file) acc)
                         acc)))
                   (cdr items)))))))
-
-(defun inc0n/counsel-recentf (&optional n)
-  "Find a file on `recentf-list'.
-If N is 1, only list files in current project.
-If N is 2, list files in my recent 20 commits."
-  (interactive "P")
-  (util/ensure 'recentf)
-  (unless n (setq n 0)) ;; default value
-  (recentf-mode 1)
-  (let ((files (mapcar #'substring-no-properties recentf-list))
-        (root-dir (if (ffip-project-root) (file-truename (ffip-project-root))))
-        (hint "Recent files: "))
-    (cond
-     ((and (eq n 1) root-dir)
-      (setq hint (format "Recent files in %s: " root-dir))
-      (setq files (delq nil
-                        (delete-dups
-                         (mapcar (lambda (f) (path-in-directory-p f root-dir))
-                                 files)))))
-     ((eq n 2)
-      (setq hint "Files in recent Git commits: ")
-      (setq files (inc0n/git-recent-files))))
-
-    (ivy-read hint
-              files
-              :initial-input (if (region-active-p)
-                                 (util/selected-str))
-              :action (lambda (f)
-                        (with-ivy-window
-                          (find-file
-                           (if (consp f)
-                               (cdr f)
-                             f))))
-              :caller 'counsel-recentf)))
 
 ;; grep by author is bad idea. Too slow
 
@@ -226,22 +191,6 @@ If N is nil, use `ivy-mode' to browse `kill-ring'."
               :keymap ivy-switch-buffer-map
               :caller 'ivy-switch-buffer)))
 
-(with-eval-after-load 'ivy
-  ;; work around ivy issue.
-  ;; @see https://github.com/abo-abo/swiper/issues/828
-  (setq ivy-display-style 'fancy))
-
-(defun inc0n/swiper ()
-  (interactive)
-  (counsel-grep-or-swiper (util/thing-at-point)))
-
-;; {{ swiper&ivy-mode
-(global-set-key (kbd "C-s") 'inc0n/swiper)
-;; }}
-
-(global-set-key (kbd "C-h v") 'counsel-describe-variable)
-(global-set-key (kbd "C-h f") 'counsel-describe-function)
-
 ;; {{  C-o f to toggle case sensitive, @see https://github.com/abo-abo/swiper/issues/1104
 (defun re-builder-extended-pattern (str)
   "Build regex compatible with pinyin from STR."
@@ -293,6 +242,9 @@ If N is nil, use `ivy-mode' to browse `kill-ring'."
     (counsel-imenu))))
 
 (with-eval-after-load 'ivy
+  ;; work around ivy issue.
+  ;; @see https://github.com/abo-abo/swiper/issues/828
+  (setq ivy-display-style 'fancy)
   ;; better performance on everything (especially windows), ivy-0.10.0 required
   ;; @see https://github.com/abo-abo/swiper/issues/1218
   (setq ivy-dynamic-exhibit-delay-ms 75)
@@ -325,13 +277,5 @@ If N is nil, use `ivy-mode' to browse `kill-ring'."
   (let ((company-backends '(company-ctags))
         (company-ctags-fuzzy-match-p t))
     (counsel-company)))
-
-(defun counsel-ag-thing-at-point ()
-  (interactive)
-  (counsel-ag (util/thing-at-point)))
-
-(defun counsel-rg-thing-at-point ()
-  (interactive)
-  (counsel-rg (util/thing-at-point)))
 
 (provide 'init-ivy)

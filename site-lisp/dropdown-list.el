@@ -160,6 +160,7 @@
               while (/= (vertical-motion 1) 0)
               finally return t)))))
 
+;;;###autoload
 (defun dropdown-list (candidates)
   (let ((selection)
         (temp-buffer))

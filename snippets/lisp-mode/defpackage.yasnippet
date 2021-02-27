@@ -3,7 +3,7 @@
 # key: defpackage
 # --
 
-(ql:quickload '(:cl-utils))
+;; (ql:quickload '(:cl-utils))
 
 (defpackage :${1:`(file-name-nondirectory (directory-file-name (file-name-directory (buffer-file-name))))`.`(file-name-nondirectory (file-name-sans-extension (buffer-file-name)))`}
   (:use :cl))

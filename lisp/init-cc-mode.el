@@ -5,12 +5,6 @@
                         (awk-mode . "awk")
                         (other . "linux")))
 
-(defun fix-c-indent-offset-according-to-syntax-context (key val)
-  ;; remove the old element
-  (setq c-offsets-alist (delq (assoc key c-offsets-alist) c-offsets-alist))
-  ;; new value
-  (add-to-list 'c-offsets-alist '(key . val)))
-
 (setq-default c-basic-offset 4)
 
 (defun inc0n/common-cc-mode-setup ()
@@ -29,10 +23,10 @@
   ;; indent
   ;; google "C/C++/Java code indentation in Emacs" for more advanced skills
   ;; C code:
-  ;;   if(1) // press ENTER here, zero means no indentation
-  (fix-c-indent-offset-according-to-syntax-context 'substatement 0)
+  ;;   if(1) // press ENTER here, indent with 4 spaces
+  (c-set-offset 'substatement 4)
   ;;   void fn() // press ENTER here, zero means no indentation
-  (fix-c-indent-offset-according-to-syntax-context 'func-decl-cont 0))
+  (c-set-offset 'func-decl-cont 0))
 
 (defun inc0n/c-mode-setup ()
   "C/C++ only setup."

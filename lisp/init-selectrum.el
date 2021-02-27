@@ -19,12 +19,13 @@
 			  (selectrum-prescient-mode 1)
 			  (prescient-persist-mode 1)))
   (with-eval-after-load 'selectrum-prescient
-	(setq prescient-filter-method '(literal regexp fuzzy))))
+	(setq prescient-filter-method '(literal fuzzy regexp))))
 
 (with-eval-after-load 'selectrum
   (setq amx-backend 'selectrum)
   (setq-default selectrum-should-sort-p nil)
-  (setq selectrum-count-style 'matches))
+  (setq selectrum-count-style 'matches
+		selectrum-extend-current-candidate-highlight t))
 
 (global-set-key (kbd "C-s")
 				(lambda ()
@@ -40,41 +41,6 @@
 							 :require-match t
 							 :initial-input (and (region-active-p)
 												 (util/selected-str)))))
-
-(defun selectrum--imenu-candidates ()
-  (require 'imenu)
-  (let* ((imenu-auto-rescan t)
-         (imenu-auto-rescan-maxout (if current-prefix-arg
-                                       (buffer-size)
-                                     imenu-auto-rescan-maxout))
-         (items (imenu--make-index-alist t))
-         (items (delete (assoc "*Rescan*" items) items)))
-	(when (eq major-mode 'emacs-lisp-mode)
-      (when-let ((fns (cl-remove-if #'listp items :key #'cdr)))
-		(setq items (nconc (cl-remove-if #'nlistp items :key #'cdr)
-						   `(("Function" ,@fns))))))
-	(cl-labels ((get-candidates
-				 (alist &optional prefix)
-                 (cl-mapcan
-                  (lambda (elm)
-                    (if (imenu--subalist-p elm)
-                        (get-candidates
-                         (cl-loop for (e . v) in (cdr elm)
-                                  collect (cons e (if (integerp v) (copy-marker v) v)))
-                         (concat prefix
-								 (and prefix ".")
-								 (car elm)))
-                      (let ((key (concat (if prefix
-											 (concat
-											  (propertize prefix
-														  'face 'font-lock-keyword-face)
-											  ": "))
-                                         (car elm))))
-                        `((,key . ,(if (overlayp (cdr elm))
-									   (overlay-start (cdr elm))
-									 (cdr elm)))))))
-                  alist)))
-      (get-candidates items))))
 
 (defun selectrum-imenu ()
   "`imenu' interfacing with `selectrum'"
@@ -119,28 +85,28 @@
    (lambda ()
 	 (cl-destructuring-bind (level1 level2 todo priority text tags)
 		 (org-heading-components)
-	   (let ((headline (mapconcat
-						'identity
-						(cl-remove-if
-						 'null
-						 (list (make-string level1 ?*)
-							   ;; (and priority (format "[#%c]" priority))
-							   (mapconcat 'identity
-										  (append
-										   (org-get-outline-path)
-										   (list ""))
-										  "/")
-							   todo
-							   text
-							   tags))
-						" ")))
+	   (let ((headline
+			  (mapconcat
+			   'identity
+			   (cl-remove-if
+				'null
+				(list (make-string level1 ?*)
+					  ;; (and priority (format "[#%c]" priority))
+					  (mapconcat 'identity
+								 (append
+								  (org-get-outline-path)
+								  (list ""))
+								 "/")
+					  todo
+					  text
+					  tags))
+			   " ")))
 		 (propertize headline
 					 'selectrum-candidate-display-prefix
 					 (propertize
 					  (format "%s:" (file-name-nondirectory buffer-file-name))
 					  'face 'completions-annotations)
-					 'file-name buffer-file-name
-					 'point (point)))))
+					 'marker (point-marker)))))
    nil
    'agenda))
 
@@ -152,8 +118,9 @@
 										;; :history
 										;; 'counsel-org-agenda-headlines-history
 										)))
-	(find-file (get-text-property 0 'file-name headline))
-	(goto-char (get-text-property 0 'point headline))))
+	(let ((m (get-text-property 0 'marker headline)))
+	  (switch-to-buffer (marker-buffer m))
+	  (goto-char (marker-position m)))))
 
 (defun inc0n/imenu-or-list-tag-in-current-file ()
   "Combine the power of counsel-etags and imenu."
@@ -175,5 +142,32 @@
 ;;   (interactive)
 ;;   (let ((selectrum-minibuffer-map))
 ;; 	(read-buffer-to-switch "Switch to buffer: ")))
+
+(defun ask-action-on (actions-list &optional target)
+  "`ask-action-on' takes `actions-list' a list of (prompt char
+action), that could optionally act on `target' with the
+corresponding action"
+  (let ((key (read-char-from-minibuffer
+			  (concat "actions for: "
+					  (format "%s\n" target)
+					  (mapconcat (lambda (p)
+								   (cl-destructuring-bind (prompt key action) p
+									 (declare (ignore action))
+									 (format "[%c] %s" key prompt)))
+								 actions-list
+								 "\n"))
+			  (let ((keys (mapcar 'cadr actions-list)))
+				(add-to-list 'keys ?q)))))
+	(unless (= key ?q)
+	  (cl-destructuring-bind (prompt key action)
+		  (cl-find key actions-list :key 'cadr)
+		(declare (ignore prompt key))
+		(funcall action target)))))
+
+;; test
+(lambda () (interactive)
+  (ask-action-on '(("delete file" ?d delete-file)
+				   ("rename file" ?r rename-file)
+				   ("find file" ?f find-file))))
 
 (provide 'init-selectrum)

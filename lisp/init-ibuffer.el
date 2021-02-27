@@ -94,18 +94,4 @@
 
 (global-set-key (kbd "C-x C-b") #'ibuffer)
 
-(defun rename-file-and-buffer ()
-  "Rename the current buffer and file it is visiting."
-  (interactive)
-  (let ((filename (buffer-file-name)))
-    (if (not (and filename (file-exists-p filename)))
-        (message "Buffer is not visiting a file!")
-      (let ((new-name (read-file-name "New name: " filename)))
-        (rename-file filename new-name t)
-        (rename-buffer new-name)
-        (set-visited-file-name new-name)
-        (set-buffer-modified-p nil)))))
-
-(defalias 'rename-buffer-and-file 'rename-file-and-buffer)
-
 (provide 'init-ibuffer)
