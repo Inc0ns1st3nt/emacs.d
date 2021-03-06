@@ -122,7 +122,7 @@ If N is not nil, only list directories in current project."
 					   (file-truename (ffip-project-root)))))
     (when (and n root-dir)
       (setq cands
-            (delq nil (mapcar (lambda (f) (path-in-directory-p f root-dir)) cands))))
+            (delq nil (mapcar (lambda (f) (file-in-directory-p f root-dir)) cands))))
     (ivy-read "directories:" cands :action 'dired)))
 
 (defun ivy-occur-grep-mode-hook-setup ()

@@ -1,3 +1,4 @@
+;; package --- Summary
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
 (require-package 'expand-region) ; I prefer stable version
@@ -136,13 +137,13 @@ If the character before and after CH is space or tab, CH is NOT slash"
 (defun inc0n/evil-path-calculate-path (b e)
   (when (and b e)
     (setq b (+ 1 b))
-    (when (save-excursion
-            (goto-char e)
-            (when-let ((f
-						(inc0n/evil-path-search-forward-char
-						 #'inc0n/evil-path-is-separator-char t)))
-              (>= f b)))
-      (list b (+ 1 f) (- e 1)))))
+    (save-excursion
+      (goto-char e)
+      (when-let ((f
+				  (inc0n/evil-path-search-forward-char
+				   #'inc0n/evil-path-is-separator-char t)))
+        (and (>= f b)
+             (list b (+ 1 f) (- e 1)))))))
 
 (defun inc0n/evil-path-get-path-already-inside ()
   (let ((b (inc0n/evil-path-search-forward-char 'inc0n/evil-path-not-path-char t))
@@ -213,7 +214,8 @@ If the character before and after CH is space or tab, CH is NOT slash"
 (require-package 'evil-escape)
 ;; evil-escape will be disabled when input method is on
 (setq-default evil-escape-delay 0.2)
-(setq evil-escape-excluded-major-modes '(dired-mode))
+(with-eval-after-load 'evil-escape
+  (setq evil-escape-excluded-major-modes '(dired-mode)))
 (setq-default evil-escape-key-sequence "fd")
 (add-hook 'after-init-hook 'evil-escape-mode)
 ;; }}
@@ -226,29 +228,34 @@ If the character before and after CH is space or tab, CH is NOT slash"
       (error (and (functionp handler)
 				  (funcall handler))))))
 
-(defun util/delim-p (c)
-  (memq (char-syntax c) '(?\( ?\) ?\")))
+(defun util/delim-p (pos)
+  (let* ((c (char-after pos))
+         (syntax (char-syntax c)))
+    (if (= syntax ?\")
+        (let ((string-start-pos (nth 8 (syntax-ppss))))
+          (or (null string-start-pos) ;; means this is the string-starting-pos
+              (< pos string-start-pos)))
+      (memq c '(?\( ?\))))))
 
 ;; TODO: mark region if char syntax is ?\)
 (defun delim-or-normal (paredit-fn normal-fn)
-  (lambda ()
-	(interactive)
-	(if (or (util/delim-p (char-after))
-			(region-active-p))
-		(funcall paredit-fn)
-	  (and (functionp normal-fn)
-		   (call-interactively normal-fn)))))
+  (if (or (util/delim-p (point))
+		  (region-active-p))
+	  (funcall paredit-fn)
+	(and (functionp normal-fn)
+		 (call-interactively normal-fn))))
 
 ;; (popup-tip (documentation 'paredit-copy-as-kill))
 (evil-global-set-key 'motion (kbd "TAB") 'indent-for-tab-command)
-(evil-global-set-key 'motion (kbd "RET") 'newline)
+(evil-global-set-key 'motion (kbd "RET") 'newline-and-indent)
 ;; (evil-global-set-key 'normal (kbd "RET") #'indent-for-tab-command)
 
 (evil-declare-key '(normal visual) paredit-mode-map
-  "C" (delim-or-normal #'paredit-copy-as-kill #'evil-change)
+  "C" (lambda () (interactive)
+        (delim-or-normal #'paredit-copy-as-kill #'evil-change-line))
   "X" #'kill-sexp
-  ;; (kbd "r") #'evil-replace
-  "R" (delim-or-normal #'paredit-raise-sexp #'evil-replace-state)
+  "R" (lambda () (interactive)
+        (delim-or-normal #'paredit-raise-sexp #'evil-replace-state))
   "(" #'paredit-wrap-round
   "[" (handle-error #'backward-sexp #'backward-paragraph)
   "]" (handle-error #'forward-sexp #'forward-paragraph)
@@ -261,12 +268,12 @@ If the character before and after CH is space or tab, CH is NOT slash"
 ;; As a general rule, mode specific evil leader keys started
 ;; with upper cased character or 'g' or special character except "=" and "-"
 (evil-declare-key 'normal org-mode-map
-  "gh" #'outline-up-heading
-  "$" #'org-end-of-line ; smarter behaviour on headlines etc.
+  "gh" 'outline-up-heading
+  "$" 'org-end-of-line ; smarter behaviour on headlines etc.
   "^" 'org-beginning-of-line ; ditto
   "<" (org-op-on-tree-and-subtree #'org-do-promote)
   ">" (org-op-on-tree-and-subtree #'org-do-demote) ; indent
-  (kbd "RET") #'newline-and-indent
+  ;; (kbd "RET") #'newline-and-indent
   (kbd "TAB") #'org-cycle)
 
 (evil-declare-key 'normal markdown-mode-map
@@ -275,22 +282,31 @@ If the character before and after CH is space or tab, CH is NOT slash"
 
 ;; I prefer Emacs way after pressing ":" in evil-mode
 (evil-declare-key nil evil-ex-completion-map
-  (kbd "C-a") #'move-beginning-of-line
-  (kbd "C-b") #'backward-char
-  (kbd "M-p") #'previous-complete-history-element
-  (kbd "M-n") #'next-complete-history-element)
+  (kbd "C-a") 'move-beginning-of-line
+  (kbd "C-b") 'backward-char
+  (kbd "M-p") 'previous-complete-history-element
+  (kbd "M-n") 'next-complete-history-element)
 
 (evil-declare-key 'normal 'global
-  "Y" "y$"
-  "U" #'join-line
-  ;; (kbd "RET") 'ivy-switch-buffer-by-pinyin ; RET key is preserved for occur buffer
-  "go" #'avy-goto-char-timer
-  (kbd "C-]") #'counsel-etags-find-tag-at-point)
+  (kbd "C-e") 'evil-scroll-up
+  ;; "RET" 'ivy-switch-buffer-by-pinyin ; RET key is preserved for occur buffer
+  "Y"   'evil-yank-line ;; "y$"
+  "U"   'join-line
+  "go"  'avy-goto-char-timer)
 
 (define-key evil-visual-state-map (kbd "C-]") #'counsel-etags-find-tag-at-point)
 (define-key evil-insert-state-map (kbd "C-x C-n") #'evil-complete-next-line)
 (define-key evil-insert-state-map (kbd "C-x C-p") #'evil-complete-previous-line)
 (define-key evil-insert-state-map (kbd "C-]") #'aya-expand)
+
+;; I learn this trick from ReneFroger, need latest expand-region
+;; @see https://github.com/redguardtoo/evil-matchit/issues/38
+(define-key evil-visual-state-map (kbd "v") #'er/expand-region)
+(define-key evil-insert-state-map (kbd "C-e") #'move-end-of-line)
+(define-key evil-insert-state-map (kbd "C-k") #'kill-sexp)
+(define-key evil-insert-state-map (kbd "M-j") #'yas-expand)
+(define-key evil-emacs-state-map (kbd "M-j") #'yas-expand)
+;; (global-set-key (kbd "C-r") #'undo-tree-redo)
 
 (defun inc0n/search-defun-from-pos (search pos)
   (evil-search search t t pos)
@@ -341,15 +357,6 @@ If the character before and after CH is space or tab, CH is NOT slash"
        (t
         (inc0n/search-defun-from-pos search (point-min)))))))
 
-;; I learn this trick from ReneFroger, need latest expand-region
-;; @see https://github.com/redguardtoo/evil-matchit/issues/38
-(define-key evil-visual-state-map (kbd "v") #'er/expand-region)
-(define-key evil-insert-state-map (kbd "C-e") #'move-end-of-line)
-(define-key evil-insert-state-map (kbd "C-k") #'kill-line)
-(define-key evil-insert-state-map (kbd "M-j") #'yas-expand)
-(define-key evil-emacs-state-map (kbd "M-j") #'yas-expand)
-;; (global-set-key (kbd "C-r") #'undo-tree-redo)
-
 ;; {{
 ;; (advice-add 'evil-set-marker :before #'inc0n/evil-set-marker-hack)
 ;; (advice-add 'evil-goto-mark-line :around #'inc0n/evil-goto-mark-line-hack)
@@ -370,7 +377,7 @@ If the character before and after CH is space or tab, CH is NOT slash"
     (list (save-excursion
             (goto-char b)
             (while (and (< (point) e)
-                        (not (= (following-char) 61)))
+                        (not (= (following-char) ?=)))
               (forward-char))
             (if (= (point) e)
                 b
@@ -470,11 +477,11 @@ If INCLUSIVE is t, the text object is inclusive."
   "bb" (lambda () (interactive) (switch-to-buffer nil)) ; to previous buffer
   "bf" 'beginning-of-defun
   "bd" 'paredit-backward-down
-  ;; "bu" 'paredit-backward-up
   "bp" 'browse-url-at-point
+  ;; "bu" 'paredit-backward-up
   ;; comment
   "ci" 'comment-operator
-  "cl" 'copy-and-comment-line
+  "cl" 'comment-and-copy-line
   "cc" 'copy-to-clipboard
   "cp" 'comment-or-uncomment-paragraph
   ;; org
@@ -497,7 +504,7 @@ If INCLUSIVE is t, the text object is inclusive."
   "rt" 'rename-this-file-and-buffer
 
   "eb" 'eval-buffer
-  "ed" 'eval-defun
+  "ed" 'checkdoc-eval-defun
   "ee" 'eval-expression
   "ef" 'end-of-defun
   ;; "em" 'inc0n/erase-visible-buffer
@@ -541,9 +548,8 @@ If INCLUSIVE is t, the text object is inclusive."
   "jf" (inc0n/evil-transient-jump t)
   "jp" 'inc0n/print-json-path
   ;;
-  ;; TODO - transiant scroll other window
-  "jj" 'scroll-other-window
-  ;; "kb" 'kill-buffer-and-window ;; "k" is preserved to replace "C-g"
+  ;; "jj" 'scroll-other-window
+  "kb" 'kill-buffer-and-window ;; "k" is preserved to replace "C-g"
   "kc" 'inc0n/select-from-kill-ring
 
   "ls" 'highlight-symbol
@@ -555,20 +561,20 @@ If INCLUSIVE is t, the text object is inclusive."
   "mf" 'mark-defun
   "mp" 'pop-to-mark-command;; 'avy-pop-mark
 
+  "op" 'compile
   "oa" 'selectrum-org-agenda-headlines
   "oc" 'org-capture
   "og" 'org-agenda
   "on" 'org-agenda-show-agenda-and-todo
-  "op" 'compile
   "otl" 'org-toggle-link-display
+  "ou" 'org-update-statistics-cookies
   "o<" 'org-do-promote                  ; `C-c C-<'
   "o>" 'org-do-demote                   ; `C-c C->'
 
   "nh" 'inc0n/goto-next-hunk
-  "ni" 'newline-and-indent
 
-  "ne" 'flymake-goto-next-error
-  "pe" 'flymake-goto-prev-error
+  "ne" 'inc0n/transient-flycheck-error
+  "pe" (lambda () (interactive) (inc0n/transient-flycheck-error nil))
 
   "pd" 'pwd
   "ph" 'inc0n/goto-previous-hunk
@@ -586,7 +592,7 @@ If INCLUSIVE is t, the text object is inclusive."
   "sc" 'selectrum-imenu-comments
   "sf" 'selectsel-recentf
   ;; "sm" 'selectrum-evil-marks
-  "sk" 'selectrum-browse-kill-ring
+  "sk" 'inc0n/select-from-kill-ring
   "ss" 'selectrum-rg
 
   ;; "ti" 'inc0n/toggle-indentation
@@ -610,9 +616,9 @@ If INCLUSIVE is t, the text object is inclusive."
   "xb" 'switch-to-buffer
   "xf" 'find-file
   "xh" 'mark-whole-buffer
-  "xc" 'execute-extended-command
+  "xc" 'save-buffers-kill-emacs
   "xm" 'execute-extended-command
-  "xk" 'transient/kill-buffer
+  "xk" 'kill-buffer
   "xs" 'save-buffer
   ;; {{ window move
   ;; "wh" 'evil-window-left
@@ -649,7 +655,8 @@ If INCLUSIVE is t, the text object is inclusive."
 	  (comment-line (- n)))))
 
 (defun comment-or-uncomment-paragraph (n)
-  "Comment out a paragraph starting from the beginning of line text"
+  "Comment out a paragraph starting from the beginning of line text.
+Argument N the number of paragraph to operate on."
   (interactive "p")
   (comment-or-uncomment-region
    (line-beginning-position)
@@ -657,7 +664,8 @@ If INCLUSIVE is t, the text object is inclusive."
 		  (point))))
 
 (defun comment-operator (n)
-  "my implementation of a comment-operator"
+  "My implementation of a comment-operator.
+Argument N the number of lines to operate on."
   (interactive "P")
   (if (region-active-p)
 	  (comment-or-uncomment-region (region-beginning) (region-end))
@@ -667,8 +675,9 @@ If INCLUSIVE is t, the text object is inclusive."
 	 (progn (forward-line (or n 1)) (point)))))
 
 (define-key evil-motion-state-map "gc" 'comment-operator) ; same as doom-emacs
-
-;; "Press `dd' to delete lines in `wgrep-mode' in evil directly."
+(define-key evil-motion-state-map "gk" 'endless/capitalize) ; same as doom-emacs
+(define-key evil-motion-state-map "gl" 'endless/downcase)
+(define-key evil-normal-state-map "gu" 'endless/upcase)
 
 ;; {{ Use `;` as leader key, for searching something
 (general-create-definer inc0n/semicolon-leader-def
@@ -685,13 +694,12 @@ If INCLUSIVE is t, the text object is inclusive."
   ;; ";" 'ace-pinyin-jump-char-2
   "w" 'avy-goto-word-or-subword-1
   "a" 'avy-goto-char-timer
-  "db" 'sdcv-search-input ; details
-  "dt" 'sdcv-search-input+ ; summary
+  "db" 'sdcv-search-input               ; details
+  "dt" 'sdcv-search-input+              ; summary
   "dd" 'inc0n/lookup-dict-org
   "mm" 'lookup-doc-in-man
   "gg" 'w3m-google-search
   "gd" 'w3m-search-financial-dictionary
-  "ga" 'w3m-java-search
   "gh" 'w3mext-hacker-search ; code search in all engines with firefox
   "gq" 'w3m-stackoverflow-search)
 ;; }}
@@ -710,15 +718,18 @@ If INCLUSIVE is t, the text object is inclusive."
 ;; {{ change mode-line color by evil state
 (defvar inc0n/default-color (cons (face-background 'mode-line)
                                   (face-foreground 'mode-line)))
-(defun inc0n/update-modeline-face (&rest ignored)
+(defun inc0n/update-modeline-face ()
   "Change mode line color to notify user evil current state."
   (let ((color (cond ((minibufferp) inc0n/default-color)
-                     ((evil-insert-state-p) '("#e80000" . "#ffffff"))
-                     ((evil-emacs-state-p)  '("#444488" . "#ffffff"))
-                     ((buffer-modified-p)   '("#006fa0" . "#ffffff"))
+                     ((evil-insert-state-p) '("#d30000" . "#eeeeee"))
+                     ((evil-emacs-state-p)  '("#444488" . "#eeeeee"))
+                     ((buffer-modified-p)   '("#226fa0" . "#eeeeee"))
                      (t inc0n/default-color))))
-    (set-face-background 'mode-line (car color))
-    (set-face-foreground 'mode-line (cdr color))))
+    (set-face-attribute 'mode-line nil
+                        :box `(:line-width 2 :color ,(car color))
+                        ;; :height 120
+                        :foreground (cdr color)
+                        :background (car color))))
 (add-hook 'post-command-hook 'inc0n/update-modeline-face)
 ;; }}
 
@@ -767,12 +778,12 @@ If INCLUSIVE is t, the text object is inclusive."
 (define-key evil-normal-state-map "K" 'evil-jump-out-args)
 ;; }}
 
-;; press "v" to expand region
-;; then press "c" to contract, "x" to expand
 (with-eval-after-load 'evil
   ;; evil re-assign "M-." to `evil-repeat-pop-next' which I don't use actually.
   ;; Restore "M-." to original binding command
   (define-key evil-normal-state-map (kbd "M-.") 'xref-find-definitions)
+  ;; press "v" to expand region
+  ;; then press "c" to contract, "x" to expand
   (setq expand-region-contract-fast-key "c")
   ;; @see https://bitbucket.org/lyro/evil/issue/360/possible-evil-search-symbol-forward
   ;; evil 1.0.8 search word instead of symbol
@@ -804,3 +815,4 @@ If INCLUSIVE is t, the text object is inclusive."
         evil-want-C-i-jump t))
 
 (provide 'init-evil)
+;;; init-evil.el ends here

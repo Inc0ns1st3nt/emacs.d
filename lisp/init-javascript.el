@@ -1,23 +1,29 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
+(require-package 'js-doc)
+(require-package 'js2-mode)
+(require-package 'rjsx-mode)
 (require-package 'typescript-mode)
 
-(setq-default js2-use-font-lock-faces t
-              js2-mode-must-byte-compile nil
-              ;; {{ comment indention in modern frontend development
-              javascript-indent-level 2
-              js-indent-level 2
-              css-indent-offset 2
-              typescript-indent-level 2
-              ;; }}
-              js2-strict-trailing-comma-warning nil ; it's encouraged to use trailing comma in ES6
-              js2-idle-timer-delay 0.5 ; NOT too big for real time syntax check
-              js2-auto-indent-p nil
-              js2-indent-on-enter-key nil ; annoying instead useful
-              js2-skip-preprocessor-directives t
-              js2-strict-inconsistent-return-warning nil ; return <=> return null
-              js2-enter-indents-newline nil
-              js2-bounce-indent-p t)
+;; javascript
+(add-auto-mode 'js-mode
+               "\\.ja?son$"
+               "\\.pac$"
+               "\\.jshintrc$")
+
+(add-auto-mode 'js2-mode "\\.js\\(\\.erb\\)?\\'")
+;; JSX
+(add-auto-mode 'rjsx-mode
+               "\\.tsx\\'"
+               "\\.jsx\\'"
+               "components\\/.*\\.js\\'")
+
+;; mock file
+(add-auto-mode 'js-mode "\\.mock.js\\'")
+
+(add-auto-mode 'typescript-mode "\\.ts$")
+
+(add-to-list 'interpreter-mode-alist (cons "node" 'js2-mode))
 
 ;; don't waste time on angular patterns, it's updated too frequently
 (setq javascript-common-imenu-regex-list
@@ -199,6 +205,83 @@ Merge RLT and EXTRA-RLT, items in RLT has *higher* priority."
   ;; (define-key js2-mode-map (kbd "C-c C-o") nil)
   ;; (define-key js2-mode-map (kbd "C-c C-w") nil)
   ;; }}
+  (setq-default js2-use-font-lock-faces t
+                js2-mode-must-byte-compile nil
+                ;; {{ comment indention in modern frontend development
+                javascript-indent-level 2
+                js-indent-level 2
+                css-indent-offset 2
+                typescript-indent-level 2
+                ;; }}
+                js2-strict-trailing-comma-warning nil ; it's encouraged to use trailing comma in ES6
+                js2-idle-timer-delay 0.5 ; NOT too big for real time syntax check
+                js2-auto-indent-p nil
+                js2-indent-on-enter-key nil ; annoying instead useful
+                js2-skip-preprocessor-directives t
+                js2-strict-inconsistent-return-warning nil ; return <=> return null
+                js2-enter-indents-newline nil
+                js2-bounce-indent-p t)
+  (setq-default js2-additional-externs
+                '("$"
+                  "$A" ; salesforce lightning component
+                  "$LightningApp" ; salesforce
+                  "AccessifyHTML5"
+                  "Blob"
+                  "FormData"
+                  "KeyEvent"
+                  "Raphael"
+                  "React"
+                  "URLSearchParams"
+                  "__dirname" ; Node
+                  "_content" ; Keysnail
+                  "after"
+                  "afterEach"
+                  "angular"
+                  "app"
+                  "assert"
+                  "assign"
+                  "before"
+                  "beforeEach"
+                  "browser"
+                  "by"
+                  "clearInterval"
+                  "clearTimeout"
+                  "command" ; Keysnail
+                  "content" ; Keysnail
+                  "decodeURI"
+                  "define"
+                  "describe"
+                  "display" ; Keysnail
+                  "documentRef"
+                  "element"
+                  "encodeURI"
+                  "expect"
+                  "ext" ; Keysnail
+                  "fetch"
+                  "gBrowser" ; Keysnail
+                  "global"
+                  "goDoCommand" ; Keysnail
+                  "hook" ; Keysnail
+                  "inject"
+                  "isDev"
+                  "it"
+                  "jQuery"
+                  "jasmine"
+                  "key" ; Keysnail
+                  "ko"
+                  "log"
+                  "mockStore"
+                  "module"
+                  "mountWithTheme"
+                  "plugins" ; Keysnail
+                  "process"
+                  "require"
+                  "setInterval"
+                  "setTimeout"
+                  "shell" ; Keysnail
+                  "tileTabs" ; Firefox addon
+                  "util" ; Keysnail
+                  "utag"))
   (defun inc0n/js2-mode-create-imenu-index-hack (orig-func &rest args)
     (let ((extra-items
 		   (save-excursion
@@ -239,8 +322,7 @@ INDENT-SIZE decide the indentation level.
     (unless indent-size
       (setq indent-size
 			(cond
-             ((memq major-mode '(js-mode javascript-mode))
-              js-indent-level)
+             ((memq major-mode '(js-mode javascript-mode)) js-indent-level)
              ((memq major-mode '(web-mode)) web-mode-code-indent-offset)
              ((memq major-mode '(typescript-mode)) typescript-indent-level)
              (t 2))))
@@ -265,67 +347,5 @@ INDENT-SIZE decide the indentation level.
 (defun typescript-mode-hook-setup ()
   (setq imenu-create-index-function 'mo-js-imenu-make-index))
 (add-hook 'typescript-mode-hook 'typescript-mode-hook-setup)
-
-(setq-default js2-additional-externs
-              '("$"
-                "$A" ; salesforce lightning component
-                "$LightningApp" ; salesforce
-                "AccessifyHTML5"
-                "Blob"
-                "FormData"
-                "KeyEvent"
-                "Raphael"
-                "React"
-                "URLSearchParams"
-                "__dirname" ; Node
-                "_content" ; Keysnail
-                "after"
-                "afterEach"
-                "angular"
-                "app"
-                "assert"
-                "assign"
-                "before"
-                "beforeEach"
-                "browser"
-                "by"
-                "clearInterval"
-                "clearTimeout"
-                "command" ; Keysnail
-                "content" ; Keysnail
-                "decodeURI"
-                "define"
-                "describe"
-                "display" ; Keysnail
-                "documentRef"
-                "element"
-                "encodeURI"
-                "expect"
-                "ext" ; Keysnail
-                "fetch"
-                "gBrowser" ; Keysnail
-                "global"
-                "goDoCommand" ; Keysnail
-                "hook" ; Keysnail
-                "inject"
-                "isDev"
-                "it"
-                "jQuery"
-                "jasmine"
-                "key" ; Keysnail
-                "ko"
-                "log"
-                "mockStore"
-                "module"
-                "mountWithTheme"
-                "plugins" ; Keysnail
-                "process"
-                "require"
-                "setInterval"
-                "setTimeout"
-                "shell" ; Keysnail
-                "tileTabs" ; Firefox addon
-                "util" ; Keysnail
-                "utag"))
 
 (provide 'init-javascript)

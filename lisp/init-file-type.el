@@ -13,7 +13,7 @@
                "\\.mailcap$")
 ;; }}
 
-;; {{ lisp like language
+;; {{ emacs lisp
 (add-auto-mode 'emacs-lisp-mode
                "\\.emacs-project\\'"
                "archive-contents\\'"
@@ -80,7 +80,7 @@
 (add-auto-mode 'text-mode "\\.pyim\\'")
 
 ;; arduino setup
-(add-auto-mode 'c-mode "\\.\\(pde\\|ino\\)$")
+;; (add-auto-mode 'c-mode "\\.\\(pde\\|ino\\)$")
 
 ;; objc-mode
 ;; (rx (or ".xm" ".x"))
@@ -95,32 +95,9 @@
 
 (add-auto-mode 'markdown-mode "\\.\\(m[k]d\\|markdown\\)\\'")
 
-(add-auto-mode 'nov-mode "\\.epub\\'")
-
-(add-auto-mode 'adoc-mode "\\.adoc\\'")
-
 (add-auto-mode 'octave-mode "\\.m$")
 
 ;; racket
 (add-auto-mode 'racket-mode "\\.rkt$")
-
-;; javascript
-(add-auto-mode 'js-mode
-               "\\.ja?son$"
-               "\\.pac$"
-               "\\.jshintrc$")
-
-(add-auto-mode 'js2-mode "\\.js\\(\\.erb\\)?\\'")
-;; JSX
-(add-auto-mode 'rjsx-mode
-               "\\.jsx\\'"
-               "components\\/.*\\.js\\'")
-
-;; mock file
-(add-auto-mode 'js-mode "\\.mock.js\\'")
-
-(add-auto-mode 'typescript-mode "\\.ts$")
-
-(add-to-list 'interpreter-mode-alist (cons "node" 'js2-mode))
 
 (provide 'init-file-type)

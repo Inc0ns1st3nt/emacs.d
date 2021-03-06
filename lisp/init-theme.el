@@ -20,7 +20,9 @@
   (load-theme theme t)
   ;; update colour for correct evil state mode line face colour
   (setq inc0n/default-color (cons (face-background 'mode-line)
-                                  (face-foreground 'mode-line))))
+                                  (face-foreground 'mode-line)))
+  (when (boundp 'inc0n/update-modeline-face)
+    (inc0n/update-modeline-face)))
 
 (defun load-day-theme ()
   ;; selectrum is okay with this
@@ -68,30 +70,22 @@
 
 (defun inc0n/toggle-day/night ()
   (interactive)
-  (cond ((or (null custom-enabled-themes)
-			 (cdr custom-enabled-themes))
-		 (message "theme cannot be toggled"))
-		((equal (car custom-enabled-themes)
-				theme/night)
-		 (load-day-theme))
-		(t
-		 (load-night-theme))))
+  (cond ((equal (car custom-enabled-themes)
+		        theme/night)
+	     (load-day-theme))
+        (t
+	     (load-night-theme))))
 
 (defun inc0n/theme-packages (packages)
-  "Get themes from PACKAGES."
-  (cl-loop with top-num = 110
-           with i = 0
-           for p in (sort packages
-                          (lambda (a b)
-                            (> (cdr a) (cdr b))))
-           for name = (symbol-name (car p))
-           when (and (string-match-p "-themes?$" name)
-                     (not (memq name
-                                '(color-theme smart-mode-line-powerline-theme))))
-           do (setq i (1+ i))
-           and collect p into themes
-           when (= i top-num)
-           return themes))
+  "Filter themes from PACKAGES."
+  (let* ((themes (seq-remove (lambda (p)
+                               (let ((name (symbol-name (car p))))
+                                 (not (string-match-p "-themes?$" name))))
+                             packages))
+         (sorted (sort themes
+                       (lambda (a b)
+                         (> (cdr a) (cdr b))))))
+    (subseq sorted 0 (min (length sorted) 100))))
 
 (defun inc0n/get-popular-theme-name ()
   "Insert names of popular theme."
@@ -101,16 +95,18 @@
     (goto-char (point-min))
     (search-forward "{")
     (backward-char)                  ; move cursor just before the "{"
-    (when-let* ((pkgs (json-read))
+    (when-let* ((pkgs (json-read))   ; now read the json at point
                 (names (inc0n/theme-packages pkgs)))
-      (let ((selectrum-should-sort-p nil)
-			(cand (selectrum-read
-				   "Select theme to install: "
-				   (mapcar (lambda (x)
-							 (cons (format "%s:%s" (cdr x) (car x))
-								   (car x)))
-						   names))))
-		(package-install (cdr cand))))))
+      (let* ((selectrum-should-sort-p nil)
+			 (cand (selectrum-read
+				    "Select theme to install: "
+				    (mapcar (lambda (x)
+                              (propertize (propertize (symbol-name (car x))
+                                                      'face 'package-name)
+                                          'selectrum-candidate-display-prefix
+                                          (concat (number-to-string (cdr x)) " ")))
+						    names))))
+		(package-install (intern cand))))))
 
 (provide 'init-theme)
 ;;; init-theme.el ends here

@@ -29,46 +29,47 @@
 ;; "DejaVu Sans Mono"
 ;; "Source Code Pro"
 ;; "Fira Code", "monaco"
-;; (set-face-attribute 'default nil :font "Fira Code" :height 130)
+;; (set-face-attribute 'default nil :font "Fira Code" :height 100)
 
 ;; https://emacs.stackexchange.com/questions/29289/my-change-to-the-default-font-size-reverts-at-startup
-(add-to-list 'default-frame-alist
-             '(font . "Fira Code-12"))
+(add-to-list 'default-frame-alist '(font . "Fira Code-12"))
+(set-face-attribute 'mode-line nil :font "Fira Code" :height 120)
 
 ;; transparency setup
 ;; (set-frame-parameter (selected-frame) 'alpha '(85 . 50))
 ;; (add-to-list 'default-frame-alist '(alpha . (85 . 50)))
 
 (defun show-scratch-buffer-message ()
-  (if-let ((fortune-prog (or (executable-find "fortune-zh")
-                             (executable-find "fortune"))))
-      (format
-       ";; %s\n\n"
-       (replace-regexp-in-string
-        "\n" "\n;; "                    ; comment each line
-        (replace-regexp-in-string
-         "\\(\n$\\|\\|\\[m *\\|\\[[0-9][0-9]m *\\)" "" ; remove trailing linebreak
-         (shell-command-to-string fortune-prog))))
-    (concat ";; Happy hacking "
-            (or user-login-name "")
-            " - Emacs loves you!\n\n")))
+  (let ((fortune-prog (or (executable-find "fortune-zh")
+                          (executable-find "fortune"))))
+    (if fortune-prog
+        (format
+         ";; %s\n\n"
+         (replace-regexp-in-string
+          "\n" "\n;; "                  ; comment each line
+          (replace-regexp-in-string
+           "\\(\n$\\|\\|\\[m *\\|\\[[0-9][0-9]m *\\)" "" ; remove trailing linebreak
+           (shell-command-to-string fortune-prog))))
+      (concat ";; Happy hacking "
+              (or user-login-name "")
+              " - Emacs loves you!\n\n"))))
 
 (setq initial-scratch-message
-      ;; (show-scratch-buffer-message)
-      (concat ";; Please wait "
-              (or user-login-name "")
-              " org agenda is being prepared for you"))
+      (show-scratch-buffer-message)
+      ;; (concat ";; Please wait "
+      ;;         (or user-login-name "")
+      ;;         " org agenda is being prepared for you")
+      )
 
-;; (setq initial-buffer-choice nil)
-(add-hook 'after-init-hook
-		  (lambda ()
-			(run-with-idle-timer
-			 0.1 nil
-			 (lambda ()
-			   (let ((org-agenda-window-setup
-					  'only-window))
-				 (org-agenda nil "n"))
-			   (current-buffer)))))
+(setq initial-buffer-choice
+      (lambda ()
+        (let ((org-agenda-window-setup
+			   'Only-window))
+		  (org-agenda nil "n")
+          (current-buffer))))
+;; (run-with-idle-timer 0.1 nil
+;;  (lambda ()))
+;; (current-buffer)
 ;; (fringe-mode '(3 . 0))
 
 (provide 'early-init)

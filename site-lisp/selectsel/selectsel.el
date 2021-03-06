@@ -35,13 +35,13 @@
 				  (mapcar (lambda (cand)
 							(replace-regexp-in-string regex-str newstr cand))
 						  cands))))
-			 (enable-recursive-minibuffers t)
+             (selectrum--last-input regex-str) ;; preserve outter seesion
 			 (cand
-			  (let ((selectrum--last-input regex-str) ;; preserve outter seesion
-					(selectrum-preprocess-candidates-function #'identity))
-				(selectrum--read (format "Replace \"%s\" with: "
-										 (substring-no-properties regex-str))
-								 cands-fn))))
+			  (let ((enable-recursive-minibuffers t)
+                    (selectrum-preprocess-candidates-function #'identity))
+                (selectrum--read (format "Replace \"%s\" with: "
+									     (substring-no-properties regex-str))
+							     cands-fn))))
 		(let ((last-input selectrum--last-input)
 			  (buf (seq-find (lambda (x) (not (minibufferp x)))
 							 (buffer-list)))
@@ -59,55 +59,16 @@
 			  (exit-minibuffer))))))))
 
 (defun selectrum--yank-search (regex-str)
-  "set search item as str"
-  (cond ((and (boundp 'evil-mode)
-			  evil-mode)
-		 ;; safe guard against fuzzy match
-		 ;; (save-excursion)
-		 (evil-search regex-str t t (line-beginning-position)))
-		(t
-		 (re-search-forward regex-str (line-end-position) t)
-		 (isearch-mode t)
-		 (isearch-yank-string regex-str))))
+  "Set search item as str.
+Argument REGEX-STR the regex str to find in buffer."
+  (re-search-forward regex-str (line-end-position) t)
+  (if (and (boundp 'evil-mode)
+		   evil-mode)
+	  (evil-search regex-str t t (line-beginning-position))
+	(isearch-mode t)
+	(isearch-yank-string regex-str)))
 
 ;; selectrum-swiper
-
-(defun selectrum--imenu-candidates ()
-  (require 'imenu)
-  (let* ((imenu-auto-rescan t)
-         (imenu-auto-rescan-maxout (if current-prefix-arg
-                                       (buffer-size)
-                                     imenu-auto-rescan-maxout))
-         (items (imenu--make-index-alist t))
-         (items (delete (assoc "*Rescan*" items) items)))
-
-	(when (eq major-mode 'emacs-lisp-mode)
-      (when-let ((fns (cl-remove-if #'listp items :key #'cdr)))
-		(setq items (nconc (cl-remove-if #'nlistp items :key #'cdr)
-						   `(("Function" ,@fns))))))
-	(cl-labels ((get-candidates
-				 (alist &optional prefix)
-                 (cl-mapcan
-                  (lambda (elm)
-                    (if (imenu--subalist-p elm)
-                        (get-candidates
-                         (cl-loop for (e . v) in (cdr elm)
-                                  collect (cons e (if (integerp v) (copy-marker v) v)))
-                         (concat prefix
-								 (and prefix ".")
-								 (car elm)))
-                      (let ((key (propertize
-								  (car elm)
-								  'selectrum-candidate-display-prefix
-								  (when prefix
-									(concat (propertize prefix 'face
-														'font-lock-keyword-face)
-											": ")))))
-                        `((,key . ,(if (overlayp (cdr elm))
-									   (overlay-start (cdr elm))
-									 (cdr elm)))))))
-                  alist)))
-      (get-candidates items))))
 
 (defun selectrum--swiper-candidates (&optional beg end)
   (let ((inhibit-field-text-motion t)
@@ -142,20 +103,20 @@
   (let ((selectrum--last-input
 		 (util/thing-at-point/deselect)))
 	(save-excursion
+      (beginning-of-defun)
+	  (push-mark nil t t)
 	  (selectsel--replace-search
-	   (progn
-		 (beginning-of-defun)
-		 (push-mark nil t t)
-		 (let* ((beg (point))
-				(end (progn (end-of-defun)
-							(point))))
-		   (selectrum--swiper-candidates beg end)))))))
+	   (let* ((beg (point))
+			  (end (progn (end-of-defun)
+						  (point))))
+		 (selectrum--swiper-candidates beg end))))))
 
 (defun selectrum-swiper (&optional initial-input)
   "Search for a matching line and jump to the beginning of its text.  Obeys narrowing."
   (interactive (list (util/thing-at-point/deselect)))
   (let* ((cands (selectrum--swiper-candidates))
-		 (selectrum-minibuffer-map
+		 (current-line-number (line-number-at-pos (point) t))
+         (selectrum-minibuffer-map
 		  (let ((map (make-sparse-keymap)))
 			(set-keymap-parent map selectrum-minibuffer-map)
 			(define-key map (kbd "M-q")
@@ -163,10 +124,9 @@
 				(interactive)
 				(selectsel--replace-search cands)))
 			map))
-		 (current-line-number (line-number-at-pos (point) t))
-		 (selectrum-preprocess-candidates-function #'identity)
+         (selectrum-preprocess-candidates-function #'identity)
 		 (chosen-line
-		  (selectrum--read "Selectrum Swiper: "
+          (selectrum--read "Selectrum Swiper: "
 						   cands
 						   :default-candidate (nth (1- current-line-number) cands)
 						   :initial-input initial-input
@@ -177,10 +137,50 @@
          (chosen-line-number-str
 		  (get-text-property 0 'selectrum-candidate-display-prefix chosen-line)))
 	(when chosen-line-number-str
-      (push-mark (point) t)
+      (push-mark (point) nil)
       (forward-line (- (string-to-number chosen-line-number-str)
 					   current-line-number))
 	  (selectrum--yank-search selectrum--last-input))))
+
+;; imenu
+
+(defun selectrum--imenu-candidates ()
+  (require 'imenu)
+  (let* ((imenu-auto-rescan t)
+         (imenu-auto-rescan-maxout (if current-prefix-arg
+                                       (buffer-size)
+                                     imenu-auto-rescan-maxout))
+         (items (imenu--make-index-alist t))
+         (items (delete (assoc "*Rescan*" items) items)))
+
+	(when (eq major-mode 'emacs-lisp-mode)
+      (when-let ((fns (cl-remove-if #'listp items :key #'cdr)))
+		(setq items (nconc (cl-remove-if #'nlistp items :key #'cdr)
+						   `(("Function" ,@fns))))))
+	(cl-labels ((get-candidates
+				 (alist &optional prefix)
+                 (cl-mapcan
+                  (lambda (elm)
+                    (if (imenu--subalist-p elm)
+                        (get-candidates
+                         (cl-loop for (e . v) in (cdr elm)
+                                  collect
+                                  (cons e (if (integerp v) (copy-marker v) v)))
+                         (concat prefix
+								 (and prefix ".")
+								 (car elm)))
+                      (let ((key (propertize
+								  (car elm)
+								  'selectrum-candidate-display-prefix
+								  (when prefix
+									(concat (propertize prefix 'face
+														'font-lock-keyword-face)
+											": ")))))
+                        `((,key . ,(if (overlayp (cdr elm))
+									   (overlay-start (cdr elm))
+									 (cdr elm)))))))
+                  alist)))
+      (get-candidates items))))
 
 ;; selectrum-rg
 
@@ -194,49 +194,54 @@
 (autoload 'grep-expand-template "grep" "")
 (autoload 'counsel--elisp-to-pcre "counsel" "")
 
+(defun selectsel--rg-preprocess-candidates (cands)
+  (mapcar (lambda (c)
+	        (if (not (string-match "\\`\\([^:]+\\):\\([^:]+\\):\\(.*\\)" c))
+		        c
+	          (let ((file-name (match-string 1 c))
+			        (line-num (match-string 2 c))
+			        (match (match-string 3 c)))
+		        (add-face-text-property ;; file name
+		         0 (length file-name)
+		         'compilation-info
+		         nil file-name)
+		        (add-face-text-property ;; line number
+		         0 (length line-num)
+		         '(:underline nil :inherit compilation-line-number)
+		         nil line-num)
+		        (propertize match
+					        'selectrum-candidate-display-prefix
+					        (concat file-name ":" line-num ":")))))
+          cands))
+
 (defun selectrum-rg (&optional initial-input)
   (interactive (list (util/thing-at-point)))
   (let* ((command selectrum-rg-base-cmd)
-		 (prop (lambda (c)
-				 (if (not (string-match "\\`\\([^:]+\\):\\([^:]+\\):\\(.*\\)" c))
-					 c
-				   (let ((file-name (match-string 1 c))
-						 (line-num (match-string 2 c))
-						 (match (match-string 3 c)))
-					 (add-face-text-property ;; file name
-					  0 (length file-name)
-					  'compilation-info
-					  nil file-name)
-					 (add-face-text-property ;; line number
-					  0 (length line-num)
-					  '(:underline t :inherit compilation-line-number)
-					  nil line-num)
-					 (propertize match
-								 'selectrum-candidate-display-prefix
-								 (concat file-name ":" line-num ":"))))))
+		 (selectrum-preprocess-candidates-function
+          'selectsel--rg-preprocess-candidates)
 		 (cands (lambda (in)
 				  (if (< (length in) 3)
 					  '("Input should more than 3 characters.")
 					(let* ((counsel--regex-look-around "--pcre2")
 						   (regex
 							(counsel--elisp-to-pcre in counsel--regex-look-around)))
-					  (mapcar prop
-							  (split-string (shell-command-to-string
-											 (grep-expand-template command regex))
-											"\n"))))))
+					  ;; (mapcar prop)
+					  (split-string (shell-command-to-string
+									 (grep-expand-template command regex))
+									"\n")))))
 		 (cand (selectrum--read "rg: " cands
 								:initial-input initial-input
 								;; :may-modify-candidates t
 								:history 'selectrum--rg-history
 								:require-match nil))
 		 (file-n-line (get-text-property 0 'selectrum-candidate-display-prefix cand)))
-	(when (string-match "\\`\\(.*?\\):\\([0-9]+\\):\\'" file-n-line)
+	(when (and file-n-line
+               (string-match "\\`\\(.*?\\):\\([0-9]+\\):\\'" file-n-line))
 	  (let ((file-name (match-string-no-properties 1 file-n-line))
 			(line-number (match-string-no-properties 2 file-n-line))
 			(input selectrum--last-input))
 		(find-file file-name)
 		(goto-char (point-min)) ;; reset to line 1
-		(message "rg line num: %s" line-number)
 		(forward-line (1- (string-to-number line-number)))
 		(selectrum--yank-search input)))))
 
@@ -287,22 +292,13 @@ as deep as `selectrum--search-file-max-depth'"
     (when cand
 	  (find-file cand))))
 
-
-(defvar selectsel-recentf-max-entries nil
-  "An positive integer value that control the The max recent files
-  entries to display in `selectrum-recentf', nil mean no maximum")
-
 (defun selectsel-recentf (&optional initial-input)
   "Find a file on `recentf-list'."
   (interactive (list (and (region-active-p)
 						  (util/selected-str))))
   (if (and (boundp 'recentf-mode)
 		   recentf-mode)
-	  (let* ((files (mapcar 'abbreviate-file-name
-							(if selectsel-recentf-max-entries
-								(seq-subseq recentf-list
-											0 selectsel-recentf-max-entries)
-							  recentf-list)))
+	  (let* ((files (mapcar 'abbreviate-file-name recentf-list))
 			 (cand (completing-read "Find recent file: " files
 									nil nil initial-input)))
 		(find-file cand))
@@ -366,8 +362,36 @@ Argument CANDS list of files to process."
 
 (defun selectsel-find-file ()
   (interactive)
-  (let ((selectrum-preprocess-candidates-function 'selectsel--preprocess-files))
+  (let ((selectrum-preprocess-candidates-function 'selectsel--preprocess-files)
+        (selectrum-max-window-height 15)) ;; display more files
 	(selectrum-read-file-name "File file: ")))
+
+;;
+
+(defun selectsel--package-candidates ()
+  (cl-loop for (pkg-name pkg-desc) in package-alist
+           collect (propertize
+                    (symbol-name pkg-name)
+                    'selectrum-candidate-display-prefix
+                    (concat
+                     (propertize
+                      (mapconcat 'string-to-number
+                                 (package-desc-version pkg-desc)
+                                 ".")
+                      'face 'package-name)
+                     " "))))
+
+(defun selectsel-list-packages ()
+  (interactive)
+  ;; (list (util/thing-at-point/deselect))
+  (let* ((selectrum-preprocess-candidates-function #'identity)
+	     (package (selectrum--read "Selectrum packages: "
+					               (selectsel--package-candidates)
+					               ;; :initial-input initial-input
+					               :may-modify-candidates t
+					               :require-match t
+					               :no-move-default-candidate t)))
+    (describe-package (intern package))))
 
 ;;;; ChangeLog:
 
@@ -379,6 +403,8 @@ Argument CANDS list of files to process."
 ;;
 ;; 	some tweak to swiper-rg and swiper
 ;;
+;; 2021-03-02
+;; added selectsel-list-package
 
 (provide 'selectsel)
 ;;; selectsel.el ends here

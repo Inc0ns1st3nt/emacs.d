@@ -27,7 +27,7 @@ Text-Width: 70
 </x-color><x-color><param>#014980</param>(</x-color>let <x-color><param>#014980</param>((</x-color>init-gc-cons-threshold <x-color><param>#014980</param>(</x-color>* 128 1024 1024<x-color><param>#014980</param>)))</x-color> ;; <x-color><param>#556b2f</param>128mb
 </x-color>  <x-color><param>#014980</param>(</x-color>setq garbage-collection-messages t<x-color><param>#014980</param>)</x-color> ; <x-color><param>#556b2f</param>for debug
 </x-color>  <x-color><param>#014980</param>(</x-color>setq gc-cons-threshold init-gc-cons-threshold<x-color><param>#014980</param>)</x-color>
-  <x-color><param>#014980</param>(</x-color>setq gc-cons-percentage 0.15<x-color><param>#014980</param>))</x-color>
+  <x-color><param>#014980</param>(</x-color>setq gc-cons-percentage 0.20<x-color><param>#014980</param>))</x-color>
 <x-color><param>#014980</param>(</x-color>add-hook 'emacs-startup-hook
           <x-color><param>#014980</param>(</x-color>lambda <x-color><param>#014980</param>()</x-color>
 
@@ -53,27 +53,27 @@ Text-Width: 70
 
 <x-color><param>#014980</param>(</x-color>defun require-init <x-color><param>#014980</param>(</x-color>pkg<x-color><param>#014980</param>)</x-color>
 
-  <x-color><param>#485a27</param>"require the init pkg files in init lisp directory"</x-color>
+  <x-color><param>#485a27</param>"Require the init PKG files in init Lisp directory."</x-color>
   <x-color><param>#014980</param>(</x-color>load <x-color><param>#014980</param>(</x-color>file-truename <x-color><param>#014980</param>(</x-color>format <x-color><param>#8a3b3c</param>"%s/%s"</x-color> inc0n/lisp-dir pkg<x-color><param>#014980</param>))</x-color>
 
         t t<x-color><param>#014980</param>))</x-color>
 
 
 <x-color><param>#014980</param>(</x-color>defun inc0n/add-subdirs-to-load-path <x-color><param>#014980</param>(</x-color>parent-dir<x-color><param>#014980</param>)</x-color>
-  "Adds every non-hidden subdir of PARENT-DIR to `<x-color><param>#56B6C2</param>load-path</x-color>'."
-  <x-color><param>#61AFEF</param>(</x-color><x-color><param>#C678DD</param>let</x-color> <x-color><param>#61AFEF</param>((</x-color>default-directory parent-dir<x-color><param>#61AFEF</param>))</x-color>
-    <x-color><param>#61AFEF</param>(</x-color><x-color><param>#C678DD</param>setq</x-color> load-path
-          <x-color><param>#61AFEF</param>(</x-color>append
-           <x-color><param>#61AFEF</param>(</x-color>cl-remove-if-not
+  <x-color><param>#485a27</param>"Add every non-hidden subdir of PARENT-DIR to `</x-color><x-color><param>#383a42</param><x-color><param>#485a27</param>load-path</x-color></x-color><x-color><param>#485a27</param>'."</x-color>
+  <x-color><param>#014980</param>(</x-color>let <x-color><param>#014980</param>((</x-color>default-directory parent-dir<x-color><param>#014980</param>))</x-color>
+    <x-color><param>#014980</param>(</x-color>setq load-path
+          <x-color><param>#014980</param>(</x-color>append
+           <x-color><param>#014980</param>(</x-color>cl-remove-if-not
             #'file-directory-p
-            <x-color><param>#61AFEF</param>(</x-color>directory-files <x-color><param>#61AFEF</param>(</x-color>expand-file-name parent-dir<x-color><param>#61AFEF</param>)</x-color> t <x-color><param>#98C379</param>"^[<x-color><param>#56B6C2</param>^</x-color>\\.]"</x-color><x-color><param>#61AFEF</param>))</x-color>
-           load-path<x-color><param>#61AFEF</param>))))</x-color>
+            <x-color><param>#014980</param>(</x-color>directory-files <x-color><param>#014980</param>(</x-color>expand-file-name parent-dir<x-color><param>#014980</param>)</x-color> t <x-color><param>#8a3b3c</param>"^[</x-color><x-color><param>#383a42</param><x-color><param>#8a3b3c</param>^</x-color></x-color><x-color><param>#8a3b3c</param>\\.]"</x-color><x-color><param>#014980</param>))</x-color>
+           load-path<x-color><param>#014980</param>))))</x-color>
 
 
-;; <x-color><param>#5C6370</param>@see https://www.reddit.com/r/emacs/comments/3kqt6e/2_easy_little_known_steps_to_speed_up_emacs_start/
-</x-color>;; <x-color><param>#5C6370</param>Normally file-name-handler-alist is set to
-</x-color>;; <x-color><param>#5C6370</param>(("\\`/[<x-color><param>#56B6C2</param>^</x-color>/]*\\'" . tramp-completion-file-name-handler)
-</x-color>;; <x-color><param>#5C6370</param>("\\`/[<x-color><param>#56B6C2</param>^</x-color>/|:][<x-color><param>#56B6C2</param>^</x-color>/|]*:" . tramp-file-name-handler)
+;; <x-color><param>#556b2f</param>@see https://www.reddit.com/r/emacs/comments/3kqt6e/2_easy_little_known_steps_to_speed_up_emacs_start/
+</x-color>;; <x-color><param>#556b2f</param>Normally file-name-handler-alist is set to
+</x-color>;; <x-color><param>#556b2f</param>(("\\`/[</x-color><x-color><param>#383a42</param><x-color><param>#556b2f</param>^</x-color></x-color><x-color><param>#556b2f</param>/]*\\'" . tramp-completion-file-name-handler)
+</x-color>;; <x-color><param>#556b2f</param>("\\`/[</x-color><x-color><param>#383a42</param><x-color><param>#556b2f</param>^</x-color></x-color><x-color><param>#556b2f</param>/|:][</x-color><x-color><param>#383a42</param><x-color><param>#556b2f</param>^</x-color></x-color><x-color><param>#556b2f</param>/|]*:" . tramp-file-name-handler)
 </x-color>;; <x-color><param>#556b2f</param>("\\`/:" . file-name-non-special))
 </x-color>;; <x-color><param>#556b2f</param>Which means on every .el and .elc file loaded during start up, it has to runs those regexps against the filename.
 </x-color><x-color><param>#014980</param>(</x-color>let <x-color><param>#014980</param>((</x-color>file-name-handler-alist nil<x-color><param>#014980</param>))</x-color>
@@ -118,28 +118,23 @@ Text-Width: 70
   <x-color><param>#014980</param>(</x-color>require-init 'init-company<x-color><param>#014980</param>)</x-color>
   <x-color><param>#014980</param>(</x-color>require-init 'init-chinese<x-color><param>#014980</param>)</x-color> ;; <x-color><param>#556b2f</param>cannot be idle-require-initd
 </x-color>  ;; <x-color><param>#556b2f</param>(require-init 'init-counsel)
-</x-color>  ;; <x-color><param>#556b2f</param>need statistics of keyfreq asap
-</x-color>  <x-color><param>#014980</param>(</x-color>require-init 'init-keyfreq<x-color><param>#014980</param>)</x-color>
-  ;; <x-color><param>#556b2f</param>(require-init 'init-httpd)
+</x-color>  <x-color><param>#014980</param>(</x-color>require-init 'init-keyfreq<x-color><param>#014980</param>)</x-color> ;; <x-color><param>#556b2f</param>need statistics of keyfreq asap
+</x-color>  ;; <x-color><param>#556b2f</param>(require-init 'init-httpd)
 
 </x-color>  ;; <x-color><param>#556b2f</param>projectile costs 7% startup time
 
 </x-color>
 
+  <x-color><param>#014980</param>(</x-color>require-init 'init-flycheck<x-color><param>#014980</param>)</x-color>
+
   <x-color><param>#014980</param>(</x-color>require-init 'init-pdf<x-color><param>#014980</param>)</x-color>
+  <x-color><param>#014980</param>(</x-color>require-init 'init-theme<x-color><param>#014980</param>)</x-color>     ;; <x-color><param>#556b2f</param>don't play with color-theme in light weight mode
+</x-color>  <x-color><param>#014980</param>(</x-color>require-init 'init-essential<x-color><param>#014980</param>)</x-color> ;; <x-color><param>#556b2f</param>essential has some crucial tools I need immediately
+</x-color>  <x-color><param>#014980</param>(</x-color>require-init 'init-misc<x-color><param>#014980</param>)</x-color>      ;; <x-color><param>#556b2f</param>misc, handy tools though not must have
 
-  ;; <x-color><param>#556b2f</param>don't play with color-theme in light weight mode
-</x-color>  ;; <x-color><param>#556b2f</param>color themes are already installed in `</x-color><x-color><param>#383a42</param><x-color><param>#556b2f</param>init-elpa.el</x-color></x-color><x-color><param>#556b2f</param>'
-</x-color>  <x-color><param>#014980</param>(</x-color>require-init 'init-theme<x-color><param>#014980</param>)</x-color>
-
-  ;; <x-color><param>#556b2f</param>essential has some crucial tools I need immediately
-</x-color>  <x-color><param>#014980</param>(</x-color>require-init 'init-essential<x-color><param>#014980</param>)</x-color>
-  ;; <x-color><param>#556b2f</param>misc, handy tools though not must have
-</x-color>  <x-color><param>#014980</param>(</x-color>require-init 'init-misc<x-color><param>#014980</param>)</x-color>
-
-  ;; <x-color><param>#556b2f</param>(require-init 'init-emacs-w3m)
-</x-color>  ;; <x-color><param>#556b2f</param>(require-init 'init-shackle)
-</x-color>  <x-color><param>#014980</param>(</x-color>require-init 'init-dired<x-color><param>#014980</param>)</x-color>
+</x-color>  <x-color><param>#014980</param>(</x-color>require-init 'init-emacs-w3m<x-color><param>#014980</param>)</x-color>
+  <x-color><param>#014980</param>(</x-color>require-init 'init-shackle<x-color><param>#014980</param>)</x-color>
+  <x-color><param>#014980</param>(</x-color>require-init 'init-dired<x-color><param>#014980</param>)</x-color>
   <x-color><param>#014980</param>(</x-color>require-init 'init-writting<x-color><param>#014980</param>)</x-color>
   ;; <x-color><param>#556b2f</param>(require-init 'init-hydra)  ; hotkey is require-initd everywhere
 </x-color>  <x-color><param>#014980</param>(</x-color>require-init 'init-clipboard<x-color><param>#014980</param>)</x-color>
@@ -153,8 +148,9 @@ Text-Width: 70
 </x-color>  ;; <x-color><param>#556b2f</param>Adding directories under "site-lisp/" to `</x-color><x-color><param>#383a42</param><x-color><param>#556b2f</param>load-path</x-color></x-color><x-color><param>#556b2f</param>' slows
 </x-color>  ;; <x-color><param>#556b2f</param>down all `</x-color><x-color><param>#383a42</param><x-color><param>#556b2f</param>require-init</x-color></x-color><x-color><param>#556b2f</param>' statement. So we do this at the end of startup
 </x-color>  ;; <x-color><param>#556b2f</param>NO ELPA package is dependent on "site-lisp/".
-</x-color>  <x-color><param>#014980</param>(</x-color>inc0n/add-subdirs-to-load-path <x-color><param>#014980</param>(</x-color>file-name-as-directory inc0n/site-lisp-dir<x-color><param>#014980</param>))</x-color>
+</x-color>  ;; <x-color><param>#556b2f</param>(inc0n/add-subdirs-to-load-path (file-name-as-directory inc0n/site-lisp-dir))
 
+</x-color>
 
   <x-color><param>#014980</param>(</x-color>when <x-color><param>#014980</param>(</x-color>file-exists-p custom-file<x-color><param>#014980</param>)</x-color>
 	<x-color><param>#014980</param>(</x-color>load custom-file<x-color><param>#014980</param>)))</x-color>

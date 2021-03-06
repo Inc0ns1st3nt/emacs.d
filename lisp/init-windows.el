@@ -11,15 +11,17 @@
 (defun inc0n/transient-winner-undo ()
   "Transient version of `winner-undo'."
   (interactive)
-  (let ((echo-keystrokes nil))
-    (winner-undo)
-    (message "Winner: [u]ndo [r]edo [q]uit")
-    (set-transient-map
-     (let ((map (make-sparse-keymap)))
-       (define-key map [?u] #'winner-undo)
-       (define-key map [?r] #'winner-redo)
-       map)
-     t)))
+  (if winner-mode
+      (let ((echo-keystrokes nil))
+        (winner-undo)
+        (message "Winner: [u]ndo [r]edo [q]uit")
+        (set-transient-map
+         (let ((map (make-sparse-keymap)))
+           (define-key map [?u] #'winner-undo)
+           (define-key map [?r] #'winner-redo)
+           map)
+         t))
+    (message "turn on winner-mode first")))
 
 (general-define-key
  "C-x 4 u" #'inc0n/transient-winner-undo
@@ -29,38 +31,35 @@
  ;; `M-x ace-window ENTER m` to swap window
  "C-x o" #'ace-window)
 
-(defun scroll-other-window-up ()
-  (interactive)
-  (scroll-other-window '-))
-
 ;; https://emacs.stackexchange.com/questions/46664/switch-between-horizontal-and-vertical-splitting
+
 (defun rotate-two-split-window ()
   "Toggle two window layout vertically or horizontally."
   (interactive)
-  (when (= (count-windows) 2)
-    (let* ((this-win-buffer (window-buffer))
-           (next-win-buffer (window-buffer (next-window)))
-           (this-win-edges (window-edges (selected-window)))
-           (next-win-edges (window-edges (next-window)))
-           (this-win-2nd (not (and (<= (car this-win-edges)
-                                       (car next-win-edges))
-                                   (<= (cadr this-win-edges)
-                                       (cadr next-win-edges)))))
-           (splitter
-            (if (= (car this-win-edges)
-                   (car (window-edges (next-window))))
-                #'split-window-horizontally
-              #'split-window-vertically)))
-      (delete-other-windows)
-      (let ((first-win (selected-window)))
-        (funcall splitter)
-        (when this-win-2nd
-          (other-window 1))
-        (set-window-buffer (selected-window) this-win-buffer)
-        (set-window-buffer (next-window) next-win-buffer)
-        (select-window first-win)
-        (when this-win-2nd
-          (other-window 1))))))
+  (if (= (count-windows) 2)
+      (let ((this-win (selected-window))
+            (next-win (next-window)))
+        (let ((this-win-edges (window-edges this-win))
+              (next-win-edges (window-edges next-win))
+              (this-win-buffer (window-buffer this-win))
+              (next-win-buffer (window-buffer next-win)))
+          (delete-window next-win)
+          (let ((new-next-win
+                 (funcall (if (= (car this-win-edges)
+                                 (car next-win-edges))
+                              #'split-window-horizontally
+                            #'split-window-vertically))))
+            ;; if this window was the 2nd window
+            (when (not (and (<= (car this-win-edges)
+                                (car next-win-edges))
+                            (<= (cadr this-win-edges)
+                                (cadr next-win-edges))))
+              (setq this-win (next-window)
+                    new-next-win (selected-window)))
+            (select-window this-win)
+            (set-window-buffer this-win this-win-buffer)
+            (set-window-buffer new-next-win next-win-buffer))))
+    (message "can only rotate two windows at a time")))
 
 ;; {{ move focus between sub-windows
 (setq winum-keymap
@@ -76,15 +75,14 @@
         (define-key map (kbd "M-8") 'winum-select-window-8)
         map))
 
-(require 'winum)
 (with-eval-after-load 'winum
   (setq winum-format " %s ")
   (setq winum-mode-line-position 0)
   (set-face-attribute 'winum-face nil
                       :foreground "DeepPink"
                       :underline "DeepPink"
-                      :weight 'bold)
-  (winum-mode 1))
+                      :weight 'bold))
+(add-hook 'after-init-hook 'winum-mode)
 ;; }}
 
 (provide 'init-windows)

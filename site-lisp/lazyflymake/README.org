@@ -1,0 +1,48 @@
+* lazyflymake
+Lightweight syntax checker for Emacs, alternative of =flymake-mode=.
+
+It's does less CPU computing and costs less memory than its rivals.
+
+In below screenshot, this program is tested in both Emacs 26 and Emacs 25 (left side is Emacs 26, right side is Emacs 25),
+
+[[file:demo.png]]
+
+* Install
+Place =*.el= under [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Library-Search.html][Load Path]]. Then add =(require 'lazyflymake)= to your configuration.
+* Usage
+This program is based on =flymake= API. So your existing configuration for =flymake= still works.
+
+#+begin_src elisp
+(add-hook 'prog-mode-hook #'lazyflymake-start)
+#+end_src
+
+By default, =flymake-mode= is turned on in =lazyflymake-start=. You could keep using all the commands from flymake.
+
+Use =lazyflymake-goto-next-error= and =lazyflymake-goto-prev-error= to locate errors.
+
+There is also a lightweight mode which does not use =flymake-mode=.
+
+Enable it by insert extra one line set up,
+#+begin_src elisp
+(setq lazyflymake-flymake-mode-on nil)
+#+end_src
+
+So =flymake-mode= is not turned on by =lazyflymake-start= automatically.
+
+The syntax check happens *if and only if current buffer is saved*.
+
+An extra command =lazyflymake-list-errors= is provided in lightweight mode.
+
+Please note this program also set up flymake for Shell script, Emacs Lisp, and Lua automatically.
+* Tips
+- [[https://github.com/koalaman/shellcheck][Shellcheck]] is required to check shell script
+- Lua executable is required to check Lua code
+- [[https://github.com/florianschanda/miss_hit][MISS_HIT]] is required to check octave/matlab code
+- [[http://www.html-tidy.org/][Tidy]] is require to check html code
+- Customize =lazyflymake-ignore-error-function= to ignore errors extracted from linter output.
+* Contact me
+Report bugs at [[https://github.com/redguardtoo/lazyflymake]].
+* License
+This program is free software: you can redistribute it and/or modify it under the terms of the [[https://raw.githubusercontent.com/redguardtoo/lazyflymake/master/LICENSE][GNU General Public License]] as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the [[https://raw.githubusercontent.com/redguardtoo/lazyflymake/master/LICENSE][GNU General Public License]] for more details.

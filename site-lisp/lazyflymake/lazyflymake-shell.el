@@ -8,18 +8,13 @@
 (require 'lazyflymake-sdk)
 
 (defcustom lazyflymake-shell-program "shellcheck"
-  "The path to the shellcheck executable."
-  :group 'lazyflymake
-  :type 'string)
-
-(defcustom lazyflymake-shell-program-opts '("--format=gcc")
-  "The options of shellcheck executable."
+  "The path of the shellcheck linter."
   :group 'lazyflymake
   :type 'string)
 
 (defun lazyflymake-shell-err-line-pattern ()
   "Return error line pattern.
-If return a list containing the pattern, `flymake-err-line-patterns' use the
+If return a list containing the pattern, `flymake-err-line-patterns' uses the
 list and is also converted into a buffer local variable.
 If return the pattern, it's is pushed to `flymake-err-line-patterns'.
 If return nil, nothing need be done."
@@ -29,11 +24,9 @@ If return nil, nothing need be done."
 (defun lazyflymake-shell-init ()
   "Shell script syntax linter for flymake."
   (when (executable-find lazyflymake-shell-program)
-    (when lazyflymake-debug
-	  (message "lazyflymake-shell-init called"))
-    (let ((opts lazyflymake-shell-program-opts))
-      (list lazyflymake-shell-program
-			(add-to-list 'opts (lazyflymake-sdk-code-file) t)))))
+    (if lazyflymake-debug (message "lazyflymake-shell-init called"))
+    (let* ((file (lazyflymake-sdk-code-file)))
+      (and file (list lazyflymake-shell-program (list "--format=gcc" file))))))
 
 (provide 'lazyflymake-shell)
 ;;; lazyflymake-shell.el ends here

@@ -26,15 +26,12 @@
                             "org-mode")))))
 
 (defun haskell-mode-setup ()
-  "My `haskell-mode' setup"
+  "My `haskell-mode' setup."
    ;; Haskell smarter completion
    ;; @see http://haskell.github.io/haskell-mode/manual/latest/Completion-support.html#Completion-support
   (setq-local company-backends
 			  (append '((company-capf company-dabbrev-code))
 					  company-backends))
-  (when-let ((tag (locate-dominating-file default-directory "TAGS")))
-	(message "haskell mode, found tag: %s" tag)
-	(visit-tags-table tag t)) ;; local=t
   ;; (rainbow-delimiters-mode 1)
   ;; Haskell module auto insert template
   (haskell-auto-insert-module-template)

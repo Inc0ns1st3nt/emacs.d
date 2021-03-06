@@ -63,9 +63,8 @@
 (defun util/make-file (file-path &optional init-content)
   (unless (file-exists-p file-path)
     (with-temp-buffer
-      (insert (if (stringp init-content)
-				  init-content
-				""))
+      (when (stringp init-content)
+		(insert init-content))
       (write-file (file-truename file-path)))))
 
 ;; Handier way to add modes to auto-mode-alist
@@ -73,6 +72,11 @@
   "Add entries to `auto-mode-alist' to use `MODE' for all given file `PATTERNS'."
   (dolist (pattern patterns)
     (add-to-list 'auto-mode-alist (cons pattern mode))))
+
+(defun add-to-list-multi (list-var elms &optional append)
+  "Add multiple elements to the `LIST-VAR'."
+  (dolist (elm elms)
+    (add-to-list list-var elm)))
 
 (defun font-belongs-to (pos fonts)
   "Current font at POS belongs to FONTS."
@@ -104,12 +108,6 @@
 ;;    (file-name-directory
 ;;     (find-library-name library-name))))
 
-(defun path-in-directory-p (file directory)
-  "FILE is in DIRECTORY."
-  (let ((pattern (concat "^" (file-name-as-directory directory))))
-    (and (string-match-p pattern file)
-		 file)))
-
 ;; (defun util/prepare-candidate-fit-into-screen (s)
 ;;   (let* ((w (frame-width))
 ;;          ;; display kill ring item in one line
@@ -133,15 +131,15 @@ If N is nil, use `selectrum-mode' to browse `kill-ring'."
                  (string-match-p "\\`[\n[:blank:]]+\\'" s)))
            (delete-dups kill-ring)))
 		 (cand (selectrum-read "Browse `kill-ring':" candidates)))
-    (util/set-clip s)
-    (message "%s => clipboard" s)))
+    (util/set-clip cand)
+    (message "%s => clipboard" cand)))
 
 (defun util/insert-str (str)
   "Insert STR into current buffer."
   ;; evil-mode?
   (when (and (functionp 'evil-normal-state-p)
-             (boundp 'evil-move-cursor-back)
              (evil-normal-state-p)
+             evil-move-cursor-back
              (not (eolp))
              (not (eobp)))
     (forward-char))
@@ -151,6 +149,7 @@ If N is nil, use `selectrum-mode' to browse `kill-ring'."
   (insert str))
 
 (defun util/line-str (&optional n)
+  "Get string of N lines from the current line."
   (buffer-substring-no-properties (line-beginning-position)
                                   (save-excursion
 									(forward-line n)
@@ -163,6 +162,7 @@ If N is nil, use `selectrum-mode' to browse `kill-ring'."
          (<= e (line-end-position)))))
 
 (defun util/buffer-str ()
+  "Get string of the whole buffer."
   (buffer-substring-no-properties (point-min) (point-max)))
 
 (defun util/selected-str ()
@@ -171,20 +171,21 @@ If N is nil, use `selectrum-mode' to browse `kill-ring'."
 
 (defun util/use-selected-string-or-ask (&optional hint default-string)
   "Use selected region or ask for input.
-If HINT is empty, use symbol at point."
+If HINT is empty, use symbol at point.
+Optional argument DEFAULT-STRING default string to return from `read-string'."
   (cond ((or (not (stringp hint))
              (string-empty-p hint))
          (util/thing-at-point))
         ((stringp default-string)
          (read-string (concat hint " (" default-string "): ")
-                      ""
+                      default-string
                       nil))
         (t (read-string (concat hint ": ") "" nil))))
 
 (defun util/thing-at-point ()
-  "get thing at point.
+  "Get thing at point.  Gotten from ivy-thing-at-point.
 If region is active get region string.
-Else use thing-at-point to get current string 'symbol."
+Else use `thing-at-point' to get current string 'symbol."
   ;; (if (and (not (= (point-max) (point)))
   ;; 		   (char-equal ?\  (char-after)))
   ;; 	  "")
@@ -209,7 +210,7 @@ Else use thing-at-point to get current string 'symbol."
 	(t ""))))
 
 (defun util/thing-at-point/deselect ()
-  "get thing at point.
+  "Get thing at point.
 If region is active get region string and deactivate."
   (prog1 (util/thing-at-point)
 	(when (region-active-p)
@@ -218,28 +219,30 @@ If region is active get region string and deactivate."
 (defun delete-this-buffer-and-file ()
   "Delete the current file, and kill the buffer."
   (interactive)
-  (unless (buffer-file-name)
-    (error "No file is currently being edited"))
-  (when (y-or-n-p (format "Really delete file and buffer '%s'?"
-                          (file-name-nondirectory buffer-file-name)))
-    (delete-file (buffer-file-name))
-    (kill-this-buffer)))
+  (if (buffer-file-name)
+      (when (y-or-n-p (format "Really delete file and buffer '%s'? "
+                              (file-name-nondirectory buffer-file-name)))
+        (delete-file (buffer-file-name))
+        (kill-this-buffer))
+    (message "No file is currently being edited")))
+(defalias 'delete-this-file-and-buffer 'delete-this-buffer-and-file)
 
 (defun rename-this-file-and-buffer ()
   "Renames both current buffer and file it's visiting to NEW-NAME."
   (interactive)
   (let ((name (buffer-name))
         (filename (buffer-file-name)))
-    (if (not (and filename (file-exists-p filename)))
-        (message "Buffer '%s' is not visiting a file!" name)
-      (let ((new-name (read-file-name "New name: " filename)))
-		;; (if (get-buffer (file-name-nondirectory new-name))
-		;; 	(message "A buffer named '%s' already exists!"
-		;; 			 (file-name-nondirectory new-name)))
-		(rename-file filename new-name nil)
-		(rename-buffer new-name t)
-		(set-visited-file-name new-name)
-		(set-buffer-modified-p nil)))))
+    (if (and filename (file-exists-p filename))
+        (let ((new-name (read-file-name "New name: " filename)))
+		  ;; (if (get-buffer (file-name-nondirectory new-name))
+		  ;; 	(message "A buffer named '%s' already exists!"
+		  ;; 			 (file-name-nondirectory new-name)))
+		  (rename-file filename new-name nil)
+		  (rename-buffer new-name t)
+		  (set-visited-file-name new-name)
+		  (set-buffer-modified-p nil))
+      (message "Buffer '%s' is not visiting a file!" name))))
+(defalias 'rename-this-buffer-and-file 'rename-this-file-and-buffer)
 
 (defvar load-user-customized-major-mode-hook t)
 
@@ -248,7 +251,7 @@ If region is active get region string and deactivate."
 ;;      (* 5000 64)))
 
 (defvar force-buffer-file-temp-p nil
-  "When non-nil buffer file will be treated as temp file")
+  "When non-nil buffer file will be treated as temp file.")
 
 (defun buffer-file-temp-p ()
   "If (buffer-file-name) is nil or a temp file or HTML file converted from org file."
@@ -266,8 +269,9 @@ If region is active get region string and deactivate."
 		  force-buffer-file-temp-p))))
 
 (defvar inc0n/mplayer-extra-opts ""
-  "Extra options for mplayer (ao or vo setup).  For example,
-you can '(setq inc0n/mplayer-extra-opts \"-ao alsa -vo vdpau\")'.")
+  "Extra options for mplayer (ao or vo setup).
+For example, you can '(setq inc0n/mplayer-extra-opts \"-ao alsa
+-vo vdpau\")'.")
 
 (defun inc0n/guess-mplayer-path ()
   (concat "mplayer -quiet -stop-xscreensaver " inc0n/mplayer-extra-opts))
@@ -287,23 +291,8 @@ you can '(setq inc0n/mplayer-extra-opts \"-ao alsa -vo vdpau\")'.")
   (and buffer-file-name
        (string-match-p "\.\\(mock\\|min\\|bundle\\)\.js" buffer-file-name)))
 
-(defun inc0n/async-shell-command (command)
-  "Execute string COMMAND asynchronously."
-  (let ((proc (start-process
-			   "Shell"
-               nil
-               shell-file-name
-               shell-command-switch command)))
-    (set-process-sentinel
-	 proc
-     (lambda (process signal)
-       (let ((status (process-status process)))
-         (when (and (memq status '(exit signal))
-					(not (string= (substring signal 0 -1) "finished")))
-           (message "Failed to run \"%s\"." command)))))))
-
 ;; reply y/n instead of yes/no
-;; (fset 'yes-or-no-p 'y-or-n-p)
+(fset 'yes-or-no-p 'y-or-n-p)
 
 ;; {{ code is copied from https://liu233w.github.io/2016/09/29/org-python-windows.org/
 ;; Set up LANGUAGE-NAME and CODING-SYSTEM at Windows.
@@ -315,25 +304,24 @@ you can '(setq inc0n/mplayer-extra-opts \"-ao alsa -vo vdpau\")'.")
 ;; }}
 
 (defun util/skip-white-space (begin step)
-  "Skip white spaces from BEGIN, return position of first non-space character.
-If STEP is 1,  search in forward direction, or else in backward direction."
-  (multiple-value-bind (compare-fn end)
-	  (if (> step 0)
-		  (values '> (line-end-position))
-		(values '< (line-beginning-position)))
+  "Skip white spaces within the line from BEGIN.
+Return position of first non-space character.  If STEP is 1,
+search in forward direction, or else in backward direction."
+  (let* ((regex (rx (not (or ?\t ?\s))))
+         (seacher
+	      (if (> step 0)
+              (lambda () (re-search-forward regex (line-end-position) t 1))
+		    (lambda () (re-search-backward regex (line-beginning-position) t 1)))))
 	(save-excursion
       (goto-char begin)
-      (while (and (not (funcall compare-fn (point) end))
-				  ;; if encounter tabs or space
-				  (memq (following-char) '(?\t ?\s)))
-		(forward-char step))
-      (point))))
+      ;; return begin if not match found
+      (or (funcall searcher)
+          begin))))
 	  ;; "[^[:space:]]"
-	  ;; (re-search-forward (rx (not (or ?\t ?\s))) nil t 1)
 ;;
 
 (defun util/comint-operate-on-input-region (fn)
-  "Region of current shell input."
+  "Let FN operate on region of current shell input."
   (funcall fn
 		   (process-mark (get-buffer-process (current-buffer)))
            (line-end-position)))
@@ -354,3 +342,4 @@ If STEP is 1,  search in forward direction, or else in backward direction."
   (set symbl (eval (car (get symbl 'standard-value)))))
 
 (provide 'init-utils)
+;;; init-utils ends here

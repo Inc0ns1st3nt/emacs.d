@@ -65,13 +65,7 @@
 ;;     (insert-char char)))
 
 ;;; emacs singleton setup
-(defun run-server ()
-  "Run a singleton Emacs server."
-  (require 'server)
-  (cond ((server-running-p)
-         (message "server already started"))
-        (t (message "server started")
-           (server-start))))
+
 ;; (run-server)
 
 ;;; lsp setup

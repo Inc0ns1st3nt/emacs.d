@@ -13,7 +13,7 @@
 (add-hook 'after-init-hook 'selectrum-mode)
 
 ;; @see https://github.com/raxod502/prescient.el
-(when (maybe-require-package 'selectrum-prescient)
+(when (require-package 'selectrum-prescient)
   (add-hook 'after-init-hook
 			(lambda ()
 			  (selectrum-prescient-mode 1)
@@ -143,26 +143,27 @@
 ;;   (let ((selectrum-minibuffer-map))
 ;; 	(read-buffer-to-switch "Switch to buffer: ")))
 
-(defun ask-action-on (actions-list &optional target)
+(defun ask-action-on (prompt actions-list &optional target)
   "`ask-action-on' takes `actions-list' a list of (prompt char
 action), that could optionally act on `target' with the
 corresponding action"
   (let ((key (read-char-from-minibuffer
-			  (concat "actions for: "
-					  (format "%s\n" target)
+			  (concat "actions for: " prompt "\n"
 					  (mapconcat (lambda (p)
 								   (cl-destructuring-bind (prompt key action) p
 									 (declare (ignore action))
 									 (format "[%c] %s" key prompt)))
 								 actions-list
 								 "\n"))
-			  (let ((keys (mapcar 'cadr actions-list)))
-				(add-to-list 'keys ?q)))))
+			  (cons ?q (mapcar 'cadr actions-list)))))
 	(unless (= key ?q)
 	  (cl-destructuring-bind (prompt key action)
 		  (cl-find key actions-list :key 'cadr)
 		(declare (ignore prompt key))
-		(funcall action target)))))
+		(when action
+          (if target
+              (funcall action target)
+            (funcall action)))))))
 
 ;; test
 (lambda () (interactive)

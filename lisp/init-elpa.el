@@ -7,27 +7,23 @@
 ;;       (expand-file-name (format "elpa-%s.%s" emacs-major-version emacs-minor-version)
 ;;                         user-emacs-directory))
 ;; (package-initialize)
+(add-to-list-multi
+ 'package-archives
+ '(("melpa" . "https://melpa.org/packages/")
+   ("melpa-stable" . "https://stable.melpa.org/packages/")
+   ("gnu" . "http://elpa.gnu.org/packages/"))
+ t)
 
-(setq package-archives
-	  '(("melpa" . "https://melpa.org/packages/")
-		("melpa-stable" . "https://stable.melpa.org/packages/")
-		("gnu" . "http://elpa.gnu.org/packages/")))
-;; (add-to-list 'package-archives
-;;              '("melpa" . "https://melpa.org/packages/") t)
-;; (add-to-list 'package-archives
-;;              '("melpa-stable" . "https://stable.melpa.org/packages/") t)
-
-;; (add-to-list 'package-archives '("melpa" . "https://mirrors.163.com/elpa/melpa/") t)
-;; (add-to-list 'package-archives '("melpa-stable" . "https://mirrors.163.com/elpa/melpa-stable/") t)
-
-;; (add-to-list 'package-archives '("melpa" . "http://mirrors.tuna.tsinghua.edu.cn/elpa/melpa/") t)
-;; (add-to-list 'package-archives '("melpa-stable" . "http://mirrors.tuna.tsinghua.edu.cn/elpa/melpa-stable/") t)
+;; '(("melpa" . "https://mirrors.163.com/elpa/melpa/")
+;;   ("melpa-stable" . "https://mirrors.163.com/elpa/melpa-stable/")
+;;   ("melpa" . "http://mirrors.tuna.tsinghua.edu.cn/elpa/melpa/")
+;;   ("melpa-stable" . "http://mirrors.tuna.tsinghua.edu.cn/elpa/melpa-stable/"))
 
 (defun inc0n/emacs-d (path)
   "get the expanded path under .emacs.d"
   (expand-file-name path user-emacs-directory))
 
-(when (and (not noninteractive)         ; no popup in batch mode
+(when (and (null noninteractive)         ; no popup in batch mode
            (not (file-exists-p (file-truename package-user-dir)))
            (yes-or-no-p "Switch to faster package repositories in China temporarily?
 You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use this ELPA mirror."))
@@ -36,44 +32,32 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
           ("melpa-stable" . "https://mirrors.163.com/elpa/melpa-stable/"))))
 
 ;; my local repository is always needed.
-(push (cons "localelpa" (inc0n/emacs-d "localelpa/"))
-      package-archives)
+;; (push (cons "localelpa" (inc0n/emacs-d "localelpa/"))
+;;       package-archives)
 
 ;; On-demand installation of packages
-
 (defun require-package (package &optional min-version no-refresh)
   "Ask elpa to install given PACKAGE."
   (or (package-installed-p package min-version)
       (if (or (assoc package package-archive-contents)
               no-refresh)
-          (package-install package)
+          (progn (package-install package)
+                 t)
         (package-refresh-contents)
         (require-package package min-version t))))
 
-(defun maybe-require-package (package &optional min-version no-refresh)
-  "Try to install PACKAGE, and return non-nil if successful.
-In the event of failure, return nil and print a warning message.
-Optionally require MIN-VERSION.  If NO-REFRESH is non-nil, the
-available package lists will not be re-downloaded in order to
-locate PACKAGE."
-  (condition-case err
-      (require-package package min-version no-refresh)
-    (error
-     (message "Couldn't install optional package `%s': %S" package err)
-     nil)))
-
 (defvar inc0n/site-lisp-dir (inc0n/emacs-d "site-lisp")
-  "my site lisp directory")
+  "my site directory")
 
 (defun local-require (pkg)
   "Require PKG in site-lisp directory."
   (unless (featurep pkg)
-	(let* ((pkg (format "%s" pkg))
-		   (path (expand-file-name pkg inc0n/site-lisp-dir)))
+	(let* ((pkg (symbol-name pkg))
+           (path (expand-file-name pkg inc0n/site-lisp-dir)))
 	  (load (if (file-exists-p path)
 				(expand-file-name pkg path)
 			  (file-truename path))
-			t t))))
+			t nil))))
 
 ;; List of visible packages from melpa-unstable (http://melpa.org).
 ;; Please add the package name into `melpa-include-packages'
@@ -187,7 +171,6 @@ locate PACKAGE."
 (require-package 'emmet-mode)
 
 (require-package 'unfill)
-(require-package 'w3m)
 (require-package 'counsel-bbdb)
 (require-package 'counsel-gtags)
 
@@ -198,9 +181,6 @@ locate PACKAGE."
 ;; rvm-open-gem to get gem's code
 (require-package 'rvm)
 ;; C-x r l to list bookmarks
-(require-package 'js-doc)
-(require-package 'js2-mode)
-(require-package 'rjsx-mode)
 (require-package 'tagedit)
 (require-package 'git-link)
 

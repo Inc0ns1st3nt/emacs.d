@@ -25,18 +25,6 @@
 
 (setq confirm-kill-emacs 'y-or-n-p)
 
-(defun transient/kill-buffer ()
-  "Transient interface for `evil-jump'."
-  (interactive)
-  (let ((echo-keystrokes echo-keystrokes))
-	(call-interactively 'kill-buffer)
-	(message "kill-buffer: [k]ill more [q]uit")
-	(set-transient-map
-	 (let ((map (make-sparse-keymap)))
-	   (define-key map [?k] #'transient/kill-buffer)
-	   map)
-	 t)))
-
 (defun inc0n/unbound-symbol (arg)
   (interactive (list (thing-at-point 'symbol)))
   (cond ((stringp arg)
@@ -106,7 +94,7 @@
               ediff-window-setup-function #'ediff-setup-windows-plain
               grep-highlight-matches t
               grep-scroll-output t
-              indent-tabs-mode t
+              indent-tabs-mode nil
               mouse-yank-at-point nil
               set-mark-command-repeat-pop t
               tooltip-delay 1.5
@@ -185,6 +173,7 @@
 (defun compilation-finish-hide-buffer-on-success (buffer str)
   "Bury BUFFER whose name marches STR.
 This function can be re-used by other major modes after compilation."
+  ;;TODO: only exit window if window was created
   (if (string-match "exited abnormally" str)
       ;;there were errors
       (message "compilation errors, press C-x ` to visit")
@@ -218,39 +207,80 @@ This function can be re-used by other major modes after compilation."
 (with-eval-after-load 'elec-pair
   (setq electric-pair-inhibit-predicate #'inc0n/electric-pair-inhibit))
 
-
 (defun my-prog-nuke-trailing-whitespace ()
+  "Only operate in the visible region of the window.
+With exception to the current line."
   (when (derived-mode-p 'prog-mode)
-	;; only operate in the visible region of the window
-	;; with exception to the current line
-	(let ((b (line-beginning-position))
-		  (e (line-end-position)))
-	  (if (or (< b (window-start))
-			  (> e (window-end)))
-		  (delete-trailing-whitespace (window-start)
-									  (window-end))
-		(delete-trailing-whitespace (window-start)
-									(line-beginning-position))
-		(delete-trailing-whitespace (line-end-position)
-									(window-end))))))
+	(let ((win-beg (window-start))
+          (win-end (window-end))
+          (line-beg (line-beginning-position))
+		  (line-end (line-end-position)))
+	  (if (and (not (or (< line-beg win-beg)
+			            (> line-end win-end)))
+               (evil-state-p 'insert))
+		  (progn (delete-trailing-whitespace win-beg line-beg)
+		         (delete-trailing-whitespace line-end win-end))
+        (delete-trailing-whitespace win-beg win-end)))))
 (add-hook 'before-save-hook 'my-prog-nuke-trailing-whitespace)
 
 (defun buffer-too-big-p ()
   ;; 5000 lines
   (> (buffer-size) (* 5000 80)))
 
-(with-eval-after-load 'flymake
-  (setq flymake-gui-warnings-enabled nil))
+;; (with-eval-after-load 'flymake
+;;   (setq flymake-gui-warnings-enabled nil))
+
+(defvar generic-tag-major-modes nil
+  "The `major-mode's to try to find TAGS")
+
+(setq generic-tag-major-modes '((lisp-mode . ".lisp")
+                                ;; (c-mode . ".c")
+                                (c++-mode . ".cpp")
+                                (haskell-mode . nil)))
+
+(add-hook 'before-save-hook 'generic-tag-before-save-update)
+
+(defun generic-tag-before-save-update ()
+  "The TAGS update function."
+  (if tags-file-name
+      (message "tags %s updated %s"
+               tags-file-name
+               (when-let* ((pair (assoc major-mode generic-tag-major-modes))
+                           (ext (cdr pair)))
+                 (shell-command-to-string
+                  (format "PWD=%s fd %s | etags -"
+                          (file-name-directory tags-file-name)
+                          ext))))
+    (message "tags not updated for " major-mode)))
+
+(defun generic-prog-mode-tag-setup ()
+  "My generic tag file setup for `prog-mode'."
+  (when (assoc major-mode generic-tag-major-modes)
+    (util/ensure 'etags)
+    (when (and (null tags-file-name)
+               (null tags-completion-table)
+               ;; (not (y-or-n-p "Keep current tags? "))
+               )
+      (when-let ((tag (or (locate-dominating-file default-directory "TAGS")
+                          (when (y-or-n-p "Find (create) TAGS? ")
+                            (read-file-name "TAGS: ")))))
+        (util/make-file tag)
+        (setq-local tags-completion-table nil)
+        ;; Set the local value of tags-file-name.
+        (setq-local tags-file-name tag)
+        (message "%s found tag: %s" major-mode tag)))))
 
 (defun generic-prog-mode-hook-setup ()
+  "My generic `prog-mode-hook' setup function."
   (when (buffer-too-big-p)
     ;; Turn off `linum-mode' when there are more than 5000 lines
 	(linum-mode -1)
     (when (should-use-minimum-resource)
       (font-lock-mode -1)))
 
-  (util/ensure 'lazyflymake)
-  (lazyflymake-start)
+  ;; (util/ensure 'lazyflymake)
+  ;; (lazyflymake-start)
+  (flycheck-mode 1)
 
   (company-ispell-setup)
 
@@ -264,13 +294,14 @@ This function can be re-used by other major modes after compilation."
       (subword-mode 1))
 
     (electric-pair-mode 1) ;; auto insert pairing delimiter
-	(hs-minor-mode)			;; code/comment fold
+	;; (hs-minor-mode)        ;; code/comment fold
 	;; (turn-on-auto-fill)		;; auto indent
     (turn-on-eldoc-mode) ;; eldoc, show API doc in minibuffer echo area
-    (setq show-trailing-whitespace t)))
+    (setq show-trailing-whitespace t)
+    (generic-prog-mode-tag-setup)))
 
 (add-hook 'prog-mode-hook #'generic-prog-mode-hook-setup)
-;; some major-modes NOT inherited from prog-mode
+;; some major-modes do NOT inherited from prog-mode
 
 ;; {{ display long lines in truncated style (end line with $)
 (add-hook 'grep-mode-hook (lambda ()
@@ -351,6 +382,7 @@ This function can be re-used by other major modes after compilation."
                           "\\.sub$"
                           "\\.srt$"
                           "\\.ass$")))
+(util/add-to-timed-init-hook 1 #'recentf-mode)
 ;; }}
 
 ;; {{ popup functions
@@ -718,7 +750,6 @@ If no region is selected, `kill-ring' or clipboard is used instead."
 ;; {{ https://www.emacswiki.org/emacs/EmacsSession better than "desktop.el" or "savehist".
 (require-package 'session)
 ;; Any global variable matching `session-globals-regexp' is saved *automatically*.
-
 (with-eval-after-load 'session
   (setq session-save-file (inc0n/emacs-d ".session"))
   (setq session-globals-max-size 512)
@@ -736,6 +767,7 @@ If no region is selected, `kill-ring' or clipboard is used instead."
 
 ;; {{
 (require-package 'adoc-mode) ; asciidoc files
+(add-auto-mode 'adoc-mode "\\.adoc\\'")
 
 (defun adoc-imenu-index ()
   (let ((patterns '((nil "^=\\([= ]*[^=\n\r]+\\)" 1))))
@@ -765,11 +797,22 @@ If no region is selected, `kill-ring' or clipboard is used instead."
 If the shell is already opened in some buffer, switch to that buffer."
   (interactive)
   (if-let ((shell (get-buffer "*shell*")))
-	  (let ((dir (file-name-directory (buffer-file-name))))
-		(with-current-buffer (switch-to-buffer shell)
-		  ;;TODO: change directory to current directory of the buffer
-		  (setq default-directory dir)))
-	(shell)))
+	  (when-let ((dir (file-name-directory (or (buffer-file-name)
+                                               ""))))
+        (unless (string= dir (with-current-buffer shell
+                               default-directory))
+          (if-let ((win (get-buffer-window shell)))
+              (select-window win)
+            (switch-to-buffer-other-window shell))
+          (let ((max (point-max)))
+            (goto-char max)
+            (insert (format "cd %S" dir))
+            (if (= (or (marker-position comint-accum-marker)
+	                   (process-mark (get-buffer-process (current-buffer))))
+                   max)
+                (comint-send-input)
+              (message "detected unfinished input!")))))
+    (shell)))
 
 ;; {{ emms
 (require-package 'emms)
@@ -786,12 +829,12 @@ If the shell is already opened in some buffer, switch to that buffer."
 
 (add-hook 'after-init-hook 'global-auto-revert-mode)
 (with-eval-after-load 'autorevert
-  (setq auto-revert-verbose nil
-		global-auto-revert-non-file-buffers t))
+  (setq auto-revert-verbose t
+		global-auto-revert-non-file-buffers nil))
 
 (defun inc0n/insert-date (prefix)
-  "Insert the current date. With prefix-argument, use ISO format. With
-   two prefix arguments, write out the day and month name."
+  "Insert the current date. With prefix-argument, use ISO format.
+With two prefix arguments, write out the day and month name."
   (interactive "P")
   (let ((format (cond
                  ((not prefix) "%d.%m.%Y")
@@ -799,11 +842,17 @@ If the shell is already opened in some buffer, switch to that buffer."
                  ((equal prefix '(16)) "%d %B %Y"))))
     (insert (format-time-string format))))
 
-(defun inc0n/insert-timestamp ()
-  "Insert time stamps at current position."
-  (interactive)
-  (let ((current-date-time-format "%a %b %d %H:%M %Z %Y"))
+(defun inc0n/insert-timestamp (arg)
+  "Insert time stamps at current position.
+Argument ARG non-nil means simple time stamp."
+  (interactive "P")
+  (let ((current-date-time-format
+         (if arg
+             "%Y-%m-%d"
+             "%a %b %d %H:%M %Z %Y")))
     (insert (format-time-string current-date-time-format (current-time)))))
+
+(global-set-key (kbd "C-c .") 'inc0n/insert-timestamp)
 
 ;; show ascii table
 (defun ascii-table ()
@@ -819,7 +868,9 @@ If the shell is already opened in some buffer, switch to that buffer."
 
 ;; unique lines
 (defun uniq-lines (beg end)
-  "Delete duplicate lines in region or buffer."
+  "Delete duplicate lines in region or buffer.
+Argument BEG start of region to check.
+Argument END end of region to check."
   (interactive (if (region-active-p)
 				   (list (region-beginning) (region-end))
 				 (list (point-min) (point-max))))
@@ -883,7 +934,7 @@ version control automatically."
 
 (defun cleanup-buffer ()
   "Perform a bunch of safe operations on the whitespace content of a buffer.
-Does not indent buffer, because it is used for a before-save-hook, and that
+Does not indent buffer, because it is used for a `before-save-hook', and that
 might be bad."
   (interactive)
   (untabify (point-min) (point-max))
@@ -945,7 +996,7 @@ Including indent-buffer, which should not be called automatically on save."
 
 ;; {{ epub setup
 (require-package 'nov)
-
+(add-auto-mode 'nov-mode "\\.epub\\'")
 (with-eval-after-load 'nov
   (setq nov-text-width t)
   (add-to-list 'evil-emacs-state-modes 'nov-mode)
@@ -994,7 +1045,9 @@ Including indent-buffer, which should not be called automatically on save."
 (defun edit-server-start-hook-setup ()
   "Some web sites actually pass html to edit server."
   (let ((url (buffer-name)))
-    (cond ((string-match "github.com" url)
+    (cond ((string-match "gist.github.com" url)
+           (html-mode))
+          ((string-match "github.com" url)
 		   (markdown-mode))
 		  ((string-match "zhihu.com" url)
 		   ;; `web-mode' plus `sgml-pretty-print' get best result
@@ -1005,13 +1058,27 @@ Including indent-buffer, which should not be called automatically on save."
 		   (goto-char (point-min))
 		   ;; insert text after removing br tag, that's required by zhihu.com
 		   ;; unfortunately, after submit comment once, page need be refreshed.
-		   (replace-regexp "<br data-text=\"true\">" "")))))
-(add-hook 'edit-server-start-hook #'edit-server-start-hook-setup)
+		   (replace-regexp "<br data-text=\"true\">" "")))
+    ;; just to ensure that if the major got overwritten
+    (edit-server-edit-mode)))
 
-(when (require 'edit-server nil t)
-  (setq edit-server-new-frame nil)
-  (add-hook 'after-init-hook 'edit-server-start))
+(when (require-package 'edit-server)
+  (setq edit-server-new-frame t)
+  (add-hook 'edit-server-start-hook #'edit-server-start-hook-setup)
+  (add-hook 'after-init-hook 'edit-server-start)
+  (when (require-package 'edit-server-htmlize)
+    (add-hook 'edit-server-start-hook #'edit-server-maybe-dehtmlize-buffer)
+    (add-hook 'edit-server-done-hook #'edit-server-maybe-htmlize-buffer)))
 ;; }}
+
+(defun run-server ()
+  "Run a singleton Emacs server."
+  (require 'server)
+  (if (server-running-p)
+      (message "server already started")
+    (message "server started")
+    (server-start)))
+(util/add-to-timed-init-hook 1 'run-server)
 
 ;; {{ which-key-mode
 (require-package 'which-key)
@@ -1069,7 +1136,7 @@ current file, as a URL via `browse-url'."
 ;; {{ ligature
 (local-require 'ligature)
 (setq ligature-composition-table nil)
-(ligature-set-ligatures 'prog-mode '("::" ":::" "->" "=>" "==" "!="
+(ligature-set-ligatures 'prog-mode '("::" ":::" "->" "=>" "==" "===" "!="
 									 "++" "<-" "/=" ">=" "<=" ".."
 									 "..." "&&" "||" "//"))
 (add-hook 'after-init-hook

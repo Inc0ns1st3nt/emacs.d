@@ -31,11 +31,13 @@
 	potentially part of the candidate. In that case, insert the
 	number."
 	(interactive (list (string-to-number (this-command-keys))))
+    (message "company %s" (company-tooltip-visible-p))
 	(let ((n (if (zerop num)
 				 10
 			   num))
 		  (re (concat "^" company-prefix (number-to-string num))))
-	  (if (or (cl-find-if (lambda (s) (string-match re s))
+	  (if (or (not (company-tooltip-visible-p))
+              (cl-find-if (lambda (s) (string-match re s))
 						  company-candidates)
 			  (null (cdr company-candidates)) ;; if list is single (len==1)
 			  (> n (length company-candidates))
@@ -55,8 +57,11 @@
 	  (company-complete-common)))
   (define-key company-active-map [tab] #'inc0n/company-tab)
 
-  (setq company-auto-commit nil
-		company-auto-commit-chars nil)
+  ;; Press SPACE will accept the highlighted candidate and insert a space
+  ;; "M-x describe-variable company-auto-complete-chars" for details.
+  ;; So that's BAD idea.
+  (setq company-auto-commit t
+		company-auto-commit-chars '())
 
   ;; company-ctags is much faster out of box. No further optimiation needed
   (unless (featurep 'company-ctags)
@@ -78,14 +83,9 @@
         company-idle-delay 0.05
         company-clang-insert-arguments nil
         company-require-match nil
-        company-ctags-ignore-case t		; I use company-ctags instead
         ;; @see https://github.com/company-mode/company-mode/issues/146
         company-tooltip-align-annotations t)
-
-  ;; Press SPACE will accept the highlighted candidate and insert a space
-  ;; "M-x describe-variable company-auto-complete-chars" for details.
-  ;; So that's BAD idea.
-  (setq company-auto-complete nil)
+  (setq company-ctags-ignore-case t)		; I use company-ctags instead
 
   ;; NOT to load company-mode for certain major modes.
   ;; https://github.com/company-mode/company-mode/issues/29
@@ -96,7 +96,10 @@
           erc-mode
           gud-mode
           rcirc-mode
-          minibuffer-inactive-mode)))
+          minibuffer-inactive-mode))
+  (define-key company-active-map (kbd "TAB") 'company-complete-or-yasnippet-expand)
+  (define-key company-active-map (kbd "C-n") 'company-select-next)
+  (define-key company-active-map (kbd "C-p") 'company-select-previous))
 
 (with-eval-after-load 'company-ispell
   (defun inc0n/company-ispell-available-hack (orig-func &rest args)
@@ -104,25 +107,27 @@
 		;; auto-complete in comment only
 		;; only use company-ispell in comment when coding
 		(and (derived-mode-p 'prog-mode)
-			 (or (not (company-in-string-or-comment)) ; respect advice in `company-in-string-or-comment'
+             ;; respect advice in `company-in-string-or-comment'
+			 (or (not (company-in-string-or-comment))
 				 (not (comment-only-p (line-beginning-position)
 									  (line-end-position)))))
       (apply orig-func args)))
-  (advice-add 'company-ispell-available :around #'inc0n/company-ispell-available-hack))
+  (advice-add 'company-ispell-available
+              :around #'inc0n/company-ispell-available-hack))
 
 ;; {{ setup company-ispell
 (defun toggle-company-ispell ()
   "Toggle company-ispell."
   (interactive)
-  (cond
-   ((memq 'company-ispell company-backends)
-    (setq company-backends (delete 'company-ispell company-backends))
-    (message "company-ispell disabled"))
-   (t
-    (add-to-list 'company-backends 'company-ispell)
-    (message "company-ispell enabled!"))))
+  (cond ((memq 'company-ispell company-backends)
+         (setq company-backends (delq 'company-ispell company-backends))
+         (message "company-ispell disabled"))
+        (t
+         (add-to-list 'company-backends 'company-ispell)
+         (message "company-ispell enabled!"))))
 
 (defun company-ispell-setup ()
+  "My company Ispell setup."
   ;; @see https://github.com/company-mode/company-mode/issues/50
   (when (boundp 'company-backends)
     (make-local-variable 'company-backends)
@@ -138,12 +143,13 @@
 (add-hook 'org-mode-hook #'company-ispell-setup)
 ;; }}
 
-;; yasnippet - yasnippet over company
-(defun company-yasnippet-tab-fix (orig-func &rest args)
-  (let ((yas-fallback-behavior nil))
-	(unless (yas-expand)
-	  (apply orig-func args))))
-
-(advice-add 'company-complete-common :around 'company-yasnippet-tab-fix)
+;; yasnippet
+;; too much accidental yasnippet expansion
+(defun company-complete-or-yasnippet-expand ()
+  "Let yasnippet over company."
+  ;; (let ((yas-fallback-behavior 'return-nil))
+  ;;   (unless (yas-expand)))
+  (company-complete-common))
 
 (provide 'init-company)
+;;; init-company.el ends here

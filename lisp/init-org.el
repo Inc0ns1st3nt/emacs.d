@@ -182,21 +182,11 @@ ARG is ignored."
         org-log-done t
         org-edit-src-content-indentation 0
         org-edit-timestamp-down-means-later t
-        org-agenda-start-on-weekday nil
-        org-agenda-span 14
-        ;; org-agenda-include-diary t
-        org-agenda-window-setup 'current-window
         org-fast-tag-selection-single-key 'expert
 		org-hide-leading-stars nil
-        ;; {{ org 8.2.6 has some performance issue. Here is the workaround.
-        ;; @see http://punchagan.muse-amuse.in/posts/how-i-learnt-to-use-emacs-profiler.html
-        org-agenda-inhibit-startup t       ;; ~50x speedup
-        org-agenda-use-tag-inheritance nil ;; 3-4x speedup
-        ;; }}
         ;; org v8
         org-odt-preferred-output-format "doc"
         org-tags-column 80
-		org-agenda-tags-column 80
 
         ;; Refile targets include this file and any file contributing to the agenda - up to 5 levels deep
         org-refile-targets '(("projects.org" :regexp . "\\(?:\\(?:Note\\|Task\\)s\\)")
@@ -208,7 +198,33 @@ ARG is ignored."
           (sequence "PROJECT(P@)" "|" "CANCELLED(c@/!)"))
         org-imenu-depth 5
         ;; @see http://irreal.org/blog/1
-        org-src-fontify-natively t)
+        org-src-fontify-natively t
+        org-return-follows-link t)
+  (setq org-agenda-start-on-weekday nil
+        org-agenda-span 14
+        ;; org-agenda-include-diary t
+        org-agenda-window-setup 'current-window
+        ;; {{ org 8.2.6 has some performance issue. Here is the workaround.
+        ;; @see http://punchagan.muse-amuse.in/posts/how-i-learnt-to-use-emacs-profiler.html
+        org-agenda-inhibit-startup t       ;; ~50x speedup
+        org-agenda-use-tag-inheritance nil ;; 3-4x speedup
+        ;; }}
+        org-agenda-tags-column 80)
+
+  (defun org-insert-heading-hooker ()
+    (evil-insert-state 1))
+  (add-hook 'org-insert-heading-hook 'org-insert-heading-hooker)
+
+  (defun inc0n/org-insert (&optional arg)
+    "insert item or heading depending on context, insert before
+if arg is non-nil"
+    (interactive "P")
+    (if (and (null arg)
+             (org-in-item-p))
+        (org-insert-item)
+      (org-insert-heading-respect-content)))
+  (define-key org-mode-map [C-return] 'inc0n/org-insert)
+  (define-key org-mode-map [return] 'org-return-indent)
 
   (global-set-key (kbd "C-c C-C") 'org-capture)
 
@@ -223,32 +239,36 @@ ARG is ignored."
 		`(("t" "Todo" entry  (file "todo.org")
 		   ,(concat "* TODO %?\n"
 					"/Entered on/ %U"))
-		  ("s" "Schedule" entry (file+headline "agenda.org" "Future")
-		   ,(concat "* %?\n"
-					"SCHEDULED: %t"))
-		  ("d" "Deadline" entry (file+headline "agenda.org" "Deadline")
-		   ,(concat "* %?\n"
-					"DEADLINE: %t"))
-		  ("r" "Respond" entry (file "agenda.org")
+          ("a" "Analysis" entry (file "analysis.org")
+		   "* TODO %? [%<%Y-%m-%d %a>]\n")
+          ("e" "Event" entry (file+headline "agenda.org" "Future")
+		   ,(concat "* %? :event:\n"
+					"SCHEDULED: <%<%Y-%m-%d %a %H:00>>"))
+          ("r" "Respond" entry (file "agenda.org")
 		   ,(concat "* NEXT Respond to %:from on %:subject\n"
 					"SCHEDULED: %t\n"
 					"%U\n"
 					"%a\n"))
+		  ("s" "Schedule" entry (file+headline "agenda.org" "Future")
+		   ,(concat "* %?\n"
+					"SCHEDULED: %t"))
+          ("m" "Meeting" entry  (file+headline "agenda.org" "Future")
+		   ,(concat "* %? :meeting:\n"
+					"<%<%Y-%m-%d %a %H:00>>"))
+		  ("d" "Deadline" entry (file+headline "agenda.org" "Deadline")
+		   ,(concat "* %?\n"
+					"DEADLINE: %t"))
 		  ("n" "Note" entry  (file "notes.org")
 		   ,(concat "* Note (%a)\n"
 					"/Entered on/ %U\n" "\n" "%?"))
-		  ("a" "Analysis" entry (file "analysis.org")
-		   "* TODO %? [%<%Y-%m-%d %a>]\n")
 		  ;; ("d" "Diary" entry (file+datetree "diary.org")
 		  ;;  "* %?\n%U\n")
 		  ("p" "Project" entry (file "projects.org")
 		   ,(concat "* PROJECT [%<%Y-%m-%d %a>] %?"))
-		  ("e" "Event" entry (file+headline "agenda.org" "Future")
-		   ,(concat "* %? :event:\n"
-					"SCHEDULED: <%<%Y-%m-%d %a %H:00>>"))
-		  ("m" "Meeting" entry  (file+headline "agenda.org" "Future")
-		   ,(concat "* %? :meeting:\n"
-					"<%<%Y-%m-%d %a %H:00>>"))
+          ("c" "Protocol" entry (file+headline "notes.org" "Notes")
+           "%[~/.emacs.d/.org-popup]" :immediate-finish t :prepend t)
+          ("x" "Titled" entry (file+headline "notes.org" "Notes")
+           "%[~/.emacs.d/.org-popup]" :immediate-finish t :prepend t)
 		  ;; ("n" "note" entry (file "note.org")
 		  ;;  "* %? :NOTE:\n%U\n%a\n")
 		  ;; ("p" "Phone call" entry (file "refile.org")
@@ -279,7 +299,9 @@ ARG is ignored."
   ;; @see https://www.orgmode.org/worg/org-contrib/babel/languages/ob-doc-gnuplot.html
   (org-babel-do-load-languages
    'org-babel-load-languages
-   '((gnuplot . t))))
+   '((gnuplot . t)))
+  ;; (require 'org-protocol)
+  )
 
 (defun org-agenda-skip-if-past-schedule ()
   "If this function returns nil, the current match should not be skipped.
@@ -310,6 +332,10 @@ should be continued."
 
 (add-hook 'org-mode-hook 'org-superstar-mode)
 
+(defun org-capture-quick-note ()
+  "Doesn't work."
+  (switch-to-buffer "*scratch*")
+  (org-capture))
 
 ;; org-emphasis-alist
 (provide 'init-org)

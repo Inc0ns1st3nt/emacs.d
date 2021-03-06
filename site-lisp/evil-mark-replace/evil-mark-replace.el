@@ -40,7 +40,7 @@
          (escaped-old (replace-regexp-in-string "\\$" "\\\\$" old)))
     (save-excursion
 	  (funcall mark-fn)
-      (evil-visual-state 1)
+      ;; (evil-visual-state 1)
       (evil-ex (concat "'<,'>s/\\<\\(" escaped-old "\\)\\>/")))))
 
 ;;;###autoload

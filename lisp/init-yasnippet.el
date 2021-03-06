@@ -10,7 +10,7 @@
 
 (dolist (hook '(prog-mode-hook
                 text-mode-hook
-                ;; {{ modes do NOT inherit from prog-mode
+                ;; {{ modes that are NOT inherit from prog-mode
                 cmake-mode-hook
                 web-mode-hook
                 scss-mode-hook
@@ -116,6 +116,8 @@
   (setq yas-prompt-functions '(yas-dropdown-prompt
                                yas-completing-prompt
 							   yas-maybe-ido-prompt))
+  ;; yas fallback when no expansion found
+  (setq yas-fallback-behavior 'return-nil)
 
   ;; Use `yas-completing-prompt' when ONLY when "M-x yas-insert-snippet"
   ;; Thanks to capitaomorte for providing the trick.
@@ -128,5 +130,6 @@
   ;; how to add custom yasnippet directory
   ;; (add-to-list 'yas-snippet-dirs inc0n/yasnippets)
   (yas-reload-all))
+(global-set-key (kbd "C-TAB") 'yas-expand)
 
 (provide 'init-yasnippet)

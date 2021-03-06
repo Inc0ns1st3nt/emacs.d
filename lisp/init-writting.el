@@ -13,7 +13,8 @@ Only applies to text-mode."
       (replace-match rp nil nil nil 1))))
 
 (defun endless/call-subword-cmd (fn)
-  (util/ensure 'subword)
+  "Argument FN function."
+  ;; (util/ensure 'subword)
   (call-interactively fn))
 
 (defun endless/capitalize ()
