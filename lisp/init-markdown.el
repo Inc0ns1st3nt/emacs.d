@@ -1,15 +1,20 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
+;;; Code:
+
+(require-package 'markdown-mode)
+
 (defun markdown-imenu-index ()
-  (let* ((patterns '((nil "^#\\([# ]*[^#\n\r]+\\)" 1))))
+  (let ((patterns '((nil "^#\\([# ]*[^#\n\r]+\\)" 1))))
     (save-excursion
       (imenu--generic-function patterns))))
 
+;;;###autoload
 (defun markdown-mode-hook-setup ()
-  ;; Stolen from http://stackoverflow.com/a/26297700
-  ;; makes markdown tables saner via orgtbl-mode
-  ;; Insert org table and it will be automatically converted
-  ;; to markdown table
+  "Make markdown tables saner via `orgtbl-mode'.
+Insert org table and it will be automatically converted
+to markdown table.
+Check Stolen from http://stackoverflow.com/a/26297700"
   (util/ensure 'org-table)
   (defun cleanup-org-tables ()
     (save-excursion
@@ -28,3 +33,4 @@
     (setq markdown-command "pandoc -f markdown")))
 
 (provide 'init-markdown)
+;;; init-markdown ends here

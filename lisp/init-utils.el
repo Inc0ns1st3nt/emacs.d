@@ -1,10 +1,10 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
+;;; Code:
 
 (defun util/ensure (feature)
   "Make sure FEATURE is required."
-  (unless (featurep feature)
-    (unless (require feature nil t)
-	  (warn "util/ensure - feature %s cannot be required" feature))))
+  (unless (require feature nil t)
+	(warn "util/ensure - feature %s cannot be required" feature)))
 
 (defun inc0n/git-root-dir ()
   "Git root directory."
@@ -23,6 +23,22 @@
 			(lambda ()
 			  (run-with-idle-timer secs nil fn))))
 
+(defun util/async-shell-command (command)
+  "Util function for running a shell COMMAND asynchronously."
+  (let ((process (start-process "Shell"
+                                nil
+                                shell-file-name
+                                shell-command-switch
+                                command)))
+    (set-process-sentinel
+     process
+     (lambda (process signal)
+       (let ((status (process-status process)))
+         (when (memq status '(exit signal))
+           (if (string= (substring signal 0 -1) "finished")
+               (message "done: %s" command)
+             (message "failed to run: %s" command))))))))
+
 (defun util/shell-command-to-lines (command)
   "Return lines of COMMAND output."
   (split-string (shell-command-to-string command)
@@ -37,11 +53,11 @@
     (goto-char orig-point)))
 
 (defun inc0n/use-tags-as-imenu-function-p ()
-  "Can use tags file to build imenu function"
-  (util/ensure 'counsel-etags)
+  "Can use tags file to build imenu function."
+  ;; (util/ensure 'counsel-etags)
   (and (locate-dominating-file default-directory "TAGS")
        ;; ctags needs extra setup to extract typescript tags
-       (file-exists-p counsel-etags-ctags-options-file)
+       ;; (file-exists-p counsel-etags-ctags-options-file)
        (memq major-mode '(typescript-mode
                           js-mode))))
 
@@ -237,8 +253,9 @@ If region is active get region string and deactivate."
 		  ;; (if (get-buffer (file-name-nondirectory new-name))
 		  ;; 	(message "A buffer named '%s' already exists!"
 		  ;; 			 (file-name-nondirectory new-name)))
-		  (rename-file filename new-name nil)
-		  (rename-buffer new-name t)
+		  (rename-file filename new-name 1) ;; will ask for confirmation
+		  (when (file-directory-p new-name)
+            (rename-buffer (buffer-name) t))
 		  (set-visited-file-name new-name)
 		  (set-buffer-modified-p nil))
       (message "Buffer '%s' is not visiting a file!" name))))
@@ -254,19 +271,18 @@ If region is active get region string and deactivate."
   "When non-nil buffer file will be treated as temp file.")
 
 (defun buffer-file-temp-p ()
-  "If (buffer-file-name) is nil or a temp file or HTML file converted from org file."
+  "If variable `buffer-file-name' is nil or a temp file or HTML file converted from org file."
   (and (not scratch-buffer) ;; treat scratch-buffer not as temp
-	   (let ((f (buffer-file-name)))
-		 (or
-		  ;; file does not exist at all
-		  ;; org-babel edit inline code block need calling hook
-		  (null f)
-		  ;; file is create from temp directory
-		  (string-match (concat "^" temporary-file-directory) f)
-		  ;; file is a html file exported from org-mode
-		  (and (string-match "\.html$" f)
-			   (file-exists-p (replace-regexp-in-string "\.html$" ".org" f)))
-		  force-buffer-file-temp-p))))
+	   (or
+		;; file does not exist at all
+		;; org-babel edit inline code block need calling hook
+		(null buffer-file-name)
+		;; file is create from temp directory
+		(string-match (concat "^" temporary-file-directory) buffer-file-name)
+		;; file is a html file exported from org-mode
+		(and (string-match "\.html$" buffer-file-name)
+			 (file-exists-p (replace-regexp-in-string "\.html$" ".org" f)))
+		force-buffer-file-temp-p)))
 
 (defvar inc0n/mplayer-extra-opts ""
   "Extra options for mplayer (ao or vo setup).
@@ -283,7 +299,6 @@ For example, you can '(setq inc0n/mplayer-extra-opts \"-ao alsa
 	""))
 
 (defalias 'util/set-clip #'kill-new "Put STR-VAL into clipboard.")
-
 ;; }}
 
 (defun should-use-minimum-resource ()
@@ -308,7 +323,7 @@ For example, you can '(setq inc0n/mplayer-extra-opts \"-ao alsa
 Return position of first non-space character.  If STEP is 1,
 search in forward direction, or else in backward direction."
   (let* ((regex (rx (not (or ?\t ?\s))))
-         (seacher
+         (searcher
 	      (if (> step 0)
               (lambda () (re-search-forward regex (line-end-position) t 1))
 		    (lambda () (re-search-backward regex (line-beginning-position) t 1)))))

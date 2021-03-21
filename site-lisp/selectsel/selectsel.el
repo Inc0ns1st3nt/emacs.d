@@ -18,7 +18,7 @@
 ;; utils
 
 (defun selectsel--replace-search (cands)
-  "replace the regex-str with read-string"
+  "Replace the regex-str in CANDS with `read-string'."
   (cond
    ((string-empty-p selectrum--last-input) (message "enter some text first!"))
    (t (let* ((regex-str selectrum--last-input) ;; target string to be replaced
@@ -33,7 +33,7 @@
 				   '(compilation-mode-line-fail :strike-through t)
 				   nil newstr)
 				  (mapcar (lambda (cand)
-							(replace-regexp-in-string regex-str newstr cand))
+							(replace-regexp-in-string regex-str newstr cand nil t))
 						  cands))))
              (selectrum--last-input regex-str) ;; preserve outter seesion
 			 (cand
@@ -47,15 +47,17 @@
 							 (buffer-list)))
 			  (line-num ;; start replacement starting from selected cand line
 			   (string-to-number
-				(get-text-property 0 'selectrum-candidate-display-prefix cand))))
+				(or (get-text-property 0 'selectrum-candidate-display-prefix cand)
+                    ""))))
 		  (with-selected-window (get-buffer-window buf)
 			(with-current-buffer buf
-			  (query-replace regex-str last-input nil
-							 (save-excursion
-							   (goto-char (point-min))
-							   (forward-line (1- line-num))
-							   (point))
-							 (point-max) nil)
+			  (query-replace-regexp
+               regex-str last-input nil
+			   (save-excursion
+				 (goto-char (point-min))
+				 (forward-line (1- line-num))
+				 (point))
+			   (point-max) nil)
 			  (exit-minibuffer))))))))
 
 (defun selectrum--yank-search (regex-str)
@@ -375,7 +377,7 @@ Argument CANDS list of files to process."
                     'selectrum-candidate-display-prefix
                     (concat
                      (propertize
-                      (mapconcat 'string-to-number
+                      (mapconcat 'number-to-string
                                  (package-desc-version pkg-desc)
                                  ".")
                       'face 'package-name)

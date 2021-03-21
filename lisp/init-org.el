@@ -68,6 +68,7 @@
 
     ;; org-mime setup, run this command in org-file, than yank in `message-mode'
     (local-set-key (kbd "C-c M-o") 'org-mime-org-buffer-htmlize)
+    (local-set-key (kbd "M-+") 'org-count-words)
 
     ;; don't spell check double words
     (setq inc0n/flyspell-check-doublon nil)
@@ -175,15 +176,18 @@ ARG is ignored."
           "xelatex -interaction nonstopmode -output-directory %o %f")) ;; org v8
   ;; }}
 
+  (setq org-latex-listings t)
+
   ;; misc
   (setq org-startup-with-latex-preview t
         org-startup-indented t
+        org-indent-mode-turns-on-hiding-stars nil
+		org-hide-leading-stars nil
 		org-pretty-entities t ;; render entity
-        org-log-done t
+        org-log-done 'note
         org-edit-src-content-indentation 0
         org-edit-timestamp-down-means-later t
         org-fast-tag-selection-single-key 'expert
-		org-hide-leading-stars nil
         ;; org v8
         org-odt-preferred-output-format "doc"
         org-tags-column 80
@@ -203,7 +207,7 @@ ARG is ignored."
   (setq org-agenda-start-on-weekday nil
         org-agenda-span 14
         ;; org-agenda-include-diary t
-        org-agenda-window-setup 'current-window
+        org-agenda-window-setup 'only-window
         ;; {{ org 8.2.6 has some performance issue. Here is the workaround.
         ;; @see http://punchagan.muse-amuse.in/posts/how-i-learnt-to-use-emacs-profiler.html
         org-agenda-inhibit-startup t       ;; ~50x speedup
@@ -244,11 +248,11 @@ if arg is non-nil"
           ("e" "Event" entry (file+headline "agenda.org" "Future")
 		   ,(concat "* %? :event:\n"
 					"SCHEDULED: <%<%Y-%m-%d %a %H:00>>"))
-          ("r" "Respond" entry (file "agenda.org")
-		   ,(concat "* NEXT Respond to %:from on %:subject\n"
-					"SCHEDULED: %t\n"
-					"%U\n"
-					"%a\n"))
+          ;; ("r" "Respond" entry (file "agenda.org")
+		  ;;  ,(concat "* NEXT Respond to %:from on %:subject\n"
+		  ;;   		"SCHEDULED: %t\n"
+		  ;;   		"%U\n"
+		  ;;   		"%a\n"))
 		  ("s" "Schedule" entry (file+headline "agenda.org" "Future")
 		   ,(concat "* %?\n"
 					"SCHEDULED: %t"))
@@ -261,14 +265,12 @@ if arg is non-nil"
 		  ("n" "Note" entry  (file "notes.org")
 		   ,(concat "* Note (%a)\n"
 					"/Entered on/ %U\n" "\n" "%?"))
+		  ("r" "Rant" entry  (file "notes.org")
+		   "* %T %? :rant:\n" :jump-to-captured t)
 		  ;; ("d" "Diary" entry (file+datetree "diary.org")
 		  ;;  "* %?\n%U\n")
 		  ("p" "Project" entry (file "projects.org")
 		   ,(concat "* PROJECT [%<%Y-%m-%d %a>] %?"))
-          ("c" "Protocol" entry (file+headline "notes.org" "Notes")
-           "%[~/.emacs.d/.org-popup]" :immediate-finish t :prepend t)
-          ("x" "Titled" entry (file+headline "notes.org" "Notes")
-           "%[~/.emacs.d/.org-popup]" :immediate-finish t :prepend t)
 		  ;; ("n" "note" entry (file "note.org")
 		  ;;  "* %? :NOTE:\n%U\n%a\n")
 		  ;; ("p" "Phone call" entry (file "refile.org")
@@ -304,7 +306,7 @@ if arg is non-nil"
   )
 
 (defun org-agenda-skip-if-past-schedule ()
-  "If this function returns nil, the current match should not be skipped.
+  "If this function return nil, the current match should not be skipped.
 Otherwise, the function must return a position from where the search
 should be continued."
   (when-let* ((subtree-end (save-excursion (org-end-of-subtree t)))
@@ -324,18 +326,71 @@ should be continued."
 (add-hook 'org-agenda-mode-hook #'org-agenda-mode-setup)
 
 (with-eval-after-load 'org-superstar
-  (setq org-superstar-headline-bullets-list '(?◉ ?※ ?✸ ?▣)
-		org-superstar-item-bullet-alist '((?\* . 8226) (?\+ . 10148) (?\- . ?\-)))
+  ;; (setq org-superstar-headline-bullets-list '(?◉ ?◈ ?✸ ?▣)
+  ;;   	org-superstar-item-bullet-alist '((?* . ?•) (?+ . ?➤) (?- . ?-)))
+  (setq org-superstar-headline-bullets-list '(?•)
+        org-superstar-item-bullet-alist '((?* . ?▶) (?+ . ?⬘) (?- . ?⬙)))
   (setq org-superstar-cycle-headline-bullets t
 		org-superstar-special-todo-items nil)
+  (set-face-attribute 'org-superstar-leading
+                      nil
+                      :foreground "dark gray")
   (org-superstar-restart))
-
 (add-hook 'org-mode-hook 'org-superstar-mode)
 
-(defun org-capture-quick-note ()
-  "Doesn't work."
-  (switch-to-buffer "*scratch*")
-  (org-capture))
+(defun org-count-words (start end)
+  "This is the count words version that skips comments.
+It will operate between the region from START to END."
+  (interactive "r")
+  (save-excursion
+    (save-restriction
+      (narrow-to-region start end)
+      (setq start (point-min)
+            end (point-max))
+      (goto-char start)
+      (cl-loop with org-line-commentp =
+               (rx line-start (* space) "#" (any " " "+") (* any))
+               ;; "^[ \t]*#[+ ].*"
+               for line-beg = (line-beginning-position)
+               for line-end = (line-end-position)
+               until (= line-end end)
+               unless (search-forward-regexp org-line-commentp line-end t)
+               sum (count-words line-beg line-end) into words-count
+               and sum 1 into lines-count
+               and sum (- line-end line-beg) into chars-count
+               do (goto-char (1+ line-end))
+               finally (message "region has %d lines, %d words, %d characters"
+                                lines-count words-count chars-count)))))
+
+(defvar org-latex-link-prefix-alist nil)
+(defun latex-set-org-link-parameters (type name)
+  (add-to-list 'org-latex-link-prefix-alist (cons type name))
+  (org-link-set-parameters
+   type
+   :export (lambda (path desc backend)
+             (cond ((eq 'latex backend)
+                    (format "\\autoref{%s}" path))))))
+
+(with-eval-after-load 'ol
+  (latex-set-org-link-parameters "lst" "Listing")
+  (latex-set-org-link-parameters "table" "Table")
+  (setq org-link-descriptive nil))
+
+(with-eval-after-load 'ox-latex
+  (defun inc0n/org-latex-link (orig-func link desc info)
+    "Advice function that will find a default description, i.e. the caption to pass on into the original `org-latex-link' function"
+    (let ((type (org-element-property :type link)))
+      (when (assoc type org-latex-link-prefix-alist)
+        ;; store the type back into the `path' of link
+        (org-element-put-property link :path (org-element-property :raw-link link))
+        ;; the correct reference can be found now
+        (org-export-resolve-fuzzy-link link info))
+      (funcall orig-func link nil info)))
+  (advice-add 'org-latex-link :around 'inc0n/org-latex-link)
+  (add-to-list 'org-latex-listings-langs '(javascript "Javascript"))
+  (setq org-latex-caption-above '(table src-block)
+        org-latex-prefer-user-labels t))
 
 ;; org-emphasis-alist
 (provide 'init-org)
+;;; init-org.el ends here

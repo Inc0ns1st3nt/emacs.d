@@ -46,19 +46,6 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
         (package-refresh-contents)
         (require-package package min-version t))))
 
-(defvar inc0n/site-lisp-dir (inc0n/emacs-d "site-lisp")
-  "my site directory")
-
-(defun local-require (pkg)
-  "Require PKG in site-lisp directory."
-  (unless (featurep pkg)
-	(let* ((pkg (symbol-name pkg))
-           (path (expand-file-name pkg inc0n/site-lisp-dir)))
-	  (load (if (file-exists-p path)
-				(expand-file-name pkg path)
-			  (file-truename path))
-			t nil))))
-
 ;; List of visible packages from melpa-unstable (http://melpa.org).
 ;; Please add the package name into `melpa-include-packages'
 ;; if it's not visible after  `list-packages'.
@@ -149,8 +136,6 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
 (require-package 'find-by-pinyin-dired)
 (require-package 'nvm)
 (require-package 'writeroom-mode)
-(require-package 'scss-mode)
-(require-package 'markdown-mode)
 (require-package 'link)
 (require-package 'connection)
 (require-package 'dictionary) ; dictionary requires 'link and 'connection

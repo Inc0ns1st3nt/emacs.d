@@ -74,13 +74,15 @@ If no files marked, always operate on current line in dired-mode."
   (local-set-key  "/" 'dired-isearch-filenames)
   (local-set-key  "\\" 'diredext-exec-git-command-in-shell)
   ;;
-  (local-set-key (kbd "h")
-    (lambda () (interactive) (find-alternate-file "..")))
-  (local-set-key (kbd "j") 'dired-next-line)
-  (local-set-key (kbd "k") 'dired-previous-line)
-  (local-set-key (kbd "l") 'dired-find-alternate-file)
-  (local-set-key (kbd "r") 'dired-do-redisplay))
+  ;; (local-set-key (kbd "h")
+  ;;   (lambda () (interactive) (find-alternate-file "..")))
+  ;; (local-set-key (kbd "j") 'dired-next-line)
+  ;; (local-set-key (kbd "k") 'dired-previous-line)
+  ;; (local-set-key (kbd "l") 'dired-find-alternate-file)
+  ;; (local-set-key (kbd "r") 'dired-do-redisplay)
+  )
 (add-hook 'dired-mode-hook #'dired-mode-hook-setup)
+
 
 ;; https://www.emacswiki.org/emacs/EmacsSession which is easier to use
 ;; See `session-globals-regexp'
@@ -91,7 +93,6 @@ If no files marked, always operate on current line in dired-mode."
 (with-eval-after-load 'dired
   ;; search file name only when focus is over file
   (setq dired-isearch-filenames 'dwim)
-
   ;; when there is two dired buffer, Emacs will select another buffer
   ;; as target buffer (target for copying files, for example).
   ;; It's similar to windows commander.
@@ -147,5 +148,8 @@ Press \"C-u 0 w\" to copy full path."
 	  (message "%s => clipboard" str)))
   (advice-add 'dired-copy-filename-as-kill :after
 			  #'inc0n/dired-copy-filename-as-kill-hack))
+
+(with-eval-after-load 'dired-aux
+  (add-to-list 'dired-compress-file-suffixes '("\\.rar\\'" "" "7z x -aoa -o%o %i")))
 
 (provide 'init-dired)

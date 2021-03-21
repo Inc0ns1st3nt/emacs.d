@@ -9,12 +9,13 @@
 (require-package 'atom-one-dark-theme)
 (require-package 'doom-themes)
 
-(defvar theme/night 'atom-one-dark)
+(defvar theme/night 'doom-moonlight) ;; atom-one-dark
 (defvar theme/day 'doom-homage-white) ;;doom-one-light
+
 ;; (defvar themes/day '(doom-homage-white doom-one-light))
 
 (defun load-theme-only (theme)
-  "unload all other theme before loading `theme'"
+  "Unload all other theme before loading `THEME'."
   (dolist (i custom-enabled-themes)
     (disable-theme i))
   (load-theme theme t)
@@ -22,7 +23,11 @@
   (setq inc0n/default-color (cons (face-background 'mode-line)
                                   (face-foreground 'mode-line)))
   (when (boundp 'inc0n/update-modeline-face)
-    (inc0n/update-modeline-face)))
+    (inc0n/update-modeline-face))
+  (set-face-attribute 'font-lock-doc-face nil :slant 'italic)
+  ;; Other customisation to faces
+  (when (facep 'org-done)
+    (set-face-attribute 'org-done nil :underline t :bold t)))
 
 (defun load-day-theme ()
   ;; selectrum is okay with this
@@ -69,12 +74,11 @@
       (load-day-theme))))
 
 (defun inc0n/toggle-day/night ()
+  "Toggle between day and night themes."
   (interactive)
-  (cond ((equal (car custom-enabled-themes)
-		        theme/night)
-	     (load-day-theme))
-        (t
-	     (load-night-theme))))
+  (if (equal (car custom-enabled-themes) theme/night)
+	  (load-day-theme)
+    (load-night-theme)))
 
 (defun inc0n/theme-packages (packages)
   "Filter themes from PACKAGES."

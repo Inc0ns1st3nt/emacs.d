@@ -1,5 +1,7 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
+;;; Code:
+
 (require-package 'ace-window)
 (require-package 'winum)
 
@@ -24,12 +26,12 @@
     (message "turn on winner-mode first")))
 
 (general-define-key
- "C-x 4 u" #'inc0n/transient-winner-undo
- "C-x 2" #'split-window-vertically
- "C-x 3" #'split-window-horizontally
+ "C-x 4 u" 'inc0n/transient-winner-undo
+ "C-x 2" 'split-window-vertically
+ "C-x 3" 'split-window-horizontally
  ;; https://github.com/abo-abo/ace-window
  ;; `M-x ace-window ENTER m` to swap window
- "C-x o" #'ace-window)
+ "C-x o" 'ace-window)
 
 ;; https://emacs.stackexchange.com/questions/46664/switch-between-horizontal-and-vertical-splitting
 
@@ -77,7 +79,8 @@
 
 (with-eval-after-load 'winum
   (setq winum-format " %s ")
-  (setq winum-mode-line-position 0)
+  (setq winum-mode-line-position 0
+        winum-auto-setup-mode-line nil)
   (set-face-attribute 'winum-face nil
                       :foreground "DeepPink"
                       :underline "DeepPink"
@@ -86,3 +89,4 @@
 ;; }}
 
 (provide 'init-windows)
+;;; init-windows.el ends here

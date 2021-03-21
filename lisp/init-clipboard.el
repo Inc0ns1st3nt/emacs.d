@@ -29,24 +29,28 @@ If N is not nil, copy file name and line number."
       (message "%s => clipboard & kill-ring" s))))
 
 (defun cp-fullpath-of-current-buffer ()
-  "Copy full path into the yank ring and OS clipboard"
+  "Copy full path into the yank ring and OS clipboard."
   (interactive)
   (when buffer-file-name
     (util/set-clip (file-truename buffer-file-name))
     (message "file full path => clipboard & yank ring")))
 
 (defun copy-to-clipboard (string)
-  "paste string clipboard."
+  "Paste STRING to clipboard."
   (interactive (if (region-active-p)
 				   (list (util/selected-str))
 				 (message "no string selected")
 				 (list nil)))
   (when string
-	(shell-command (concat "wl-copy " string))))
+    ;; added redirection to /dev/null for immediate return
+    ;; @see https://emacs.stackexchange.com/questions/39019/xclip-hangs-shell-command
+    (shell-command (format "wl-copy %S &> /dev/null" string) nil)))
 
 (defun paste-from-clipboard (&optional n)
-  "Paste string clipboard. After the current cursor."
+  "Paste string clipboard.  After the current cursor.
+Optional argument N does nothing right now"
   (interactive "P")
   (util/insert-str (shell-command-to-string "wl-paste -n")))
 
 (provide 'init-clipboard)
+;;; init-clipboard.el ends here

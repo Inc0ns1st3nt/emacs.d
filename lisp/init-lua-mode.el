@@ -1,5 +1,6 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
+;;; Code:
 (require-package 'lua-mode)
 
 (defun inc0n/lua-mode-setup ()
@@ -17,3 +18,4 @@
 (setq-default lua-indent-level 2)
 
 (provide 'init-lua-mode)
+;;; init-lua-mode.el ends here

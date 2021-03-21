@@ -1,5 +1,5 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
-
+;;; Code:
 (require-package 'company)
 (require-package 'native-complete)
 (require-package 'company-native-complete)
@@ -7,7 +7,7 @@
 (require-package 'company-statistics)
 
 (add-hook 'after-init-hook
-		  (lambda () (run-with-idle-timer 1 nil #'global-company-mode)))
+		  (lambda () (run-with-idle-timer 2 nil #'global-company-mode)))
 
 (when (fboundp 'evil-declare-change-repeat)
   (mapc #'evil-declare-change-repeat
@@ -60,7 +60,7 @@
   ;; Press SPACE will accept the highlighted candidate and insert a space
   ;; "M-x describe-variable company-auto-complete-chars" for details.
   ;; So that's BAD idea.
-  (setq company-auto-commit t
+  (setq company-auto-commit nil
 		company-auto-commit-chars '())
 
   ;; company-ctags is much faster out of box. No further optimiation needed
@@ -68,7 +68,7 @@
     (local-require 'company-ctags)
 	(company-ctags-auto-setup))
 
-  ;; (setq company-backends (delete 'company-capf company-backends))
+  (setq company-backends (delete 'company-capf company-backends))
 
   ;; I don't like the downcase word in company-dabbrev
   (setq company-dabbrev-downcase nil

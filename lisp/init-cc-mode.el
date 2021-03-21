@@ -3,12 +3,12 @@
 ;; avoid default "gnu" style, use more popular one
 (setq c-default-style '((java-mode . "java")
                         (awk-mode . "awk")
-                        (other . "linux")))
+                        (other . "gnu")))
 
 (setq-default c-basic-offset 4)
 
 (defun inc0n/common-cc-mode-setup ()
-  "setup shared by all languages (java/groovy/c++ ...)"
+  "Setup shared by all languages (java/groovy/c++ ...)."
   ;; give me NO newline automatically after electric expressions are entered
   (setq c-auto-newline nil)
 
@@ -58,3 +58,4 @@
 (add-hook 'c-mode-common-hook 'c-mode-common-hook-setup)
 
 (provide 'init-cc-mode)
+;;; init-cc-mode ends here

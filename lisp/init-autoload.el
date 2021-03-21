@@ -1,4 +1,5 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
+;;; Code:
 (autoload 'xclip-set-selection "xclip" "" t)
 (autoload 'xclip-get-selection "xclip" "" t)
 (autoload 'dianyou-group-make-nnir-group "dianyou" "" t)
@@ -28,21 +29,18 @@
 ;; (autoload 'org2nikola-export-subtree "org2nikola" "" t)
 ;; (autoload 'org2nikola-rerender-published-posts "org2nikola" "" t)
 (autoload 'dictionary-new-search "dictionary" "" t nil)
-(autoload 'legalese "legalese" "" t)
+;; (autoload 'legalese "legalese" "" t)
 (autoload 'popup-tip "popup")
-(autoload 'srt-renumber-subtitles "subtitles" "" t)
-(autoload 'srt-offset-subtitles "subtitles" "" t)
-(autoload 'srt-mult-subtitles "subtitles" "" t)
-(autoload 'srt-convert-sub-to-srt "subtitles" "" t)
+;; (autoload 'srt-renumber-subtitles "subtitles" "" t)
+;; (autoload 'srt-offset-subtitles "subtitles" "" t)
+;; (autoload 'srt-mult-subtitles "subtitles" "" t)
+;; (autoload 'srt-convert-sub-to-srt "subtitles" "" t)
 ;; (autoload 'fastdef-insert "fastdef" nil t)
 ;; (autoload 'fastdef-insert-from-history "fastdef" nil t)
 (autoload 'doctest-mode "doctest-mode" "Python doctest editing mode." t)
-(autoload 'textile-mode "textile-mode" "Mode for editing Textile documents" t)
 (autoload 'find-library-name "find-func")
-(autoload 'web-mode "web-mode")
 (autoload 'run-js "js-comint" "")
 (autoload 'vc-msg-show "vc-msg" "")
-(autoload 'magit-commit-popup "magit" "")
 
 (provide 'init-autoload)
 ;;; init-autoload.el ends here

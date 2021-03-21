@@ -30,10 +30,11 @@
 ;; "Source Code Pro"
 ;; "Fira Code", "monaco"
 ;; (set-face-attribute 'default nil :font "Fira Code" :height 100)
+;; (set-face-attribute 'default nil :height 130 :font "AR PL New Kai")
+(set-face-attribute 'default nil :height 130)
 
 ;; https://emacs.stackexchange.com/questions/29289/my-change-to-the-default-font-size-reverts-at-startup
-(add-to-list 'default-frame-alist '(font . "Fira Code-12"))
-(set-face-attribute 'mode-line nil :font "Fira Code" :height 120)
+(add-to-list 'default-frame-alist '(font . "Monego"))
 
 ;; transparency setup
 ;; (set-frame-parameter (selected-frame) 'alpha '(85 . 50))

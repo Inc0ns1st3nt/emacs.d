@@ -37,9 +37,11 @@
 		   (message "makunbounded %s" arg)))
 		(t (message "unexpected %s" arg))))
 
+;; prevent kill ring
+(define-key minibuffer-local-map (kbd "<C-backspace>") 'backward-delete-word)
+
 (general-define-key
  "C-c C-u" 'inc0n/unbound-symbol
- "<C-backspace>" 'backward-delete-word
  "C-x C-o" 'ffap
  ;;
  "C-h C-f" 'find-function
@@ -49,20 +51,40 @@
  "TAB" 'tab-out-delimiter) ;; 'indent-for-tab-command
 
 (defun backward-delete-word ()
-  "my function that doesn't actually register deleted word into clipboard"
+  "Delete word backwards without pushing it to `kill-ring'."
   (interactive)
   (delete-region (point)
 				 (progn (forward-word -1)
 						(point))))
 
 (defun tab-out-delimiter ()
-  "Move cursor out of a consecutive block of delimiters"
+  "Move cursor out of a consecutive block of delimiters."
   (interactive)
   (if (not
 	   (memq (char-syntax (following-char)) '(?\) ?\")))
 	  (indent-for-tab-command)
 	(just-one-space 0) ;; delete any space before delimiter
 	(forward-char 1)))
+
+(defun selectrum-select-fonts ()
+  "`completion-read' style font selection."
+  (interactive)
+  (let ((font (completing-read
+               "Selector font: "
+               '("DejaVu Sans Mono"
+                 ;; "Bitstream Vera Sans Mono"
+                 "Source Code Pro"
+                 "Fira Code"
+                 "Monoid"
+                 "Hack"
+                 "Liberation mono"
+                 "Consolas Ligaturized"
+                 "OCRA"
+                 "Roboto Mono"
+                 "monego"
+                 "monaco"))))
+    (set-face-attribute 'default nil :font font :weight 'normal :slant 'normal)
+    (message "Font: %s" font)))
 
 ;; {{ auto-yasnippet
 (require-package 'auto-yasnippet)
@@ -76,8 +98,8 @@
 ;; {{ ace-link
 (require-package 'ace-link)
 (with-eval-after-load 'ace-link
-  (global-set-key (kbd "M-o") 'ace-link)
   (ace-link-setup-default))
+(global-set-key (kbd "M-z") 'ace-link) ;; zap-to-char
 ;; }}
 
 ;; {{ isearch
@@ -107,6 +129,15 @@
               visible-bell nil
 			  line-spacing 1)
 
+;; some project prefer tab, so be it
+;; @see http://stackoverflow.com/questions/69934/set-4-space-indent-in-emacs-in-text-mode
+(setq-default tab-width 4)
+
+(setq history-delete-duplicates t)
+
+;; NO automatic new line when scrolling down at buffer bottom
+(setq next-line-add-newlines nil)
+
 (defun toggle-indent-tabs-mode ()
   (interactive)
   (setq indent-tabs-mode (not indent-tabs-mode))
@@ -121,7 +152,7 @@
       (ffip-shell-command-to-string
        (format "git --no-pager reflog --date=short -S\"%s\" -p"
                (read-string "Regex: ")))))
-  (push #'inc0n/search-git-reflog-code ffip-diff-backends)
+  (push 'inc0n/search-git-reflog-code ffip-diff-backends)
   (setq ffip-match-path-instead-of-filename t))
 
 (defun neotree-project-dir ()
@@ -138,24 +169,21 @@
 ;; {{ gradle
 (defun inc0n/run-gradle-in-shell (cmd)
   (interactive "sEnter a string:")
-  (when-let ((root-dir
+  (when-let ((default-directory
               (locate-dominating-file default-directory "build.gradle")))
-    (let ((default-directory root-dir))
-      (shell-command (concat "gradle " cmd "&")))))
+    (shell-command (concat "gradle " cmd "&"))))
 ;; }}
 
-;; {{ dictionary setup
 (defun inc0n/lookup-dict-org (word)
   (interactive (list (util/thing-at-point)))
   (dictionary-new-search
    (cons (util/use-selected-string-or-ask "Input word for dict.org"
                                           word)
          dictionary-default-dictionary)))
-;; }}
 
 ;; {{ bookmark
-;; use my own bookmark if it exists
 (with-eval-after-load 'bookmark
+  ;; use my own bookmark if it exists
   (when (file-exists-p (file-truename "~/.emacs.bmk"))
     (setq bookmark-file (file-truename "~/.emacs.bmk"))))
 ;; }}
@@ -175,15 +203,14 @@
 This function can be re-used by other major modes after compilation."
   ;;TODO: only exit window if window was created
   (if (string-match "exited abnormally" str)
-      ;;there were errors
+      ;; there were errors
       (message "compilation errors, press C-x ` to visit")
-    ;;no errors, make the compilation window go away in 0.5 seconds
     (when (and (buffer-name buffer)
                (string-match "*compilation*" (buffer-name buffer)))
       ;; @see http://emacswiki.org/emacs/ModeCompile#toc2
       (bury-buffer buffer)
-	  (with-selected-window (get-buffer-window buffer)
-		(delete-window))
+	  ;; (with-selected-window (get-buffer-window buffer)
+	  ;;   (delete-window))
       ;; (winner-undo)
       (message "NO COMPILATION ERRORS!"))))
 
@@ -200,9 +227,9 @@ This function can be re-used by other major modes after compilation."
 	  (eq char (char-after))
 	  ;; Don't pair up when we insert the second of "" or of ((.
 	  (and (eq char ?\")
-		   (eq char (char-before (1- (point)))))
-	  ;; I also find it often preferable not to pair next to a word.
-	  (eq (char-syntax (following-char)) ?w)))
+           (eq char (char-before (1- (point)))))
+      ;; I also find it often preferable not to pair next to a word.
+      (eq (char-syntax (following-char)) ?w)))
 
 (with-eval-after-load 'elec-pair
   (setq electric-pair-inhibit-predicate #'inc0n/electric-pair-inhibit))
@@ -211,15 +238,15 @@ This function can be re-used by other major modes after compilation."
   "Only operate in the visible region of the window.
 With exception to the current line."
   (when (derived-mode-p 'prog-mode)
-	(let ((win-beg (window-start))
+    (let ((win-beg (window-start))
           (win-end (window-end))
           (line-beg (line-beginning-position))
-		  (line-end (line-end-position)))
-	  (if (and (not (or (< line-beg win-beg)
-			            (> line-end win-end)))
+          (line-end (line-end-position)))
+      (if (and (not (or (< line-beg win-beg)
+                        (> line-end win-end)))
                (evil-state-p 'insert))
-		  (progn (delete-trailing-whitespace win-beg line-beg)
-		         (delete-trailing-whitespace line-end win-end))
+          (progn (delete-trailing-whitespace win-beg line-beg)
+                 (delete-trailing-whitespace line-end win-end))
         (delete-trailing-whitespace win-beg win-end)))))
 (add-hook 'before-save-hook 'my-prog-nuke-trailing-whitespace)
 
@@ -230,61 +257,23 @@ With exception to the current line."
 ;; (with-eval-after-load 'flymake
 ;;   (setq flymake-gui-warnings-enabled nil))
 
-(defvar generic-tag-major-modes nil
-  "The `major-mode's to try to find TAGS")
-
-(setq generic-tag-major-modes '((lisp-mode . ".lisp")
-                                ;; (c-mode . ".c")
-                                (c++-mode . ".cpp")
-                                (haskell-mode . nil)))
-
-(add-hook 'before-save-hook 'generic-tag-before-save-update)
-
-(defun generic-tag-before-save-update ()
-  "The TAGS update function."
-  (if tags-file-name
-      (message "tags %s updated %s"
-               tags-file-name
-               (when-let* ((pair (assoc major-mode generic-tag-major-modes))
-                           (ext (cdr pair)))
-                 (shell-command-to-string
-                  (format "PWD=%s fd %s | etags -"
-                          (file-name-directory tags-file-name)
-                          ext))))
-    (message "tags not updated for " major-mode)))
-
-(defun generic-prog-mode-tag-setup ()
-  "My generic tag file setup for `prog-mode'."
-  (when (assoc major-mode generic-tag-major-modes)
-    (util/ensure 'etags)
-    (when (and (null tags-file-name)
-               (null tags-completion-table)
-               ;; (not (y-or-n-p "Keep current tags? "))
-               )
-      (when-let ((tag (or (locate-dominating-file default-directory "TAGS")
-                          (when (y-or-n-p "Find (create) TAGS? ")
-                            (read-file-name "TAGS: ")))))
-        (util/make-file tag)
-        (setq-local tags-completion-table nil)
-        ;; Set the local value of tags-file-name.
-        (setq-local tags-file-name tag)
-        (message "%s found tag: %s" major-mode tag)))))
-
 (defun generic-prog-mode-hook-setup ()
   "My generic `prog-mode-hook' setup function."
   (when (buffer-too-big-p)
     ;; Turn off `linum-mode' when there are more than 5000 lines
-	(linum-mode -1)
+    (linum-mode -1)
     (when (should-use-minimum-resource)
       (font-lock-mode -1)))
 
   ;; (util/ensure 'lazyflymake)
   ;; (lazyflymake-start)
-  (flycheck-mode 1)
 
   (company-ispell-setup)
 
   (unless (buffer-file-temp-p)
+    ;; Selectively enable flycheck-mode
+    (unless scratch-buffer
+      (flycheck-mode 1))
     ;; @see http://xugx2007.blogspot.com.au/2007/06/benjamin-rutts-emacs-c-development-tips.html
     (setq compilation-finish-functions '(compilation-finish-hide-buffer-on-success))
 
@@ -297,16 +286,10 @@ With exception to the current line."
 	;; (hs-minor-mode)        ;; code/comment fold
 	;; (turn-on-auto-fill)		;; auto indent
     (turn-on-eldoc-mode) ;; eldoc, show API doc in minibuffer echo area
-    (setq show-trailing-whitespace t)
-    (generic-prog-mode-tag-setup)))
+    (setq show-trailing-whitespace t)))
 
-(add-hook 'prog-mode-hook #'generic-prog-mode-hook-setup)
 ;; some major-modes do NOT inherited from prog-mode
-
-;; {{ display long lines in truncated style (end line with $)
-(add-hook 'grep-mode-hook (lambda ()
-							(setf truncate-lines nil)))
-;; }}
+(add-hook 'prog-mode-hook #'generic-prog-mode-hook-setup)
 
 ;; turn on auto-fill-mode, don't use `text-mode-hook' because for some
 ;; mode (org-mode for example), this will make the exported document
@@ -314,15 +297,6 @@ With exception to the current line."
 (add-hook 'markdown-mode-hook 'turn-on-auto-fill)
 (add-hook 'change-log-mode-hook #'turn-on-auto-fill)
 (add-hook 'cc-mode-hook #'turn-on-auto-fill)
-
-;; some project prefer tab, so be it
-;; @see http://stackoverflow.com/questions/69934/set-4-space-indent-in-emacs-in-text-mode
-(setq-default tab-width 4)
-
-(setq history-delete-duplicates t)
-
-;; NO automatic new line when scrolling down at buffer bottom
-(setq next-line-add-newlines nil)
 
 ;; {{ time format 'built-in'
 ;; If you want to customize time format, read document of `format-time-string'
@@ -332,10 +306,8 @@ With exception to the current line."
 ;; from RobinH, Time management
 (setq display-time-24hr-format t) ; the date in modeline is English too, magic!
 (setq display-time-day-and-date t)
-(util/add-to-timed-init-hook 1 'display-time-mode) ;; show date in modeline
+;; (util/add-to-timed-init-hook 1 'display-time-mode) ;; show date in modeline
 ;; }}
-
-;; (defalias 'list-buffers #'ibuffer)
 
 ;; {{ show email sent by `git send-email' in gnus
 (with-eval-after-load 'gnus
@@ -343,14 +315,6 @@ With exception to the current line."
     (setq gnus-article-patch-conditions
           '("^@@ -[0-9]+,[0-9]+ \\+[0-9]+,[0-9]+ @@"))))
 ;; }}
-
-(defun add-pwd-into-load-path ()
-  "add current directory into load-path, useful for elisp developers"
-  (interactive)
-  (let ((dir (expand-file-name default-directory)))
-    (when (not (memq dir load-path))
-      (add-to-list 'load-path dir))
-    (message "Directory added into load-path:%s" dir)))
 
 (setq system-time-locale "C")
 
@@ -424,7 +388,7 @@ With exception to the current line."
   (define-key dired-mode-map (kbd ";") 'avy-goto-subword-1))
 ;; }}
 
-;; {{start dictionary lookup
+;; {{ start dictionary lookup
 ;; use below commands to create dictionary
 ;; mkdir -p ~/.stardict/dic
 ;; # wordnet English => English
@@ -442,14 +406,13 @@ With exception to the current line."
 ;; {{ http://stackoverflow.com/questions/13397737/ansi-coloring-in-compilation-mode
 (when (require 'ansi-color nil t)
   (defun inc0n/colorize-compilation-buffer ()
-    (when (eq major-mode 'compilation-mode)
-      (ansi-color-apply-on-region compilation-filter-start (point-max))))
+    (ansi-color-apply-on-region compilation-filter-start (point-max)))
   (add-hook 'compilation-filter-hook #'inc0n/colorize-compilation-buffer))
 ;; }}
 
 (defun inc0n/minibuffer-setup-hook ()
   ;; (local-set-key (kbd "C-k") #'kill-line)
-  (subword-mode t) ; enable subword movement in minibuffer
+  (subword-mode t)             ; enable subword movement in minibuffer
   (setq gc-cons-threshold most-positive-fixnum))
 
 (defun inc0n/minibuffer-exit-hook ()
@@ -460,117 +423,15 @@ With exception to the current line."
 (add-hook 'minibuffer-setup-hook #'inc0n/minibuffer-setup-hook)
 (add-hook 'minibuffer-exit-hook #'inc0n/minibuffer-exit-hook)
 
-;; {{ Diff two regions
-;; Step 1: Select a region and `M-x diff-region-tag-selected-as-a'
-;; Step 2: Select another region and `M-x diff-region-compare-with-b'
-;; Press "q" in evil-mode or "C-c C-c" to exit the diff output buffer
-(defun diff-region-format-region-boundary (b e)
-  "Make sure lines are selected and B is less than E"
-  (if (> b e)
-	  ;; swap b e, make sure b < e
-	  (diff-region-format-region-boundary e b)
-	;; select lines
-	(save-excursion
-	  ;; Another workaround for evil-visual-line bug:
-	  ;; In evil-mode, if we use hotkey V or `M-x evil-visual-line` to select line,
-	  ;; the (line-beginning-position) of the line which is after the last selected
-	  ;; line is always (region-end)! Don't know why.
-	  (when (and (> e b)
-				 (bolp e) ;; beginning-of-line-p
-				 (boundp 'evil-state)
-				 (eq evil-state 'visual))
-		(setq e (1- e)))
-	  (goto-char b)
-	  (let ((b (line-beginning-position)))
-		(goto-char e)
-		(list b (line-end-position))))))
-
-(defun diff-region-open-diff-output (content buffer-name)
-  (let ((rlt-buf (get-buffer-create buffer-name)))
-    (save-current-buffer
-      (switch-to-buffer-other-window rlt-buf)
-      (set-buffer rlt-buf)
-      (erase-buffer)
-      (insert content)
-      ;; `ffip-diff-mode' is more powerful than `diff-mode'
-      (ffip-diff-mode)
-      (goto-char (point-min)))))
-
-(defun diff-region-tag-selected-as-a ()
-  "Select a region to compare."
-  (interactive)
-  (when (region-active-p)
-    (let ((tmp (diff-region-format-region-boundary (region-beginning)
-                                                   (region-end)))
-          (buf (get-buffer-create "*Diff-regionA*")))
-      ;; select lines
-      (save-current-buffer
-        (set-buffer buf)
-        (erase-buffer))
-      (append-to-buffer buf (car tmp) (cadr tmp))))
-  (message "Now select other region to compare and run `diff-region-compare-with-b'"))
-
-(defun diff-region-compare-with-b ()
-  "Compare current region with the region set by `diff-region-tag-selected-as-a'.
-If no region is selected, `kill-ring' or clipboard is used instead."
-  (interactive)
-  (let ((prefix (expand-file-name "diff-region"
-                                  (or small-temporary-file-directory
-                                      temporary-file-directory))))
-	(let ((fa (make-temp-file prefix))	;; file A
-		  (fb (make-temp-file prefix)))	;; file B
-	  (when (and fa (file-exists-p fa)
-				 fb (file-exists-p fb))
-		(if (region-active-p)
-			;; text from selected region
-			(let ((tmp
-				   (diff-region-format-region-boundary (region-beginning) (region-end))))
-			  (write-region (car tmp) (cadr tmp) fb))
-		  ;; text from `kill-ring' or clipboard
-		  (let* ((choice (completing-read "Since no region selected, compare text in:"
-										  '("kill-ring" "clipboard")))
-				 (txt (cond ((string= choice "kill-ring") (car kill-ring))
-							((string= choice "clipboard") (util/get-clip)))))
-			(with-temp-file fb
-			  (insert txt))))
-		;; save region A as file A
-		(save-current-buffer
-		  (set-buffer (get-buffer-create "*Diff-regionA*"))
-		  (write-region (point-min) (point-max) fa))
-		;; diff NOW!
-		;; show the diff output
-		(let ((diff-output
-			   (shell-command-to-string
-				(format "%s -Nabur %s %s" diff-command fa fb))))
-		  (cond ((string-empty-p diff-output)
-				 (message "Two regions are SAME!"))
-				((executable-find "git")
-				 (util/ensure 'magit)
-				 (magit-diff-setup nil (list "--no-index" "--indent-heuristic" "--histogram")
-								   nil (list (magit-convert-filename-for-git
-											  (expand-file-name fa))
-											 (magit-convert-filename-for-git
-											  (expand-file-name fb))))
-				 (ffip-diff-mode))
-				(t
-				 (diff-region-open-diff-output diff-output
-											   "*Diff-region-output*"))))
-		;; clean the temporary files
-		(when (and fa (file-exists-p fa))
-		  (delete-file fa))
-		(when (and fb (file-exists-p fb))
-		  (delete-file fb))))))
-;; }}
-
 (defun extract-list-from-package-json ()
   "Extract package list from package.json."
   (interactive)
-  (let ((str (util/use-selected-string-or-ask))
+  (let ((str (util/use-selected-string-or-ask)))
 	(setq str (replace-regexp-in-string ":.*$\\|\"" "" str))
 	;; join lines)
 	(setq str (replace-regexp-in-string "[\r\n \t]+" " " str))
     (util/set-clip str)
-    (message "%s => clipboard & yank ring" str))))
+    (message "%s => clipboard & yank ring" str)))
 
 (defun inc0n/insert-absolute-path ()
   "Relative path to full path."
@@ -622,18 +483,16 @@ If no region is selected, `kill-ring' or clipboard is used instead."
       (message (format "%s => kill-ring&clipboard" str)))))
 ;; }}
 
-(defun inc0n/get-total-hours (str)
-  (interactive (list (if (region-active-p)
-						 (util/selected-str)
-					   (util/buffer-str))))
-  (let ((total-hours
-		 (cl-reduce (lambda (total-hours line)
-					  (if (string-match " \\([0-9][0-9.]*\\)h[ \t]*$" line)
-						  (+ total-hours (string-to-number (match-string 1 line)))
-						total-hours))
-					(split-string str "[\r\n]+" t)
-					:initial-value 0)))
-    (message "total-hours=%s" total-hours)))
+(defun inc0n/get-total-hours (beg end)
+  "Calculate the total time in the region between BEG and END."
+  (interactive "r")
+  (save-excursion
+    (goto-char beg)
+    (let ((total-housr 0))
+      (while (search-forward-regexp "\\([0-9][0-9.]*\\)h" end t)
+        (cl-incf total-hours
+                 (string-to-number (match-string 1 line))))
+      (message "total-hours=%s" total-hours))))
 
 ;; {{ emmet (auto-complete html tags)
 ;; @see https://github.com/rooney/zencoding for original tutorial
@@ -646,7 +505,7 @@ If no region is selected, `kill-ring' or clipboard is used instead."
 ;; }}
 
 (defun sgml-mode-hook-setup ()
-  "sgml/html mode setup."
+  "`sgml-mode' or `html-mode' setup."
   ;; let web-mode handle indentation by itself since it does not
   ;; derive from `sgml-mode'
   (setq-local indent-region-function #'sgml-pretty-print))
@@ -657,7 +516,8 @@ If no region is selected, `kill-ring' or clipboard is used instead."
   (select-frame frame)
   (unless window-system
     ;; Mouse in a terminal (Use shift to paste with middle button)
-    (xterm-mouse-mode 1)))
+    ;; (xterm-mouse-mode 1)
+    ))
 (add-hook 'after-make-frame-functions #'run-after-make-frame-hooks)
 ;; }}
 
@@ -687,22 +547,23 @@ If no region is selected, `kill-ring' or clipboard is used instead."
   (when (and (inc0n/message-says-attachment-p)
              (not (inc0n/message-has-attachment-p)))
     (unless
-		(y-or-n-p "The message suggests that you may want to attach something, but no attachment is found. Send anyway?")
-      (error "It seems that an attachment is needed, but none was found. Aborting sending."))))
+		(y-or-n-p "The message suggests that you may want to attach something, but no attachment is found.  Send anyway? ")
+      (error "It seems that an attachment is needed, but none was found.  Aborting sending"))))
 (add-hook 'message-send-hook #'inc0n/message-pre-send-check-attachment)
 ;; }}
 
 (defun minibuffer-inactive-mode-hook-setup ()
-  ;; Make `try-expand-dabbrev' from `hippie-expand' work in mini-buffer.
-  ;; @see `he-dabbrev-beg', so we need re-define syntax for '/'.
+  "Make `try-expand-dabbrev' from `hippie-expand' work in mini-buffer.
+@see `he-dabbrev-beg', so we need re-define syntax for '/'."
   (set-syntax-table (let ((table (make-syntax-table)))
                       (modify-syntax-entry ?/ "." table)
                       table)))
-(add-hook 'minibuffer-inactive-mode-hook #'minibuffer-inactive-mode-hook-setup)
+;; (add-hook 'minibuffer-inactive-mode-hook #'minibuffer-inactive-mode-hook-setup)
 
 ;; {{ vc-msg
 (defun vc-msg-hook-setup (vcs-type commit-info)
-  ;; copy commit id to clipboard
+  "Copy commit id from COMMIT-INFO to clipboard.
+VCS-TYPE is ignored."
   (util/set-clip (plist-get commit-info :id)))
 (add-hook 'vc-msg-hook #'vc-msg-hook-setup)
 
@@ -711,11 +572,6 @@ If no region is selected, `kill-ring' or clipboard is used instead."
   (util/ensure 'find-file-in-project)
   (ffip-diff-mode))
 (add-hook 'vc-msg-show-code-hook #'vc-msg-show-code-setup)
-;; }}
-
-;; {{ typewriter
-;; (local-require 'typewriter-mode)
-;; (add-hook 'after-init-hook #'typewriter-mode)
 ;; }}
 
 (with-eval-after-load 'grep
@@ -745,7 +601,10 @@ If no region is selected, `kill-ring' or clipboard is used instead."
     (add-to-list 'grep-find-ignored-files v))
 
   ;; wgrep and rgrep, inspired by http://oremacs.com/2015/01/27/inc0n/refactoring-workflow/
-  (define-key grep-mode-map (kbd "C-x C-q") 'wgrep-change-to-wgrep-mode))
+  (define-key grep-mode-map (kbd "C-x C-q") 'wgrep-change-to-wgrep-mode)
+
+  ;; display long lines in truncated style (end line with $)
+  (add-hook 'grep-mode-hook (lambda () (setf truncate-lines nil))))
 
 ;; {{ https://www.emacswiki.org/emacs/EmacsSession better than "desktop.el" or "savehist".
 (require-package 'session)
@@ -775,7 +634,7 @@ If no region is selected, `kill-ring' or clipboard is used instead."
       (imenu--generic-function patterns))))
 
 (defun adoc-mode-hook-setup ()
-  ;; Don't wrap lines because there is table in `adoc-mode'.
+  "Don't wrap lines because there is table in `adoc-mode'."
   (setq truncate-lines t)
   (setq imenu-create-index-function 'adoc-imenu-index))
 (add-hook 'adoc-mode-hook #'adoc-mode-hook-setup)
@@ -827,14 +686,16 @@ If the shell is already opened in some buffer, switch to that buffer."
 
 (add-hook 'after-init-hook 'transient-mark-mode) ;; wanted
 
+;; {{ auto-revert
 (add-hook 'after-init-hook 'global-auto-revert-mode)
 (with-eval-after-load 'autorevert
   (setq auto-revert-verbose t
 		global-auto-revert-non-file-buffers nil))
+;; }}
 
 (defun inc0n/insert-date (prefix)
-  "Insert the current date. With prefix-argument, use ISO format.
-With two prefix arguments, write out the day and month name."
+  "Insert the current date.  With single PREFIX, use ISO format.
+With two PREFIX arguments, write out the day and month name."
   (interactive "P")
   (let ((format (cond
                  ((not prefix) "%d.%m.%Y")
@@ -844,13 +705,13 @@ With two prefix arguments, write out the day and month name."
 
 (defun inc0n/insert-timestamp (arg)
   "Insert time stamps at current position.
-Argument ARG non-nil means simple time stamp."
+non-nil prefix ARG uses simple time stamp."
   (interactive "P")
-  (let ((current-date-time-format
-         (if arg
-             "%Y-%m-%d"
-             "%a %b %d %H:%M %Z %Y")))
-    (insert (format-time-string current-date-time-format (current-time)))))
+  (insert (format-time-string
+           (if arg
+               "%Y-%m-%d"
+             "%a %b %d %H:%M %Z %Y")
+           (current-time))))
 
 (global-set-key (kbd "C-c .") 'inc0n/insert-timestamp)
 
@@ -868,16 +729,11 @@ Argument ARG non-nil means simple time stamp."
 
 ;; unique lines
 (defun uniq-lines (beg end)
-  "Delete duplicate lines in region or buffer.
-Argument BEG start of region to check.
-Argument END end of region to check."
-  (interactive (if (region-active-p)
-				   (list (region-beginning) (region-end))
-				 (list (point-min) (point-max))))
+  "Delete duplicate lines in region between BEG ad END."
+  (interactive "r")
   (save-excursion
-    (while (progn
-			 (goto-char bed)
-			 (re-search-forward "^\\(.*\\)\n\\(\\(.*\n\\)*\\)\\1\n" end t))
+    (goto-char bed)
+    (while (re-search-forward "^\\(.*\\)\n\\(\\(.*\n\\)*\\)\\1\n" end t)
       (replace-match "\\1\n\\2"))))
 
 ;; from http://emacsredux.com/blog/2013/05/04/rename-file-and-buffer/
@@ -932,21 +788,6 @@ version control automatically."
 (put 'downcase-region 'disabled nil)
 (put 'upcase-region 'disabled nil)
 
-(defun cleanup-buffer ()
-  "Perform a bunch of safe operations on the whitespace content of a buffer.
-Does not indent buffer, because it is used for a `before-save-hook', and that
-might be bad."
-  (interactive)
-  (untabify (point-min) (point-max))
-  (delete-trailing-whitespace))
-
-(defun cleanup-buffer-and-indent ()
-  "Perform a bunch of operations on the whitespace content of a buffer.
-Including indent-buffer, which should not be called automatically on save."
-  (interactive)
-  (cleanup-buffer)
-  (indent-region (point-min) (point-max)))
-
 ;; {{ easygpg setup
 ;; @see http://www.emacswiki.org/emacs/EasyPG#toc4
 (with-eval-after-load 'epg
@@ -975,10 +816,10 @@ Including indent-buffer, which should not be called automatically on save."
 ;;     (apply orig-func args)))
 ;; (advice-add 'which-func-update :around #'inc0n/which-func-update-hack)
 
-(autoload 'which-function "which-func")
+;; (autoload 'which-function "which-func")
 ;; (with-eval-after-load 'which-function
 ;;   (add-to-list 'which-func-modes 'org-mode))
-;; (which-function-mode 1)
+(which-function-mode 0)
 ;; }}
 
 ;; {{ pomodoro
@@ -1013,9 +854,15 @@ Including indent-buffer, which should not be called automatically on save."
 		 (forward-word)
 		 (forward-char -1)
 		 (sdcv-search-input (thing-at-point 'word))))
-  (add-hook 'nov-mode-hook (lambda ()
-							 "Set up of `nov-mode'."
-							 (display-line-numbers-mode -1))))
+  (defun nov-mode-setup ()
+    (setq-local visual-fill-column-extra-text-width '(0 . 0)
+                visual-fill-column-center-text t)
+    (visual-line-mode 1)
+    (visual-fill-column-mode 1)
+    (face-remap-add-relative 'variable-pitch
+                             :family "Libreation Serif"
+                             :height 1.0))
+  (add-hook 'nov-mode-hook 'nov-mode-setup))
 ;; }}
 
 ;; {{ octave
@@ -1023,8 +870,7 @@ Including indent-buffer, which should not be called automatically on save."
   "Set up of `octave-mode'."
   (abbrev-mode 1)
   (auto-fill-mode 1)
-  (when (eq window-system 'x)
-    (font-lock-mode 1))
+  (font-lock-mode 1)
   (setq-local comment-start "%"
 			  comment-add 0))
 (add-hook 'octave-mode-hook #'octave-mode-hook-setup)
@@ -1041,7 +887,6 @@ Including indent-buffer, which should not be called automatically on save."
 ;; }}
 
 ;; {{ edit-server
-(require-package 'edit-server)
 (defun edit-server-start-hook-setup ()
   "Some web sites actually pass html to edit server."
   (let ((url (buffer-name)))
@@ -1063,12 +908,14 @@ Including indent-buffer, which should not be called automatically on save."
     (edit-server-edit-mode)))
 
 (when (require-package 'edit-server)
-  (setq edit-server-new-frame t)
-  (add-hook 'edit-server-start-hook #'edit-server-start-hook-setup)
+  (with-eval-after-load 'edit-server
+    (setq edit-server-new-frame t)
+    (add-hook 'edit-server-start-hook #'edit-server-start-hook-setup))
   (add-hook 'after-init-hook 'edit-server-start)
-  (when (require-package 'edit-server-htmlize)
-    (add-hook 'edit-server-start-hook #'edit-server-maybe-dehtmlize-buffer)
-    (add-hook 'edit-server-done-hook #'edit-server-maybe-htmlize-buffer)))
+  ;; (when (require-package 'edit-server-htmlize)
+  ;;   (add-hook 'edit-server-start-hook #'edit-server-maybe-dehtmlize-buffer)
+  ;;   (add-hook 'edit-server-done-hook #'edit-server-maybe-htmlize-buffer))
+  )
 ;; }}
 
 (defun run-server ()
@@ -1080,14 +927,14 @@ Including indent-buffer, which should not be called automatically on save."
     (server-start)))
 (util/add-to-timed-init-hook 1 'run-server)
 
-;; {{ which-key-mode
+;; {{ which-key
 (require-package 'which-key)
 (setq which-key-allow-imprecise-window-fit t) ; performance
 (setq which-key-idle-delay 0.5)
 (setq which-key-separator ":"
 	  which-key-add-column-padding 1)
 (setq which-key-min-display-lines 2)
-(add-hook 'after-init-hook #'which-key-mode)
+(add-hook 'after-init-hook 'which-key-mode)
 ;; }}
 
 ;; {{ eldoc
@@ -1098,8 +945,7 @@ Including indent-buffer, which should not be called automatically on save."
 ;; }}
 
 (defun inc0n/browse-file ()
-  "Open the a file, ask for a file path via `find-file', points to the
-current file, as a URL via `browse-url'."
+  "Read a file name and open it in browser."
   (interactive)
   (browse-url-generic
    (read-file-name "New name: "
@@ -1107,8 +953,9 @@ current file, as a URL via `browse-url'."
 					   default-directory))))
 
 ;; {{ `browse-url' setup
-(setq-default browse-url-generic-program "firefox")
-(setq-default browse-url-generic-args '("--private-window"))
+;; default browser would be w3m or eww
+;; (setq-default browse-url-generic-program "firefox")
+;; (setq-default browse-url-generic-args '("--private-window"))
 (setq-default browse-url-firefox-arguments '("--private-window"))
 ;; }}
 
@@ -1135,35 +982,31 @@ current file, as a URL via `browse-url'."
 
 ;; {{ ligature
 (local-require 'ligature)
-(setq ligature-composition-table nil)
-(ligature-set-ligatures 'prog-mode '("::" ":::" "->" "=>" "==" "===" "!="
-									 "++" "<-" "/=" ">=" "<=" ".."
-									 "..." "&&" "||" "//"))
+;; (setq ligature-composition-table nil)
+(with-eval-after-load 'ligature
+  (ligature-set-ligatures 'prog-mode '("::" ":::" "->" "=>" "==" "===" "!="
+									   "++" "<-" "/=" ">=" "<=" ".."
+									   "..." "&&" "||" "//")))
 (add-hook 'after-init-hook
 		  (lambda ()
 			(global-ligature-mode 0)))
 ;; }}
 
 ;; {{
-;; (require-package 'highlight-thing)
-;; (global-highlight-thing-mode nil)
-;; (setq highlight-thing-delay-seconds 1.0
-;; 	  highlight-thing-limit-to-region-in-large-buffers-p t)
-;; }}
-
 (require-package 'highlight-symbol)
 (with-eval-after-load 'highlight-symbol
   (setq highlight-symbol-colors
 		(delete "SpringGreen1"
 				(delete "yellow" highlight-symbol-colors))
 		highlight-symbol-idle-delay 1.0))
+;; }}
+
 
 (with-eval-after-load 'rainbow-delimiters
   (setq rainbow-delimiters-max-face-count 1))
 
 (defun clean-backup-dir ()
-  "delete the files in the backup dir that are not in the list of
-`recentf-list'"
+  "Delete the files in the backup dir that are not in the list of `recentf-list'."
   (cl-labels ((aux (x)
 				   (let ((x (subst-char-in-string ?! ?/ x)))
 					 (substring (subst-char-in-string ?! ?/ x)
@@ -1185,4 +1028,51 @@ current file, as a URL via `browse-url'."
 					  (length files-to-delete))))
 			backup-directory-alist)))
 
+(defun company-kill-ring (command &optional arg &rest ignored)
+  "A function `company-mode' completion backend existing file names.
+Completions works for proper absolute and relative files paths.
+File paths with spaces are only supported inside strings.
+Argument COMMAND .
+Optional argument ARG .
+Optional argument IGNORED is ignored."
+  (interactive (list 'interactive))
+  (cl-case command
+    (interactive (company-begin-backend 'company-kill-ring))
+    (prefix (company-grab-word))
+    (candidates (let ((regex (concat "^" (regexp-quote arg))))
+                  (cl-remove-if-not (lambda (x) (string-match-p regex x))
+                                    kill-ring)))
+    ;; (location (cons (dired-no select
+    ;;                  (file-name-directory (directory-file-name arg))) 1))
+    ;; (post-completion (company-files--post-completion arg))
+    (sorted t)
+    (no-cache t)))
+
+(define-key minibuffer-local-map (kbd "M-ESC") 'keyboard-escape-quit)
+(global-set-key (kbd "C-;") 'company-kill-ring) ;; replaces fly spell-auto-correct-previous-word
+
+(defun browse-hackernews ()
+  "Browse hackernews."
+  (interactive)
+  (browse-url "https://news.ycombinator.com/"))
+
+(require-package 'golden-ratio)
+(with-eval-after-load 'golden-ratio
+  (add-hook 'after-init-hook 'golden-ratio-mode)
+  (setq ;; golden-ratio-max-width 100
+   ;; golden-ratio-adjust-factor
+   golden-ratio-auto-scale t))
+
+(require-package 'focus)
+(with-eval-after-load 'focus
+  (setq focus-current-thing 'paragraph)
+  (setq focus-mode-to-thing '((org-mode . defun)
+                              (prog-mode . defun)
+                              (text-mode . line))))
+
+(set-face-attribute 'fixed-pitch-serif nil
+                    :height 130
+                    :font "Liberation Sans")
+
 (provide 'init-misc)
+;;; init-misc.el ends here

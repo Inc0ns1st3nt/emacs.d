@@ -2,8 +2,6 @@
 
 ;;; Commentary:
 
-;; commentary
-
 ;;; Code:
 
 (require-package 'elpy)

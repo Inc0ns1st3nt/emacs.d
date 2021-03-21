@@ -1,4 +1,6 @@
-;; -*- coding: utf-8; lexical-binding: t; -*-
+;;; -*- coding: utf-8; lexical-binding: t; -*-
+
+;;; Code:
 
 (require-package 'yasnippet)
 (require-package 'yasnippet-snippets)
@@ -130,6 +132,8 @@
   ;; how to add custom yasnippet directory
   ;; (add-to-list 'yas-snippet-dirs inc0n/yasnippets)
   (yas-reload-all))
-(global-set-key (kbd "C-TAB") 'yas-expand)
+(global-set-key [C-tab] 'yas-expand)
+
 
 (provide 'init-yasnippet)
+;;; init-yasnippet ends here

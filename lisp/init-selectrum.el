@@ -10,6 +10,8 @@
 (require-package 'selectrum)
 (local-require 'selectsel)
 
+(global-set-key (kbd "C-x C-z") 'selectrum-repeat)
+
 (add-hook 'after-init-hook 'selectrum-mode)
 
 ;; @see https://github.com/raxod502/prescient.el

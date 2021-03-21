@@ -1,8 +1,8 @@
-;; package --- Summary
-;; -*- coding: utf-8; lexical-binding: t; -*-
+;;; init-evil.el --- evil setup -*- coding: utf-8; lexical-binding: t; -*-
+
+;;; Code:
 
 (require-package 'expand-region) ; I prefer stable version
-
 (require-package 'evil)
 (local-require 'evil-mark-replace)
 
@@ -29,9 +29,9 @@
   :init-value nil
   :global t)
 (undo-fu-mode 1)
+;; (evil-set-undo-system 'undo-tree)
 (evil-set-undo-system 'undo-fu)
 (setq evil-undo-system 'undo-fu)
-;; (evil-set-undo-system 'undo-tree)
 ;; }}
 
 ;; Store more undo history to prevent loss of data
@@ -43,6 +43,7 @@
 (require-package 'evil-surround)
 ;; @see https://github.com/timcharper/evil-surround
 (add-hook 'after-init-hook 'global-evil-surround-mode)
+(add-hook 'prog-mode-hook #'evil-surround-prog-mode-hook-setup)
 
 (defun evil-surround-prog-mode-hook-setup ()
   "Set up surround shortcuts."
@@ -65,7 +66,6 @@
 
   ;; generic
   (push '(?/ . ("/" . "/")) evil-surround-pairs-alist))
-(add-hook 'prog-mode-hook #'evil-surround-prog-mode-hook-setup)
 ;; }}
 
 ;; ffip-diff-mode (read only) evil setup
@@ -158,8 +158,7 @@ If the character before and after CH is space or tab, CH is NOT slash"
   (let ((limit
 		 (if backward (point-min) (point-max))))
     (save-excursion
-	  (while (and ;; (not found)
-				  (= (point) limit))
+	  (while (= (point) limit)
 		(if (funcall fn (following-char))
 			(return (point))
 		  (if backward
@@ -246,8 +245,6 @@ If the character before and after CH is space or tab, CH is NOT slash"
 		 (call-interactively normal-fn))))
 
 ;; (popup-tip (documentation 'paredit-copy-as-kill))
-(evil-global-set-key 'motion (kbd "TAB") 'indent-for-tab-command)
-(evil-global-set-key 'motion (kbd "RET") 'newline-and-indent)
 ;; (evil-global-set-key 'normal (kbd "RET") #'indent-for-tab-command)
 
 (evil-declare-key '(normal visual) paredit-mode-map
@@ -257,13 +254,19 @@ If the character before and after CH is space or tab, CH is NOT slash"
   "R" (lambda () (interactive)
         (delim-or-normal #'paredit-raise-sexp #'evil-replace-state))
   "(" #'paredit-wrap-round
-  "[" (handle-error #'backward-sexp #'backward-paragraph)
-  "]" (handle-error #'forward-sexp #'forward-paragraph)
+  "[" (handle-error 'backward-sexp 'backward-paragraph)
+  "]" (handle-error 'forward-sexp 'forward-paragraph)
   "\"" #'paredit-meta-doublequote
+  ;; (kbd "C-<") #'paredit-forward-barf-sexp
+  ;; (kbd "C->") #'paredit-forward-slurp-sexp
   "<" #'paredit-forward-barf-sexp
   ">" #'paredit-forward-slurp-sexp
   "+" #'paredit-join-sexps
   "-" #'paredit-split-sexp)
+
+(evil-declare-key '(insert) paredit-mode-map
+  (kbd "C-<") #'paredit-forward-barf-sexp
+  (kbd "C->") #'paredit-forward-slurp-sexp)
 
 ;; As a general rule, mode specific evil leader keys started
 ;; with upper cased character or 'g' or special character except "=" and "-"
@@ -290,22 +293,41 @@ If the character before and after CH is space or tab, CH is NOT slash"
 (evil-declare-key 'normal 'global
   (kbd "C-e") 'evil-scroll-up
   ;; "RET" 'ivy-switch-buffer-by-pinyin ; RET key is preserved for occur buffer
-  "Y"   'evil-yank-line ;; "y$"
-  "U"   'join-line
-  "go"  'avy-goto-char-timer)
+  "Y" 'evil-yank-line ;; "y$"
+  "U" 'join-line
+  "gh" 'what-cursor-position
+  "ga" 'avy-goto-line-above
+  "gb" 'avy-goto-line-below
+  "go" 'avy-goto-char-timer)
 
-(define-key evil-visual-state-map (kbd "C-]") #'counsel-etags-find-tag-at-point)
-(define-key evil-insert-state-map (kbd "C-x C-n") #'evil-complete-next-line)
-(define-key evil-insert-state-map (kbd "C-x C-p") #'evil-complete-previous-line)
-(define-key evil-insert-state-map (kbd "C-]") #'aya-expand)
+(evil-define-key '(normal motion) 'global
+  "gc" 'comment-operator                ; same as doom-emacs
+  "gk" 'endless/capitalize              ; same as doom-emacs
+  "gl" 'endless/downcase
+  "gu" 'endless/upcase)
+
+(evil-declare-key '(normal insert motion) 'global
+  (kbd "TAB") 'indent-for-tab-command
+  (kbd "RET") 'newline-and-indent
+  (kbd "C-;") 'company-kill-ring) ;; replaces fly spell-auto-correct-previous-word
+
+(evil-define-key 'insert 'global
+  (kbd "TAB") 'tab-out-delimiter
+  (kbd "C-x C-n") #'evil-complete-next-line
+  (kbd "C-x C-p") #'evil-complete-previous-line
+  (kbd "C-]") #'aya-expand
+  (kbd "C-e") #'move-end-of-line
+  (kbd "C-k") #'kill-sexp)
+
+(with-eval-after-load 'expand-region
+  ;; press "v" to expand region
+  ;; then press "c" to contract, "x" to expand
+  (setq expand-region-contract-fast-key "c"))
 
 ;; I learn this trick from ReneFroger, need latest expand-region
 ;; @see https://github.com/redguardtoo/evil-matchit/issues/38
 (define-key evil-visual-state-map (kbd "v") #'er/expand-region)
-(define-key evil-insert-state-map (kbd "C-e") #'move-end-of-line)
-(define-key evil-insert-state-map (kbd "C-k") #'kill-sexp)
-(define-key evil-insert-state-map (kbd "M-j") #'yas-expand)
-(define-key evil-emacs-state-map (kbd "M-j") #'yas-expand)
+(define-key evil-visual-state-map (kbd "C-]") #'counsel-etags-find-tag-at-point)
 ;; (global-set-key (kbd "C-r") #'undo-tree-redo)
 
 (defun inc0n/search-defun-from-pos (search pos)
@@ -363,6 +385,7 @@ If the character before and after CH is space or tab, CH is NOT slash"
 ;; }}
 
 ;; (general-evil-setup t) ;; this is for vim like helper macro
+;; }}
 
 ;; {{
 (evil-define-text-object inc0n/evil-a-statement (count &optional beg end type)
@@ -427,22 +450,21 @@ If INCLUSIVE is t, the text object is inclusive."
     ;; simple string search/replace in function scope
     (evilmr-replace-in-defun)))
 
-(defun inc0n/evil-transient-jump (forward)
-  "Transient interface for `evil-jump'."
-  (let ((jump-fn (if forward
-					 #'evil-jump-forward
-				   #'evil-jump-backward)))
-	(lambda ()
-	  (interactive)
-	  (let ((echo-keystrokes nil))
-		(funcall jump-fn)
-		(message "evil-jump: [f]orward [b]ackward [q]uit")
-		(set-transient-map
-		 (let ((map (make-sparse-keymap)))
-		   (define-key map [?f] #'evil-jump-forward)
-		   (define-key map [?b] #'evil-jump-backward)
-		   map)
-		 t)))))
+(defun inc0n/evil-transient-jump (&optional backward)
+  "Transient interface for `evil-jump'.
+Argument BACKWARD non-nil will jump backwards initially, otherwise jump forwards."
+  (interactive)
+  (let ((echo-keystrokes nil))
+	(if backward
+	    (evil-jump-backward)
+      (evil-jump-forward))
+	(message "evil-jump: [f]orward [b]ackward [q]uit")
+	(set-transient-map
+	 (let ((map (make-sparse-keymap)))
+	   (define-key map [?f] #'evil-jump-forward)
+	   (define-key map [?b] #'evil-jump-backward)
+	   map)
+	 t)))
 
 ;; {{ Use `SPC` as leader key
 ;; all keywords arguments are still supported
@@ -509,12 +531,12 @@ If INCLUSIVE is t, the text object is inclusive."
   "ef" 'end-of-defun
   ;; "em" 'inc0n/erase-visible-buffer
 
-  "fn" 'cp-filename-of-current-buffer
+  "cn" 'cp-filename-of-current-buffer
   "fp" 'cp-fullpath-of-current-buffer
   ;; find file in project
   "fp" 'find-file-in-project-at-point
   "fc" 'find-file-with-similar-name     ; ffip v5.3.1
-  "fi" 'selectrum-ffip
+  "fi" 'selectsel-ffip
   ;; "fi" 'find-file-in-project
   ;; "kk" 'find-file-in-project-by-selected
   "fd" 'find-directory-in-project-by-selected
@@ -523,7 +545,8 @@ If INCLUSIVE is t, the text object is inclusive."
   "fa" 'flyspell-auto-correct-word
   "fb" 'flyspell-buffer
   "fc" 'flyspell-correct-word-before-point
-  "fe" 'flyspell-goto-next-error
+  ;; "be" 'flyspell-goto-previous-error
+  "fs" 'inc0n/transient-flyspell
   ;; "ft" 'counsel-etags-find-tag-at-point
 
   "gg" 'inc0n/counsel-git-grep ; quickest grep should be easy to press
@@ -537,6 +560,7 @@ If INCLUSIVE is t, the text object is inclusive."
 
   "hd" 'describe-function
   "hf" 'find-function
+  "hc" 'describe-key-briefly
   "hk" 'describe-key
   "hv" 'describe-variable
 
@@ -544,8 +568,8 @@ If INCLUSIVE is t, the text object is inclusive."
   "ii" 'inc0n/imenu-or-list-tag-in-current-file
   "ir" 'selectrum-repeat
 
-  "jb" (inc0n/evil-transient-jump nil)
-  "jf" (inc0n/evil-transient-jump t)
+  "jb" #'inc0n/evil-transient-jump
+  "jf" (lambda () (interactive) (inc0n/evil-transient-jump nil))
   "jp" 'inc0n/print-json-path
   ;;
   ;; "jj" 'scroll-other-window
@@ -554,6 +578,7 @@ If INCLUSIVE is t, the text object is inclusive."
 
   "ls" 'highlight-symbol
   "ln" 'highlight-symbol-next
+  "lp" 'highlight-symbol-prev
   "lq" 'highlight-symbol-query-replace
   ;; "ln" 'highlight-symbol-nav-mode ; use M-n/M-p to navigation between symbols
 
@@ -573,8 +598,8 @@ If INCLUSIVE is t, the text object is inclusive."
 
   "nh" 'inc0n/goto-next-hunk
 
-  "ne" 'inc0n/transient-flycheck-error
-  "pe" (lambda () (interactive) (inc0n/transient-flycheck-error nil))
+  "ne" 'inc0n/transient-flycheck
+  "pe" 'inc0n/transient-flycheck
 
   "pd" 'pwd
   "ph" 'inc0n/goto-previous-hunk
@@ -582,13 +607,12 @@ If INCLUSIVE is t, the text object is inclusive."
 
   "rb" 'evilmr-replace-in-buffer
   "re" 'counsel-etags-recent-tag
-  "rn" 'inc0n/rename-thing-at-point
+  "rn" 'evilmr-replace-in-defun
   "rjs" 'run-js
 
   "sr" 'scratch
   ;; "ss" 'wg-create-workgroup ; save windows layout
   ;; "sc" 'shell-command
-  "sh" 'inc0n/select-from-search-text-history
   "sc" 'selectrum-imenu-comments
   "sf" 'selectsel-recentf
   ;; "sm" 'selectrum-evil-marks
@@ -633,7 +657,7 @@ If INCLUSIVE is t, the text object is inclusive."
   "x2" (lambda () (interactive) (split-window-vertically) (other-window 1))
   "x3" (lambda () (interactive) (split-window-horizontally) (other-window 1))
   ;; }}
-  "uu" 'inc0n/transient-winner-undo
+  "uu" 'inc0n/transient-winner
 
   "wf" 'popup-which-function
   "wo" 'ace-window
@@ -674,10 +698,6 @@ Argument N the number of lines to operate on."
 	 (point)
 	 (progn (forward-line (or n 1)) (point)))))
 
-(define-key evil-motion-state-map "gc" 'comment-operator) ; same as doom-emacs
-(define-key evil-motion-state-map "gk" 'endless/capitalize) ; same as doom-emacs
-(define-key evil-motion-state-map "gl" 'endless/downcase)
-(define-key evil-normal-state-map "gu" 'endless/upcase)
 
 ;; {{ Use `;` as leader key, for searching something
 (general-create-definer inc0n/semicolon-leader-def
@@ -692,46 +712,22 @@ Argument N the number of lines to operate on."
   ;;    (set-face-attribute 'avy-lead-face-0 nil :foreground "black")
   ;;    (set-face-attribute 'avy-lead-face-0 nil :background "#f86bf3"))
   ;; ";" 'ace-pinyin-jump-char-2
+  ";" 'avy-goto-char-timer
   "w" 'avy-goto-word-or-subword-1
   "a" 'avy-goto-char-timer
   "db" 'sdcv-search-input               ; details
   "dt" 'sdcv-search-input+              ; summary
   "dd" 'inc0n/lookup-dict-org
   "mm" 'lookup-doc-in-man
+  "ge" 'inc0n/eww-search
+  "gs" 'w3m-search
   "gg" 'w3m-google-search
   "gd" 'w3m-search-financial-dictionary
-  "gh" 'w3mext-hacker-search ; code search in all engines with firefox
   "gq" 'w3m-stackoverflow-search)
 ;; }}
 
-;; {{ remember what we searched
-(defun inc0n/select-from-search-text-history ()
-  "My select of history of text searching from swiper."
-  (interactive)
-  (let ((item
-		 (selectrum-read "Search text history:" selectrum-swiper-history)))
-	(evil-search item t t)
-	(util/set-clip item)
-	(message "%s => clipboard & yank ring" item)))
-;; }}
+(add-to-list 'evil-emacs-state-modes 'xref--xref-buffer-mode)
 
-;; {{ change mode-line color by evil state
-(defvar inc0n/default-color (cons (face-background 'mode-line)
-                                  (face-foreground 'mode-line)))
-(defun inc0n/update-modeline-face ()
-  "Change mode line color to notify user evil current state."
-  (let ((color (cond ((minibufferp) inc0n/default-color)
-                     ((evil-insert-state-p) '("#d30000" . "#eeeeee"))
-                     ((evil-emacs-state-p)  '("#444488" . "#eeeeee"))
-                     ((buffer-modified-p)   '("#226fa0" . "#eeeeee"))
-                     (t inc0n/default-color))))
-    (set-face-attribute 'mode-line nil
-                        :box `(:line-width 2 :color ,(car color))
-                        ;; :height 120
-                        :foreground (cdr color)
-                        :background (car color))))
-(add-hook 'post-command-hook 'inc0n/update-modeline-face)
-;; }}
 
 ;; {{ `evil-matchit'
 (require-package 'evil-matchit)
@@ -782,9 +778,6 @@ Argument N the number of lines to operate on."
   ;; evil re-assign "M-." to `evil-repeat-pop-next' which I don't use actually.
   ;; Restore "M-." to original binding command
   (define-key evil-normal-state-map (kbd "M-.") 'xref-find-definitions)
-  ;; press "v" to expand region
-  ;; then press "c" to contract, "x" to expand
-  (setq expand-region-contract-fast-key "c")
   ;; @see https://bitbucket.org/lyro/evil/issue/360/possible-evil-search-symbol-forward
   ;; evil 1.0.8 search word instead of symbol
   (setq evil-symbol-word-search t)
@@ -803,7 +796,7 @@ Argument N the number of lines to operate on."
     ;; force update evil keymaps after git-timemachine-mode loaded
     (add-hook 'git-timemachine-mode-hook #'evil-normalize-keymaps))
 
-  ;; Move back the cursor one position when exiting insert mode
+  ;; Move the cursor one character backward when exiting insert mode
   (setq evil-move-cursor-back t)
 
   ;; @see https://bitbucket.org/lyro/evil/issue/342/evil-default-cursor-setting-should-default

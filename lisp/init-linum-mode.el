@@ -1,6 +1,9 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
+;;; Code:
+
 ;; http://stackoverflow.com/questions/3875213/turning-on-linum-mode-when-in-python-c-mode
+
 (defvar inc0n/linum-inhibit-modes
   '(eshell-mode
     shell-mode
@@ -9,7 +12,6 @@
     ffip-diff-mode
     dictionary-mode
     erc-mode
-    dired-mode
     help-mode
     text-mode
     fundamental-mode
@@ -21,7 +23,6 @@
     ivy-occur-mode ; better performance
     twittering-mode
     compilation-mode
-    weibo-timeline-mode
     woman-mode
     Info-mode
     calc-mode
@@ -33,24 +34,29 @@
     log-edit-mode
     term-mode
     w3m-mode
+    eww-mode
 	nov-mode
+    doc-view-mode
     speedbar-mode
     gnus-summary-mode
     gnus-article-mode
     calendar-mode)
   "Major modes without line number.")
 
-(setq-default display-line-numbers 'relative
-			  display-line-numbers-type 'relative)
+(setq-default display-line-numbers t
+			  display-line-numbers-type t)
 
 (defun display-line-numbers-mode-hook-setup ()
+  "This setup will disable 'display-line-numbers-mode' for temp buffer, or if `major-mode' in `inc0n/linum-inhibit-modes'."
   (when (or (memq major-mode inc0n/linum-inhibit-modes)
 			;; don't show line number for certain file extensions
+            ;; (buffer-file-temp-p)
+            (minibufferp)
 			(should-use-minimum-resource))
-    (setq-local display-line-numbers t
+    (setq-local display-line-numbers nil
 				display-line-numbers-type t)))
 (add-hook 'display-line-numbers-mode-hook #'display-line-numbers-mode-hook-setup)
 (add-hook 'after-init-hook 'global-display-line-numbers-mode)
 
 (provide 'init-linum-mode)
-;; init-linum-mode.el ends here
+;;; init-linum-mode.el ends here

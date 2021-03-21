@@ -60,3 +60,4 @@
 (add-hook 'LaTeX-mode-hook 'electric-pair-mode)
 
 (provide 'init-latex)
+;;; init-latex.el ends here

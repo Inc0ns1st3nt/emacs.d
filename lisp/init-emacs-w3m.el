@@ -1,11 +1,13 @@
-;; -*- coding: utf-8; lexical-binding: t; -*-
+;;; -*- coding: utf-8; lexical-binding: t; -*-
+;;; Commentary:
+;;; Code:
 
 (require-package 'w3m)
 
 ;; (defvar w3m-display-callback nil
 ;;   "a function with no arguements to be called in `w3m-display-hook-setup'")
 (defvar w3m-global-keyword nil
-  "`w3m-display-hook' must search current buffer with this keyword twice if not nil")
+  "`w3m-display-hook' must search current buffer with this keyword twice if not nil.")
 
 (defun w3m-guess-keyword (&optional encode-space-with-plus)
   (util/ensure 'w3m)
@@ -40,14 +42,6 @@
 		  (executable-find "google-chrome")))
 ;; (setq browse-url-browser-function #'browse-url-generic)
 (setq browse-url-browser-function 'w3m)
-
-;; use external browser to search programming stuff
-(defun w3mext-hacker-search ()
-  "Search on all programming related sites in external browser"
-  (interactive)
-  (let ((keyword (w3m-guess-keyword)))
-    (w3m-search "google" keyword)
-    (w3m-search "stackoverflow" keyword)))
 ;; }}
 
 (defun w3mext-open-link-or-image-or-url ()
@@ -84,10 +78,6 @@
 		   ;; cache 2M data and don't block UI
 		   (format "curl -L %s | feh -F - &" url)
 		 (format "%s -cache 2000 %s &" (inc0n/guess-mplayer-path) url))))))
-
-(defun w3m-copy-url ()
-  (interactive)
-  (kill-new w3m-current-url))
 
 (defun w3mext-subject-to-target-filename ()
   (let* ((str (util/buffer-str))
@@ -137,7 +127,8 @@
 (defun w3m-mode-hook-setup ()
   (setq-local truncate-lines nil)
   (local-set-key (kbd "RET") 'w3m-view-this-url)
-  (w3m-lnum-mode 1))
+  (w3m-lnum-mode 1)
+  (setq-local display-line-numbers nil))
 
 (add-hook 'w3m-mode-hook #'w3m-mode-hook-setup)
 
@@ -146,6 +137,7 @@
   (let ((url (read-from-minibuffer "URL: " w3m-current-url)))
     (w3m-goto-url url)))
 
+(setq w3m-search-engine-alist nil)
 (with-eval-after-load 'w3m
   (general-define-key
    :keymaps 'w3m-mode-map
@@ -180,7 +172,7 @@
         ;; w3m-use-tab nil
         ;; w3m-use-tab-line nil
         ;; w3m-confirm-leaving-secure-page nil
-        w3m-search-default-engine "duckduck"
+        w3m-search-default-engine "duckduckgo"
         w3m-key-binding 'info
         w3m-favicon-cache-expire-wait 86400 ;; 1 day cache expiration
         w3m-use-favicon t)
@@ -189,7 +181,7 @@
   (add-to-list-multi
    'w3m-search-engine-alist
    '(("stackoverflow" "https://www.stackoverflow.com/search?q=%s" utf-8)
-     ("duckduck"      "https://www.duckduckgo.com/?q=%s")
+     ("duckduckgo"    "https://www.duckduckgo.com/?q=%s")
      ("dictionary"    "https://dictionary.reference.com/search?q=%s" utf-8)
      ("financial"     "https://financial-dictionary.thefreedictionary.com/%s" utf-8))))
 

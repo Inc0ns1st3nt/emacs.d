@@ -1,6 +1,8 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
+;;; Code:
 
 (require-package 'pyim)
+(require-package 'cnfonts)
 
 ;; {{ make IME compatible with evil-mode
 (defun evil-toggle-input-method ()
@@ -27,12 +29,6 @@
 		   (evil-escape-mode 1)
 		   ;; (evil-normal-state)
 		   (message "IME off!")))))
-
-(defun inc0n/evil-insert-state-hack (orig-func &rest args)
-  "Notify user IME status."
-  (apply orig-func args)
-  (when current-input-method (message "IME on!")))
-(advice-add 'evil-insert-state :around #'inc0n/evil-insert-state-hack)
 
 (global-set-key (kbd "C-\\") 'evil-toggle-input-method)
 ;; }}

@@ -1,5 +1,7 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
+;;; Code:
+
 (require-package 'racket-mode)
 (require-package 'rainbow-delimiters)
 (require-package 'paredit)
@@ -70,3 +72,4 @@
 ;; gxtags [-a] [-o TAGS] source-file-or-directory ...
 
 (provide 'init-lisp)
+;;; init-lisp ends here

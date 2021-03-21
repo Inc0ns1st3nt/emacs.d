@@ -1,9 +1,10 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
+;;; Code:
 ;; @see http://endlessparentheses.com/super-smart-capitalization.html
 (defun endless/convert-punctuation (rg rp)
   "Look for regexp RG around point, and replace with RP.
-Only applies to text-mode."
+Only applies to `text-mode'."
   (let* ((f "\\(%s\\)\\(%s\\)")
          (space "?:[[:blank:]\n\r]*"))
     ;; We obviously don't want to do this in prog-mode.
@@ -53,3 +54,4 @@ Also converts full stops to commas."
 (global-set-key (kbd "M-u") 'endless/upcase)
 
 (provide 'init-writting)
+;;; init-writting ends here

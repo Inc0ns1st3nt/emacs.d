@@ -1,11 +1,12 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
+;;; Code:
 
 ;; avoid spell-checking doublon (double word) in certain major modes
 (defvar inc0n/flyspell-check-doublon t
   "Check doublon (double word) when calling `flyspell-highlight-incorrect-region'.")
  (make-variable-buffer-local 'inc0n/flyspell-check-doublon)
 
-(defvar inc0n/default-spell-check-language "en_US"
+(defvar inc0n/default-spell-check-language "en_UK"
   "Language used by aspell and hunspell CLI.")
 
 (with-eval-after-load 'flyspell
@@ -80,20 +81,19 @@ Please note RUN-TOGETHER makes aspell less capable.  So it should be used in `pr
 	  (append args '("--run-together" "--run-together-limit=16")))))
 
 (setq ispell-program-name "aspell"
-	  ;; ispell-extra-args (inc0n/detect-ispell-args)
+	  ispell-extra-args (inc0n/detect-ispell-args)
 	  ispell-silently-savep t)
 
 (defun text-mode-hook-setup ()
-  ;; Turn off RUN-TOGETHER option when spell check text-mode
-  (setq-local ispell-extra-args (inc0n/detect-ispell-args))
+  "Turn off RUN-TOGETHER option when spell check `text-mode'."
   (util/ensure 'wucuo)
   (wucuo-start))
 
 ;; un-comment to enable wucuo
 ;; (add-hook 'text-mode-hook 'text-mode-hook-setup)
 
-(add-hook 'prog-mode-hook #'flyspell-prog-mode)
-(add-hook 'text-mode-hook #'flyspell-prog-mode)
+(add-hook 'prog-mode-hook 'flyspell-prog-mode)
+(add-hook 'text-mode-hook 'flyspell-prog-mode)
 
 ;; You can also use "M-x ispell-word" or hotkey "M-$". It pop up a multiple choice
 ;; @see http://frequal.com/Perspectives/EmacsTip03-FlyspellAutoCorrectWord.html
@@ -128,3 +128,4 @@ Please note RUN-TOGETHER makes aspell less capable.  So it should be used in `pr
   (setq wucuo-update-interval 2))
 
 (provide 'init-spelling)
+;;; init-spelling ends here

@@ -1,5 +1,7 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
+;;; Code:
+
 (require-package 'js-doc)
 (require-package 'js2-mode)
 (require-package 'rjsx-mode)
@@ -12,6 +14,7 @@
                "\\.jshintrc$")
 
 (add-auto-mode 'js2-mode "\\.js\\(\\.erb\\)?\\'")
+
 ;; JSX
 (add-auto-mode 'rjsx-mode
                "\\.tsx\\'"
@@ -41,8 +44,20 @@
   (save-excursion
     (imenu--generic-function javascript-common-imenu-regex-list)))
 
+(defun common-js-node-repl-setup ()
+  "Setup function for node-repl for MODE-MAP."
+  (general-define-key
+   :keymaps '(js-mode-map js2-mode-map)
+   "C-x C-e" 'nodejs-repl-send-last-expression
+   "C-c C-j" 'nodejs-repl-send-line
+   "C-c C-r" 'nodejs-repl-send-region
+   "C-c C-c" 'nodejs-repl-send-buffer
+   "C-c C-l" 'nodejs-repl-load-file
+   "C-c C-z" 'nodejs-repl-switch-to-repl))
+
 (defun inc0n/common-js-setup ()
   (local-require 'js-comint)
+  ;; (common-js-node-repl-setup)
   (subword-mode))
 
 (defun mo-js-mode-hook ()
@@ -66,121 +81,65 @@
 	(list (line-beginning-position) (line-end-position))))
 
 (defun js2-imenu--get-pos (item)
-  (cond
-   ((integerp item) item)
-   ((markerp item) (marker-position item))))
+  (cond ((integerp item) item)
+        ((markerp item) (marker-position item))))
 
 (defun js2-imenu--get-extra-item-pos (item)
-  (cond
-   ((integerp item) item)
-   ((markerp item) (marker-position item))
-
-   ;; plist
-   ((and (listp item) (listp (cdr item)))
-    (js2-imenu--get-extra-item-pos (cadr item)))
-   ;; alist
-   ((and (listp item) (not (listp (cdr item))))
-    (js2-imenu--get-extra-item-pos (cdr item)))))
+  (cond ((integerp item) item)
+        ((markerp item) (marker-position item))
+        ;; plist
+        ((and (listp item) (listp (cdr item)))
+         (js2-imenu--get-extra-item-pos (cadr item)))
+        ;; alist
+        ((and (listp item) (not (listp (cdr item))))
+         (js2-imenu--get-extra-item-pos (cdr item)))))
 
 (defun js2-imenu--extract-line-info (item)
-  "Recursively parse the original imenu items created by js2-mode.
+  "Recursively parse the original imenu ITEMs created by `js2-mode'.
 The line numbers of items will be extracted."
   (when item
-    (let ((val (js2-imenu--get-pos item)))
+    (let ((pos (js2-imenu--get-pos item)))
 	  (cond
 	   ;; Marker or line number
-	   (val
-		(push (js2-imenu--get-line-start-end val)
-			  js2-imenu-original-item-lines))
+	   (pos (push (js2-imenu--get-line-start-end pos)
+			      js2-imenu-original-item-lines))
 
 	   ;; The item is Alist, example: (hello . 163)
-	   ((and (listp item) (not (listp (cdr item))))
-		(setq val (js2-imenu--get-pos (cdr item)))
-		(if val (push (js2-imenu--get-line-start-end val)
-					  js2-imenu-original-item-lines)))
+	   ((and (listp item)
+             (not (listp (cdr item))))
+		(setq pos (js2-imenu--get-pos (cdr item)))
+		(when pos
+          (push (js2-imenu--get-line-start-end pos)
+				js2-imenu-original-item-lines)))
 
 	   ;; The item is a Plist
 	   ((and (listp item) (listp (cdr item)))
 		(js2-imenu--extract-line-info (cadr item))
 		(js2-imenu--extract-line-info (cdr item)))
-
-	   ;;Error handling
-	   (t (message "Impossible to here! item=%s" item))))))
+	   ;; Error handling
+	   (t (message "unexpected line info! %s" item))))))
 
 (defun js2-imenu--item-exist (pos lines)
-  "Try to detect does POS belong to some LINE"
-  (cl-loop for line in lines
-		   when (and (< pos (cadr line)) (>= pos (car line)))
+  "Try to detect does POS belong to some LINES."
+  (cl-loop for (beg end) in lines
+		   when (and (< pos end) (>= pos beg))
 		   return t))
 
-(defun js2-imenu--is-item-already-created (item)
-  (unless (js2-imenu--item-exist
-           (js2-imenu--get-extra-item-pos item)
-           js2-imenu-original-item-lines)
-    item))
-
 (defun js2-imenu--check-single-item (r)
-  (and (if (and (listp (cdr r)))
-		   (when-let
-			   ((new-types
-				 (delq nil (mapcar 'js2-imenu--is-item-already-created (cdr r)))))
-			 (setcdr r (delq nil new-types)))
+  (and (if (listp (cdr r))
+		   (when-let ((new-types
+                       (seq-remove (lambda (item)
+                                     (js2-imenu--item-exist
+                                      (js2-imenu--get-extra-item-pos item)
+                                      js2-imenu-original-item-lines))
+                                   (cdr r))))
+			 (setf (cdr r) new-types))
 		 (js2-imenu--item-exist (js2-imenu--get-extra-item-pos r)
 								js2-imenu-original-item-lines))
 	   r))
 
-(defun inc0n/validate-json-or-js-expression (&optional not-json-p)
-  "Validate buffer or select region as JSON.
-If NOT-JSON-P is not nil, validate as Javascript expression instead of JSON."
-  (interactive "P")
-  (let ((json-exp (if (region-active-p) (util/selected-str)
-                    (util/buffer-str)))
-        (jsbuf-offet (if not-json-p 0 (length "var a=")))
-        errs
-        first-err
-        (first-err-pos (if (region-active-p) (region-beginning) 0)))
-    (unless not-json-p
-      (setq json-exp (format "var a=%s;"  json-exp)))
-    (with-temp-buffer
-      (insert json-exp)
-      (util/ensure 'js2-mode)
-      (js2-parse)
-      (setq errs (js2-errors))
-      (if (not errs)
-          (message "NO error found. Good job!")
-        ;; yes, first error in buffer is the last element in errs
-        (setq first-err (car (last errs)))
-        (setq first-err-pos (+ first-err-pos (- (cadr first-err) jsbuf-offet)))
-        (message "%d error(s), first at buffer position %d: %s"
-                 (length errs)
-                 first-err-pos
-                 (js2-get-msg (caar first-err)))))
-    (if first-err (goto-char first-err-pos))))
-
-(defun inc0n/print-json-path (&optional hardcoded-array-index)
-  "Print the path to the JSON value under point, and save it in the kill ring.
-If HARDCODED-ARRAY-INDEX provided, array index in JSON path is replaced with it."
-  (interactive "P")
-  (if (memq major-mode '(js2-mode))
-      (js2-print-json-path hardcoded-array-index)
-	(let ((cur-pos (point))
-		  (str (util/buffer-str)))
-	  (when (string= "json" (file-name-extension buffer-file-name))
-        (setq str (format "var a=%s;" str))
-        (setq cur-pos (+ cur-pos (length "var a="))))
-	  (util/ensure 'js2-mode)
-	  (with-temp-buffer
-        (insert str)
-        (js2-init-scanner)
-        (js2-do-parse)
-        (goto-char cur-pos)
-        (js2-print-json-path)))))
-
-(defun js2-imenu--remove-duplicate-items (extra-rlt)
-  (delq nil (mapcar 'js2-imenu--check-single-item extra-rlt)))
-
 (defun inc0n/js2-imenu--merge-imenu-items (rlt extra-rlt)
-  "RLT contains imenu items created from AST.
+  "RLT contain imenu items created from AST.
 EXTRA-RLT contains items parsed with simple regex.
 Merge RLT and EXTRA-RLT, items in RLT has *higher* priority."
   ;; Clear the lines.
@@ -194,32 +153,28 @@ Merge RLT and EXTRA-RLT, items in RLT has *higher* priority."
   ;; ((function ("hello" . #<marker 63>) ("bye" . #<marker 128>))
   ;;  (controller ("MyController" . #<marker 128))
   ;;  (hellworld . #<marker 161>))
-  (append rlt (js2-imenu--remove-duplicate-items extra-rlt)))
+  (append rlt
+          (delq nil (mapcar 'js2-imenu--check-single-item extra-rlt))))
 
 (with-eval-after-load 'js2-mode
-  ;; {{ I hate the hotkeys to hide things
-  ;; (define-key js2-mode-map (kbd "C-c C-e") nil)
-  ;; (define-key js2-mode-map (kbd "C-c C-s") nil)
-  ;; (define-key js2-mode-map (kbd "C-c C-f") nil)
-  ;; (define-key js2-mode-map (kbd "C-c C-t") nil)
-  ;; (define-key js2-mode-map (kbd "C-c C-o") nil)
-  ;; (define-key js2-mode-map (kbd "C-c C-w") nil)
+  ;; {{ disable hot keys for elements hiding/showing
+  (define-key js2-mode-map (kbd "C-c C-e") nil)
+  (define-key js2-mode-map (kbd "C-c C-s") nil)
+  (define-key js2-mode-map (kbd "C-c C-f") nil)
+  (define-key js2-mode-map (kbd "C-c C-t") nil)
+  (define-key js2-mode-map (kbd "C-c C-o") nil)
+  (define-key js2-mode-map (kbd "C-c C-w") nil)
   ;; }}
-  (setq-default js2-use-font-lock-faces t
-                js2-mode-must-byte-compile nil
+  (setq-default ;; js2-use-font-lock-faces t
+                ;; js2-mode-must-byte-compile nil
                 ;; {{ comment indention in modern frontend development
-                javascript-indent-level 2
                 js-indent-level 2
-                css-indent-offset 2
                 typescript-indent-level 2
                 ;; }}
                 js2-strict-trailing-comma-warning nil ; it's encouraged to use trailing comma in ES6
                 js2-idle-timer-delay 0.5 ; NOT too big for real time syntax check
-                js2-auto-indent-p nil
-                js2-indent-on-enter-key nil ; annoying instead useful
                 js2-skip-preprocessor-directives t
                 js2-strict-inconsistent-return-warning nil ; return <=> return null
-                js2-enter-indents-newline nil
                 js2-bounce-indent-p t)
   (setq-default js2-additional-externs
                 '("$"
@@ -233,7 +188,7 @@ Merge RLT and EXTRA-RLT, items in RLT has *higher* priority."
                   "React"
                   "URLSearchParams"
                   "__dirname" ; Node
-                  "_content" ; Keysnail
+                  ;; "_content" ; Keysnail
                   "after"
                   "afterEach"
                   "angular"
@@ -246,69 +201,71 @@ Merge RLT and EXTRA-RLT, items in RLT has *higher* priority."
                   "by"
                   "clearInterval"
                   "clearTimeout"
-                  "command" ; Keysnail
-                  "content" ; Keysnail
+                  ;; "command" ; Keysnail
+                  ;; "content" ; Keysnail
                   "decodeURI"
                   "define"
                   "describe"
-                  "display" ; Keysnail
+                  ;; "display" ; Keysnail
                   "documentRef"
                   "element"
                   "encodeURI"
                   "expect"
-                  "ext" ; Keysnail
+                  ;; "ext" ; Keysnail
                   "fetch"
-                  "gBrowser" ; Keysnail
+                  ;; "gBrowser" ; Keysnail
                   "global"
-                  "goDoCommand" ; Keysnail
-                  "hook" ; Keysnail
+                  ;; "goDoCommand" ; Keysnail
+                  ;; "hook" ; Keysnail
                   "inject"
                   "isDev"
                   "it"
                   "jQuery"
                   "jasmine"
-                  "key" ; Keysnail
+                  ;; "key" ; Keysnail
                   "ko"
                   "log"
                   "mockStore"
                   "module"
                   "mountWithTheme"
-                  "plugins" ; Keysnail
+                  ;; "plugins" ; Keysnail
                   "process"
                   "require"
                   "setInterval"
                   "setTimeout"
-                  "shell" ; Keysnail
-                  "tileTabs" ; Firefox addon
-                  "util" ; Keysnail
+                  ;; "shell" ; Keysnail
+                  ;; "tileTabs" ; Firefox addon
+                  ;; "util" ; Keysnail
                   "utag"))
   (defun inc0n/js2-mode-create-imenu-index-hack (orig-func &rest args)
     (let ((extra-items
 		   (save-excursion
              (imenu--generic-function javascript-common-imenu-regex-list))))
-      (inc0n/js2-imenu--merge-imenu-items (apply orig-func args) extra-items)))
-  (advice-add 'js2-mode-create-imenu-index :around #'inc0n/js2-mode-create-imenu-index-hack))
+      (inc0n/js2-imenu--merge-imenu-items
+       (apply orig-func args)
+       extra-items)))
+  (advice-add 'js2-mode-create-imenu-index :around #'inc0n/js2-mode-create-imenu-index-hack)
+  (defun inc0n/js2-mode-setup()
+    (unless (buffer-file-temp-p)
+      (inc0n/common-js-setup)
+      ;; if use node.js we need nice output
+      (js2-imenu-extras-mode)
+      ;; (setq mode-name "JS2")
+      ;; counsel/ivy is more generic and powerful for refactoring
+      ;; js2-mode has its own syntax linter
+
+	  ;; call js-doc commands through `counsel-M-x'!
+
+      ;; @see https://github.com/mooz/js2-mode/issues/350
+      ;; (setq forward-sexp-function nil)
+      ))
+  (add-hook 'js2-mode-hook 'inc0n/js2-mode-setup))
 ;; }}
-
-(defun inc0n/js2-mode-setup()
-  (unless (buffer-file-temp-p)
-    (inc0n/common-js-setup)
-    ;; if use node.js we need nice output
-    (js2-imenu-extras-mode)
-    (setq mode-name "JS2")
-    ;; counsel/ivy is more generic and powerful for refactoring
-    ;; js2-mode has its own syntax linter
-
-	;; call js-doc commands through `counsel-M-x'!
-
-    ;; @see https://github.com/mooz/js2-mode/issues/350
-    (setq forward-sexp-function nil)))
-
-(add-hook 'js2-mode-hook 'inc0n/js2-mode-setup)
 
 ;; @see https://github.com/felipeochoa/rjsx-mode/issues/33
 (with-eval-after-load 'rjsx-mode
-  (define-key rjsx-mode-map "<" nil))
+  ;; (define-key rjsx-mode-map "<" nil)
+  )
 
 ;; {{ js-beautify
 (defun js-beautify (&optional indent-size)
@@ -344,8 +301,14 @@ INDENT-SIZE decide the indentation level.
 ;; Latest rjsx-mode does not have indentation issue
 ;; @see https://emacs.stackexchange.com/questions/33536/how-to-edit-jsx-react-files-in-emacs
 
-(defun typescript-mode-hook-setup ()
-  (setq imenu-create-index-function 'mo-js-imenu-make-index))
-(add-hook 'typescript-mode-hook 'typescript-mode-hook-setup)
+(with-eval-after-load 'typescript
+  (defun typescript-mode-hook-setup ()
+    (setq imenu-create-index-function 'mo-js-imenu-make-index))
+  (add-hook 'typescript-mode-hook 'typescript-mode-hook-setup))
 
+(with-eval-after-load 'nodejs-repl
+  (setq nodejs-repl-prompt "nodejs> "
+        nodejs-repl-command "node"
+        nodejs-repl-arguments '("--experimental-modules")))
 (provide 'init-javascript)
+;;; init-javascript.el ends here
