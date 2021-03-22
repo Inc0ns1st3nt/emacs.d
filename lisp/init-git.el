@@ -13,23 +13,21 @@
 (remove-hook 'find-file-hooks #'vc-find-file-hook)
 ;; }}
 
-;; ;; {{ Solution 3: setup vc-handled-backends per project
-;; (setq vc-handled-backends ())
-;; (defun inc0n/setup-develop-environment ()
+;; ;; {{ Solution 3: setup `vc-handled-backends' per project
+;; (setq vc-handled-backends nil)
+;; (defun my-setup-develop-environment ()
+;;   "Default setup for project under vcs."
 ;;   (interactive)
 ;;   (cond
-;;    ((string-match-p (file-truename inc0n/emacs-d) (file-name-directory (buffer-file-name))
-;;     (setq vc-handled-backends '(Git)))
-;;    (t (setq vc-handled-backends nil)))))
-;; (add-hook 'java-mode-hook 'inc0n/setup-develop-environment)
-;; (add-hook 'emacs-lisp-mode-hook 'inc0n/setup-develop-environment)
-;; (add-hook 'org-mode-hook 'inc0n/setup-develop-environment)
-;; (add-hook 'js2-mode-hook 'inc0n/setup-develop-environment)
-;; (add-hook 'js-mode-hook 'inc0n/setup-develop-environment)
-;; (add-hook 'javascript-mode-hook 'inc0n/setup-develop-environment)
-;; (add-hook 'web-mode-hook 'inc0n/setup-develop-environment)
-;; (add-hook 'c++-mode-hook 'inc0n/setup-develop-environment)
-;; (add-hook 'c-mode-hook 'inc0n/setup-develop-environment)
+;;     ((string-match-p (file-truename user-emacs-directory)
+;;                      (file-name-directory (buffer-file-name)))
+;;       (setq vc-handled-backends '(Git)))
+;;     (t
+;;       (setq vc-handled-backends nil))))
+;; (dolist (hook '(java-mode-hook emacs-lisp-mode-hook org-mode-hook
+;;                 js-mode-hook javascript-mode-hook web-mode-hook
+;;                 c++-mode-hook c-mode-hook))
+;;   (add-hook hook #'my-setup-develop-environment))
 ;; ;; }}
 
 ;; {{ git-gutter
@@ -178,10 +176,10 @@ Show the diff between current working code and git head."
   (if (memq major-mode '(diff-mode))
       (diff-hunk-next)
     (forward-line)
-    (if (re-search-forward "\\(^<<<<<<<\\|^=======\\|^>>>>>>>\\)" (point-max) t)
-        (goto-char (line-beginning-position))
-      (forward-line -1)
-      (git-gutter:next-hunk arg))))
+    ;; (if (re-search-forward "\\(^<<<<<<<\\|^=======\\|^>>>>>>>\\)" (point-max) t)
+    ;;     (goto-char (line-beginning-position))
+    ;;   (forward-line -1))
+    (git-gutter:next-hunk arg)))
 
 (defun inc0n/goto-previous-hunk (arg)
   "Goto previous hunk."
@@ -197,7 +195,7 @@ Show the diff between current working code and git head."
 
 ;; {{
 (defun inc0n/git-extract-based (target lines)
-  "Extract based version from TARGET."
+  "Extract based version from TARGET from LINES."
   (cl-loop with regexp-target = (regexp-quote target)
 		   for i from 0
 		   for line in lines
@@ -239,7 +237,7 @@ If USER-SELECT-BRANCH is not nil, rebase on the tag or branch selected by user."
 
 ;; {{ git-gutter use ivy
 (defun inc0n/reshape-git-gutter (gutter)
-  "Re-shape gutter for `ivy-read'."
+  "Re-shape GUTTER for `ivy-read'."
   (let ((linenum-start (aref gutter 3))
         (linenum-end (aref gutter 4))
         (target-line "")
@@ -349,3 +347,4 @@ If nothing is selected, use the word under cursor as function name to look up."
         vc-msg-git-extra))
 
 (provide 'init-git)
+;;; init-git ends here

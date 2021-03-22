@@ -303,7 +303,8 @@ If the character before and after CH is space or tab, CH is NOT slash"
 
 (evil-define-key '(normal motion) 'global
   "gc" 'comment-operator                ; same as doom-emacs
-  "gk" 'endless/capitalize              ; same as doom-emacs
+  "gy" 'comment-and-copy-line
+  "gk" 'endless/capitalize
   "gl" 'endless/downcase
   "gu" 'endless/upcase)
 

@@ -41,6 +41,7 @@
 (autoload 'find-library-name "find-func")
 (autoload 'run-js "js-comint" "")
 (autoload 'vc-msg-show "vc-msg" "")
+(autoload 'gtags-mode "gtags" "" t)
 
 (provide 'init-autoload)
 ;;; init-autoload.el ends here

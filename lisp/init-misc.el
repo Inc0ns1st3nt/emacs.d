@@ -1077,8 +1077,12 @@ Optional argument IGNORED is ignored."
 (defun project-try-npm (dir)
   "My project-try for JavaScript (Nodejs) projects.
 By locating package.json around DIR."
-  (and (memq major-mode '(js-mode js2-mode rjsx-mode))
-       (locate-dominating-file dir "package.json")))
+  (when-let ((root (and (memq major-mode '(js-mode js2-mode rjsx-mode))
+                        (locate-dominating-file dir "package.json"))))
+    (cons 'npm root)))
+
+(cl-defmethod project-roots ((project (head npm)))
+  (list (cdr project)))
 
 (with-eval-after-load 'project
   (add-to-list 'project-find-functions 'project-try-npm))
