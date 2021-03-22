@@ -11,8 +11,15 @@
 
 (defvar theme/night 'doom-moonlight) ;; atom-one-dark
 (defvar theme/day 'doom-homage-white) ;;doom-one-light
-
 ;; (defvar themes/day '(doom-homage-white doom-one-light))
+
+;; timers
+(defvar theme/day-time '(8 . 00))
+(defvar theme/night-time '(16 . 00))
+
+(defvar theme/day-timer nil)
+(defvar theme/night-timer nil)
+
 (defun inc0n/faces-setup ()
   "My faces setup."
   (set-face-attribute 'fixed-pitch-serif nil
@@ -31,7 +38,6 @@
   (inc0n/faces-setup))
 
 (defun load-day-theme ()
-  ;; selectrum is okay with this
   (load-theme-only theme/day))
 
 (defun load-night-theme ()
@@ -50,29 +56,37 @@
   ;; (enable-theme 'atom-one-dark)
   )
 
-(cl-labels ((time-abs (num)
-                      (if (< num 0)
-                          (+ num (* 24 60 60))
-                        num))
-            (string-time-diff
-             (h m)
-             (time-abs
-              (+ (* 60 60 ;; convert hour to seconds
-                    (- h (string-to-number (format-time-string "%H"))))
-                 (* 60 ;; convert minutes to seconds
-                    (- m (string-to-number (format-time-string "%M"))))))))
+(defun theme/update-day-night-theme-timers ()
+  "Setup the day night timer."
+  (interactive)
   (let ((one-day-secs (* 24 60 60))
-        (current-time (format-time-string "%H %M")))
-    (run-with-timer (string-time-diff 8 00)
-                    one-day-secs
-                    #'load-day-theme)
-    (run-with-timer (string-time-diff 16 00)
-                    one-day-secs
-                    #'load-night-theme)
-    (if (or (string> current-time "16 00")
-            (string< current-time "08 00"))
-        (load-night-theme)
-      (load-day-theme))))
+        (current-time (let ((decoded-time (decode-time)))
+                        (cons (caddr decoded-time) (cadr decoded-time)))))
+    (cl-labels ((time-abs
+                 (time)
+                 (if (< time 0)
+                     (+ time one-day-secs)
+                   time))
+                (time-diff
+                 (time1 time2)
+                 (+ (* 60 (- (car time1) (car time2)))
+                    (* 3600 (- (cdr time1) (cdr time2))))))
+      (when theme/day-timer (cancel-timer theme/day-timer))
+      (when theme/night-timer (cancel-timer theme/night-timer))
+      (setq theme/day-timer
+            (run-with-timer (time-abs (time-diff theme/day-time current-time))
+                            one-day-secs
+                            #'load-day-theme)
+            theme/night-timer
+            (run-with-timer (time-abs (time-diff theme/night-time current-time))
+                            one-day-secs
+                            #'load-night-theme))
+      (if (or (> (time-diff theme/night-time current-time) 0) ; past night
+              (< (time-diff theme/day-time current-time) 0)) ; before day
+          (load-night-theme)
+        (load-day-theme)))))
+
+(theme/update-day-night-theme-timers)
 
 (defun inc0n/toggle-day/night ()
   "Toggle between day and night themes."
