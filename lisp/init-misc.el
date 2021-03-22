@@ -302,13 +302,11 @@ With exception to the current line."
 (add-hook 'cc-mode-hook #'turn-on-auto-fill)
 
 ;; {{ time format 'built-in'
-;; If you want to customize time format, read document of `format-time-string'
-;; and customize `display-time-format'.
+;; @see `format-time-string' and `display-time-format' to customize time format
+;;
 ;; (setq display-time-format "%a %b %e")
-
-;; from RobinH, Time management
-(setq display-time-24hr-format t) ; the date in modeline is English too, magic!
-(setq display-time-day-and-date t)
+(setq display-time-24hr-format t ; the date in modeline is English too, magic!
+      display-time-day-and-date t)
 ;; (util/add-to-timed-init-hook 1 'display-time-mode) ;; show date in modeline
 ;; }}
 
@@ -932,11 +930,14 @@ version control automatically."
 
 ;; {{ which-key
 (require-package 'which-key)
-(setq which-key-allow-imprecise-window-fit t) ; performance
-(setq which-key-idle-delay 0.5)
-(setq which-key-separator ":"
-	  which-key-add-column-padding 1)
-(setq which-key-min-display-lines 2)
+(setq which-key-allow-imprecise-window-fit t ; performance
+      which-key-idle-delay 0.5
+      which-key-separator ":"
+	  which-key-add-column-padding 0
+      which-key-allow-evil-operators t
+      which-key-show-operator-state-maps t
+      which-key-max-description-length 25
+      which-key-min-display-lines 2)
 (add-hook 'after-init-hook 'which-key-mode)
 ;; }}
 
