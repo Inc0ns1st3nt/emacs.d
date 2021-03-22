@@ -286,39 +286,42 @@ If the character before and after CH is space or tab, CH is NOT slash"
 
 ;; I prefer Emacs way after pressing ":" in evil-mode
 (evil-declare-key nil evil-ex-completion-map
-  (kbd "C-a") 'move-beginning-of-line
-  (kbd "C-b") 'backward-char
-  (kbd "M-p") 'previous-complete-history-element
-  (kbd "M-n") 'next-complete-history-element)
+  (kbd "C-a") #'move-beginning-of-line
+  (kbd "C-b") #'backward-char
+  (kbd "M-p") #'previous-complete-history-element
+  (kbd "M-n") #'next-complete-history-element)
 
 (evil-declare-key 'normal 'global
   (kbd "C-e") 'evil-scroll-up
-  ;; "RET" 'ivy-switch-buffer-by-pinyin ; RET key is preserved for occur buffer
-  "Y" 'evil-yank-line ;; "y$"
-  "U" 'join-line
-  "gh" 'what-cursor-position
-  "ga" 'avy-goto-line-above
-  "gb" 'avy-goto-line-below
-  "go" 'avy-goto-char-timer)
+  "Y" #'evil-yank-line ;; "y$"
+  "U" #'join-line
+  "gh" #'what-cursor-position
+  ;;
+  "ga" #'avy-goto-line-above
+  "gb" #'avy-goto-line-below
+  "go" #'avy-goto-char-timer
+  ;;
+  "gc" #'comment-operator               ; same as doom-emacs
+  "gy" #'comment-and-copy-line
+  "gr" [?Y ?k ?p]                       ; copy-line
+  "gk" #'endless/capitalize
+  "gl" #'endless/downcase
+  "gu" #'endless/upcase)
 
-(evil-define-key '(normal motion) 'global
-  "gc" 'comment-operator                ; same as doom-emacs
-  "gy" 'comment-and-copy-line
-  "gk" 'endless/capitalize
-  "gl" 'endless/downcase
-  "gu" 'endless/upcase)
+(evil-declare-key 'visual 'global
+  "gr" [?y ?k ?p])
 
-(evil-declare-key '(normal insert motion) 'global
-  (kbd "TAB") 'indent-for-tab-command
-  (kbd "RET") 'newline-and-indent
-  (kbd "C-;") 'company-kill-ring) ;; replaces fly spell-auto-correct-previous-word
+(evil-declare-key '(normal motion) 'global
+  (kbd "TAB") #'indent-for-tab-command
+  (kbd "RET") #'newline-and-indent)
 
 (evil-define-key 'insert 'global
-  (kbd "TAB") 'tab-out-delimiter
+  (kbd "TAB") #'tab-out-delimiter
   (kbd "C-x C-n") #'evil-complete-next-line
   (kbd "C-x C-p") #'evil-complete-previous-line
   (kbd "C-]") #'aya-expand
   (kbd "C-e") #'move-end-of-line
+  (kbd "C-;") #'company-kill-ring  ;; replaces fly spell-auto-correct-previous-word
   (kbd "C-k") #'kill-sexp)
 
 (with-eval-after-load 'expand-region
