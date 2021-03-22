@@ -20,7 +20,7 @@ stay transient for all other suffix other than this suffix."
 
 ;; transient-define-prefix
 
-(defvar inc0n/transient-suffix 'transient-post-suffix-quit)
+(defvar inc0n/transient-suffix 'transient--do-stay)
 (defvar inc0n/transient-non-suffix 'transient--do-exit)
 
 (defmacro inc0n/define-transient-command (name arg-list &rest args)
@@ -28,17 +28,14 @@ stay transient for all other suffix other than this suffix."
 NAME and ARG-LIST and ARGS check `define-transient-command'."
   (let ((doc-str (and (stringp (car args)) (car args)))
         (rest-args (if (stringp (car args)) (cdr args) args)))
-    (if (cl-find '("q" "quit" transient-post-suffix-quit)
-                 (car rest-args)
-                 :test #'equal)
-        `(progn
-           (define-transient-command ,name ,arg-list
-             ,doc-str
-             :transient-suffix inc0n/transient-suffix
-             :transient-non-suffix inc0n/transient-non-suffix
-             ,@rest-args)
-           ',name)
-      (message "No quit has been defined %s" rest-args))))
+    `(progn
+       (define-transient-command ,name ,arg-list
+         ,doc-str
+         :transient-suffix inc0n/transient-suffix
+         :transient-non-suffix inc0n/transient-non-suffix
+         ,@rest-args
+         (transient-setup ',name))
+       ',name)))
 
 ;;;###autoload
 (inc0n/define-transient-command inc0n/transient-flyspell ()
@@ -46,25 +43,33 @@ NAME and ARG-LIST and ARGS check `define-transient-command'."
   ["Flyspell"
    ("n" "next error" flyspell-goto-next-error)
    ("c" "correct error or next correction" flyspell-auto-correct-word)
-   ("q" "quit" transient-post-suffix-quit)])
+   ("q" "quit" transient-quit-one)]
+  (interactive)
+  (flyspell-goto-next-error))
 
 ;;;###autoload
-(inc0n/define-transient-command inc0n/transient-flycheck ()
+(inc0n/define-transient-command inc0n/transient-flycheck (&optional arg)
   "Transient interface for `flycheck'"
   ["Flycheck"
    ("n" "next error" flycheck-next-error)
    ("p" "previous error" flycheck-previous-error)
    ("d" "display error" flycheck-display-error-at-point)
    ("e" "explain error" flycheck-explain-error-at-point)
-   ("q" "quit" transient-post-suffix-quit)])
+   ("q" "quit" transient-quit-one)]
+  (interactive "P")
+  (if arg (flycheck-previous-error)
+    (flycheck-next-error)))
 
 ;;;###autoload
-(inc0n/define-transient-command inc0n/transient-winner ()
+(inc0n/define-transient-command inc0n/transient-winner (&optional arg)
   "Transient interface for `winner-undo'."
   ["Winner do"
    ("u" "undo" winner-undo)
    ("r" "redo" winner-redo)
-   ("q" "quit" transient-post-suffix-quit)])
+   ("q" "quit" transient-quit-one)]
+  (interactive "P")
+  (if arg (winner-redo)
+    (winner-undo)))
 
 ;; (global-set-key (kbd "M-o") nil)
 (provide 'init-transient)
