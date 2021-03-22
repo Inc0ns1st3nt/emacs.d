@@ -10,8 +10,6 @@
 (require-package 'selectrum)
 (local-require 'selectsel)
 
-(global-set-key (kbd "C-x C-z") 'selectrum-repeat)
-
 (add-hook 'after-init-hook 'selectrum-mode)
 
 ;; @see https://github.com/raxod502/prescient.el
@@ -34,6 +32,20 @@
 				  (interactive)
 				  (let ((prescient-filter-method '(regexp)))
 					(selectrum-swiper (util/thing-at-point/deselect)))))
+(global-set-key (kbd "C-x C-z") 'selectrum-quick-repeat)
+
+(defun selectrum-quick-repeat ()
+  "Quick navigation variant of `selectrum-repeat'."
+  (interactive)
+  (let ((selectrum-minibuffer-map
+         (let ((map (make-sparse-keymap)))
+           (set-keymap-parent map selectrum-minibuffer-map)
+           (define-key map "n" #'selectrum-next-candidate)
+           (define-key map "p" #'selectrum-previous-candidate)
+           (define-key map "q" #'abort-recursive-edit)
+           map)))
+    (minibuffer-message "quick navigate n/p/q")
+    (selectrum-repeat)))
 
 ;;
 
