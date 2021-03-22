@@ -13,6 +13,14 @@
 (defvar theme/day 'doom-homage-white) ;;doom-one-light
 
 ;; (defvar themes/day '(doom-homage-white doom-one-light))
+(defun inc0n/faces-setup ()
+  "My faces setup."
+  (set-face-attribute 'fixed-pitch-serif nil
+                      :height 130
+                      :font "Liberation Sans")
+  (set-face-attribute 'font-lock-doc-face nil :slant 'italic)
+  (when (facep 'org-done)
+    (set-face-attribute 'org-done nil :underline t :bold t)))
 
 (defun load-theme-only (theme)
   "Unload all other theme before loading `THEME'."
@@ -20,14 +28,7 @@
     (disable-theme i))
   (load-theme theme t)
   ;; update colour for correct evil state mode line face colour
-  (setq inc0n/default-color (cons (face-background 'mode-line)
-                                  (face-foreground 'mode-line)))
-  (when (boundp 'inc0n/update-modeline-face)
-    (inc0n/update-modeline-face))
-  (set-face-attribute 'font-lock-doc-face nil :slant 'italic)
-  ;; Other customisation to faces
-  (when (facep 'org-done)
-    (set-face-attribute 'org-done nil :underline t :bold t)))
+  (inc0n/faces-setup))
 
 (defun load-day-theme ()
   ;; selectrum is okay with this

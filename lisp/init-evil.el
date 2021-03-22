@@ -271,6 +271,7 @@ If the character before and after CH is space or tab, CH is NOT slash"
 ;; As a general rule, mode specific evil leader keys started
 ;; with upper cased character or 'g' or special character except "=" and "-"
 (evil-declare-key 'normal org-mode-map
+  (kbd "C-M-u") 'outline-up-heading
   "gh" 'outline-up-heading
   "$" 'org-end-of-line ; smarter behaviour on headlines etc.
   "^" 'org-beginning-of-line ; ditto

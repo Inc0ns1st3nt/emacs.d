@@ -109,6 +109,8 @@
 (define-key isearch-mode-map (kbd "C-o") 'isearch-occur)
 ;; }}
 
+;; {{ misc
+(blink-cursor-mode 0)
 (setq-default buffers-menu-max-size 30
               case-fold-search t
               compilation-scroll-output t
@@ -137,6 +139,7 @@
 
 ;; NO automatic new line when scrolling down at buffer bottom
 (setq next-line-add-newlines nil)
+;;}}
 
 (defun toggle-indent-tabs-mode ()
   (interactive)
@@ -1070,9 +1073,16 @@ Optional argument IGNORED is ignored."
                               (prog-mode . defun)
                               (text-mode . line))))
 
-(set-face-attribute 'fixed-pitch-serif nil
-                    :height 130
-                    :font "Liberation Sans")
+;; {{ project
+(defun project-try-npm (dir)
+  "My project-try for JavaScript (Nodejs) projects.
+By locating package.json around DIR."
+  (and (memq major-mode '(js-mode js2-mode rjsx-mode))
+       (locate-dominating-file dir "package.json")))
+
+(with-eval-after-load 'project
+  (add-to-list 'project-find-functions 'project-try-npm))
+;; }}
 
 (provide 'init-misc)
 ;;; init-misc.el ends here

@@ -22,6 +22,11 @@
 
 (add-hook 'before-save-hook 'generic-tag-before-save-update)
 
+(defvar tag-shell-format-string
+  "ctags -e -f TAGS -R *%s"
+  ;; "fd %s | etags -"
+  "The format string of tag shell command to run to generate the tags.")
+
 (defun generic-tag-before-save-update ()
   "The TAGS update function."
   (if tags-file-name
@@ -30,7 +35,7 @@
                (when-let* ((pair (assoc major-mode generic-tag-major-modes))
                            (ext (cdr pair)))
                  (shell-command-to-string
-                  (format "PWD=%s fd %s | etags -"
+                  (format (concat "PWD=%s " tag-shell-format-string)
                           (file-name-directory tags-file-name)
                           ext))))
     (message "tags not updated for %s" major-mode)))

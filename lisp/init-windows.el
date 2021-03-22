@@ -10,23 +10,23 @@
 
 ;; @see https://emacs-china.org/t/emacs-builtin-mode/11937/63
 ;; press u undo and r to redo
-(defun inc0n/transient-winner-undo ()
-  "Transient version of `winner-undo'."
-  (interactive)
-  (if winner-mode
-      (let ((echo-keystrokes nil))
-        (winner-undo)
-        (message "Winner: [u]ndo [r]edo [q]uit")
-        (set-transient-map
-         (let ((map (make-sparse-keymap)))
-           (define-key map [?u] #'winner-undo)
-           (define-key map [?r] #'winner-redo)
-           map)
-         t))
-    (message "turn on winner-mode first")))
+;; (defun inc0n/transient-winner-undo ()
+;;   "Transient version of `winner-undo'."
+;;   (interactive)
+;;   (if winner-mode
+;;       (let ((echo-keystrokes nil))
+;;         (winner-undo)
+;;         (message "Winner: [u]ndo [r]edo [q]uit")
+;;         (set-transient-map
+;;          (let ((map (make-sparse-keymap)))
+;;            (define-key map [?u] #'winner-undo)
+;;            (define-key map [?r] #'winner-redo)
+;;            map)
+;;          t))
+;;     (message "turn on winner-mode first")))
 
 (general-define-key
- "C-x 4 u" 'inc0n/transient-winner-undo
+ "C-x 4 u" 'winner-undo
  "C-x 2" 'split-window-vertically
  "C-x 3" 'split-window-horizontally
  ;; https://github.com/abo-abo/ace-window
