@@ -3,8 +3,8 @@
 ;;; Code:
 
 (require-package 'racket-mode)
-(require-package 'rainbow-delimiters)
 (require-package 'paredit)
+(require-package 'gambit)
 
 ;; elisp
 (defun set-up-hippie-expand-for-elisp ()
@@ -43,8 +43,10 @@
 (defun gerbil-scheme-start-swank (file encoding)
   (format "%S\n\n" `(begin (import :drewc/r7rs/gerbil-swank) (start-swank ,file))))
 
+(autoload 'slime-dispatch-media-event "slime-media" nil)
+
 (with-eval-after-load 'slime
-  (require 'slime-media)
+  ;; (require 'slime-media)
   ;; in-case not loaded properly, i will do it mysel
   (add-hook 'slime-event-hooks 'slime-dispatch-media-event)
   ;; (setq slime-enable-evaluate-in-emacs nil)
@@ -63,6 +65,29 @@
   (interactive)
   (setq slime-lisp-implementations '((sbcl ("/usr/bin/sbcl"))))
   (slime))
+
+;;; gerbil
+
+;; gambit
+(autoload 'gambit-inferior-mode "gambit" "gambit package for gerbil")
+(add-hook 'inferior-scheme-mode-hook #'gambit-inferior-mode)
+
+;; gerbil setup
+(defvar inc0n/gerbil-home (getenv "GERBIL_HOME"))
+(let ((gerbil-program-name (concat inc0n/gerbil-home "/bin/gxi")))
+  ;; gerbil mode
+  (add-to-list 'load-path (concat inc0n/gerbil-home "/etc/"))
+  (autoload 'gerbil-mode "gerbil-mode" "Gerbil editing mode." t)
+  ;; gerbil tags
+  ;; (add-to-list 'tags-table-list (concat inc0n/gerbil-home "/src/TAGS"))
+  (setq scheme-program-name gerbil-program-name))
+
+(defun gerbil-mode-setup ()
+  (when-let ((tag (locate-dominating-file (concat inc0n/gerbil-home "/src/") "TAGS")))
+	(visit-tags-table tag t)))
+(add-hook 'gerbil-mode-hook 'gerbil-mode-setup)
+
+(add-auto-mode 'gerbil-mode "\\.ss$")
 
 ;; gerbil tag table
 
