@@ -3,7 +3,7 @@
 ;;; Code:
 (require-package 'lua-mode)
 
-(defun inc0n/lua-mode-setup ()
+(define-hook-setup 'lua-mode-hook
   "Set up lua script."
   (unless (buffer-file-temp-p)
     (setq-local imenu-generic-expression
@@ -11,7 +11,6 @@
                   ("Function" "function +\\([^ (]+\\).*$" 1)
                   ("Module" "^ *module +\\([^ ]+\\) *$" 1)
                   ("Variable" "^ *local +\\([^ ]+\\).*$" 1)))))
-(add-hook 'lua-mode-hook #'inc0n/lua-mode-setup)
 
 ;; @see http://lua-users.org/wiki/LuaStyleGuide
 ;; indent 2 spaces by default

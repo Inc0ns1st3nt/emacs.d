@@ -60,12 +60,11 @@
   ;; (common-js-node-repl-setup)
   (subword-mode))
 
-(defun mo-js-mode-hook ()
+(define-hook-setup 'js-mode-hook :mo
   (when (and (not (buffer-file-temp-p))
 			 (not (derived-mode-p 'js2-mode)))
     (inc0n/common-js-setup)
     (setq imenu-create-index-function 'mo-js-imenu-make-index)))
-(add-hook 'js-mode-hook 'mo-js-mode-hook)
 
 (with-eval-after-load 'js-mode
   ;; '$' is part of variable name like '$item'
@@ -166,20 +165,20 @@ Merge RLT and EXTRA-RLT, items in RLT has *higher* priority."
   (define-key js2-mode-map (kbd "C-c C-w") nil)
   ;; }}
   (setq-default ;; js2-use-font-lock-faces t
-                ;; js2-mode-must-byte-compile nil
-                ;; {{ comment indention in modern frontend development
-                js-indent-level 2
-                typescript-indent-level 2
-                ;; }}
-                js2-strict-trailing-comma-warning nil ; it's encouraged to use trailing comma in ES6
-                js2-idle-timer-delay 0.5 ; NOT too big for real time syntax check
-                js2-skip-preprocessor-directives t
-                js2-strict-inconsistent-return-warning nil ; return <=> return null
-                js2-bounce-indent-p t)
+   ;; js2-mode-must-byte-compile nil
+   ;; {{ comment indention in modern frontend development
+   js-indent-level 2
+   typescript-indent-level 2
+   ;; }}
+   js2-strict-trailing-comma-warning nil ; it's encouraged to use trailing comma in ES6
+   js2-idle-timer-delay 0.5   ; NOT too big for real time syntax check
+   js2-skip-preprocessor-directives t
+   js2-strict-inconsistent-return-warning nil ; return <=> return null
+   js2-bounce-indent-p t)
   (setq-default js2-additional-externs
                 '("$"
-                  "$A" ; salesforce lightning component
-                  "$LightningApp" ; salesforce
+                  "$A"                ; salesforce lightning component
+                  "$LightningApp"     ; salesforce
                   "AccessifyHTML5"
                   "Blob"
                   "FormData"
@@ -187,7 +186,7 @@ Merge RLT and EXTRA-RLT, items in RLT has *higher* priority."
                   "Raphael"
                   "React"
                   "URLSearchParams"
-                  "__dirname" ; Node
+                  "__dirname"           ; Node
                   ;; "_content" ; Keysnail
                   "after"
                   "afterEach"
@@ -245,7 +244,7 @@ Merge RLT and EXTRA-RLT, items in RLT has *higher* priority."
        (apply orig-func args)
        extra-items)))
   (advice-add 'js2-mode-create-imenu-index :around #'inc0n/js2-mode-create-imenu-index-hack)
-  (defun inc0n/js2-mode-setup()
+  (define-hook-setup 'js2-mode-hook
     (unless (buffer-file-temp-p)
       (inc0n/common-js-setup)
       ;; if use node.js we need nice output
@@ -258,8 +257,7 @@ Merge RLT and EXTRA-RLT, items in RLT has *higher* priority."
 
       ;; @see https://github.com/mooz/js2-mode/issues/350
       ;; (setq forward-sexp-function nil)
-      ))
-  (add-hook 'js2-mode-hook 'inc0n/js2-mode-setup))
+      )))
 ;; }}
 
 ;; @see https://github.com/felipeochoa/rjsx-mode/issues/33
@@ -302,9 +300,8 @@ INDENT-SIZE decide the indentation level.
 ;; @see https://emacs.stackexchange.com/questions/33536/how-to-edit-jsx-react-files-in-emacs
 
 (with-eval-after-load 'typescript
-  (defun typescript-mode-hook-setup ()
-    (setq imenu-create-index-function 'mo-js-imenu-make-index))
-  (add-hook 'typescript-mode-hook 'typescript-mode-hook-setup))
+  (define-hook-setup 'typescript-mode-hoo
+    (setq imenu-create-index-function 'mo-js-imenu-make-index)))
 
 (with-eval-after-load 'nodejs-repl
   (setq nodejs-repl-prompt "nodejs> "

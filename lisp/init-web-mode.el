@@ -1,16 +1,18 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
+;;; Commentary:
 ;; See `flymake-xml-program' for html flymake check
 ;; No extra setup is required.
 
-(defun web-mode-hook-setup ()
+;;; Code:
+
+(define-hook-setup 'web-mode-hook
   (unless (buffer-file-temp-p)
     (setq inc0n/flyspell-check-doublon nil)
     (remove-hook 'yas-after-exit-snippet-hook
                  #'web-mode-yasnippet-exit-hook t)
     (remove-hook 'yas/after-exit-snippet-hook
                  #'web-mode-yasnippet-exit-hook t)))
-(add-hook 'web-mode-hook 'web-mode-hook-setup)
 
 (with-eval-after-load 'web-mode
   ;; make org-mode export fail, I use evil and evil-matchit

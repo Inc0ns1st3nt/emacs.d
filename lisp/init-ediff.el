@@ -9,7 +9,8 @@ Also remove buffers whose binding files already merged in `buffer-list'."
 (advice-add 'server-save-buffers-kill-terminal :after #'inc0n/server-save-buffers-kill-terminal-hack)
 
 (when (inc0n/vc-merge-p)
-  ;; remove `org-mode' from `auto-mode-alist'. So nodes in org file do NOT collapse at all
+  ;; remove `org-mode' from `auto-mode-alist'.
+  ;; So nodes in org file do NOT collapse at all
   (setq auto-mode-alist  (rassq-delete-all 'org-mode auto-mode-alist))
   ;; associate simpler major mode with org file instead
   (add-auto-mode 'outline-mode "\\.org\\(_archive\\)?$")
@@ -17,19 +18,18 @@ Also remove buffers whose binding files already merged in `buffer-list'."
   (defun inc0n/ediff-command (cmd &optional no-arg)
     (lambda (&optional arg)
       (interactive "P")
-      (let* ((w (get-buffer-window))
-             (p (get-buffer-window inc0n/ediff-panel-name)))
+      (when-let* ((w (get-buffer-window))
+                  (p (get-buffer-window inc0n/ediff-panel-name)))
         ;; go to panel window
-        (when p
-          (select-window p)
-          ;; execute ediff command, ignore any error
-          (condition-case e
-              (if no-arg (funcall cmd) (funcall cmd arg))
-            (error
-             (message "%s" (error-message-string e))))
+        (select-window p)
+        ;; execute ediff command, ignore any error
+        (condition-case e
+            (if no-arg (funcall cmd) (funcall cmd arg))
+          (error
+           (message "%s" (error-message-string e))))
 
-          ;; back to original window
-          (select-window w)))))
+        ;; back to original window
+        (select-window w))))
 
   (util/ensure 'ediff)
 
@@ -63,8 +63,8 @@ Also remove buffers whose binding files already merged in `buffer-list'."
     "3" (inc0n/ediff-command 'ediff-copy-B-to-C)
     "b" (inc0n/ediff-command 'ediff-copy-both-to-C))
 
-  (defun ediff-startup-hook-setup ()
-    ;; hide control panel if it's current buffer
+  (define-hook-setup 'ediff-startup-hook
+    "Hide control panel if it's current buffer."
     (when (string-match-p "\*Ediff Control Panel.*\*" (buffer-name))
       (unless inc0n/ediff-panel-name
         (setq inc0n/ediff-panel-name (buffer-name)))
@@ -77,8 +77,7 @@ Also remove buffers whose binding files already merged in `buffer-list'."
       ;; move to the merged buffer window
       (winum-select-window-by-number 3)
       ;; save the windows layout
-      (window-configuration-to-register ?a)))
-
-  (add-hook 'ediff-startup-hook #'ediff-startup-hook-setup))
+      (window-configuration-to-register ?a))))
 
 (provide 'init-ediff)
+;;; init-ediff ends here

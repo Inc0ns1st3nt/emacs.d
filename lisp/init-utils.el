@@ -89,10 +89,11 @@
   (dolist (pattern patterns)
     (add-to-list 'auto-mode-alist (cons pattern mode))))
 
-(defun add-to-list-multi (list-var elms &optional append)
-  "Add multiple elements to the `LIST-VAR'."
-  (dolist (elm elms)
-    (add-to-list list-var elm)))
+(defun add-to-list-multi (list-var elements &optional append)
+  "Add multiple ELEMENTS to the `LIST-VAR'."
+  (dolist (elm elements)
+    (add-to-list list-var elm append))
+  (symbol-value list-var))
 
 (defun font-belongs-to (pos fonts)
   "Current font at POS belongs to FONTS."
@@ -163,6 +164,12 @@ If N is nil, use `selectrum-mode' to browse `kill-ring'."
   (when (region-active-p)
     (delete-region (region-beginning) (region-end)))
   (insert str))
+
+(defun util/looking-at-line-p (regexp)
+  "Check if the current line match REGEXP."
+  (save-excursion
+    (goto-char (line-beginning-position))
+    (looking-at-p regexp)))
 
 (defun util/line-str (&optional n)
   "Get string of N lines from the current line."
@@ -298,7 +305,7 @@ For example, you can '(setq inc0n/mplayer-extra-opts \"-ao alsa
 	  (car kill-ring)
 	""))
 
-(defalias 'util/set-clip #'kill-new "Put STR-VAL into clipboard.")
+(defalias 'util/set-clip #'kill-new "Put STR-VAL into kill ring.")
 ;; }}
 
 (defun should-use-minimum-resource ()
@@ -354,7 +361,38 @@ search in forward direction, or else in backward direction."
 
 (defun custom/reset-var (symbl)
   "Reset SYMBL to its standard value."
+  (interactive (list (intern (read-string "Symbol: "))))
   (set symbl (eval (car (get symbl 'standard-value)))))
+
+;;
+
+(defmacro define-hook-setup (hook-name &rest body)
+  "Macro helper for `add-hook' to HOOK-NAME.
+It will defun setup hook function with BODY.
+The setup hook function will have the name `HOOK-NAME'-setup"
+  (declare (debug (&define name
+                           [&optional additional-name]
+                           [&optional lambda-doc]
+                           [&rest def-body]))
+           (indent defun)
+           (doc-string 2))
+  (let* ((hook-name (if (listp hook-name)
+                        (cadr hook-name)
+                      hook-name))
+         (hook-setup-fn-name
+          (intern (concat (symbol-name hook-name)
+                          (if (keywordp (car body))
+                              (concat "-"
+                                      (substring (symbol-name (car body)) 1))
+                            "")
+                          "-setup"))))
+    ;; (when (fboundp hook-setup-fn-name)
+    ;;   (warn "redefining setup hook function %s" hook-setup-fn-name))
+    `(add-hook ',hook-name
+               (defun ,hook-setup-fn-name ()
+                 ,@(if (keywordp (car body))
+                       (cdr body)
+                     body)))))
 
 (provide 'init-utils)
 ;;; init-utils ends here

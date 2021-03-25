@@ -84,13 +84,12 @@ Please note RUN-TOGETHER makes aspell less capable.  So it should be used in `pr
 	  ispell-extra-args (inc0n/detect-ispell-args)
 	  ispell-silently-savep t)
 
-(defun text-mode-hook-setup ()
-  "Turn off RUN-TOGETHER option when spell check `text-mode'."
-  (util/ensure 'wucuo)
-  (wucuo-start))
-
 ;; un-comment to enable wucuo
-;; (add-hook 'text-mode-hook 'text-mode-hook-setup)
+(autoload 'wucuo-start "wucuo" "loads wucuo." nil)
+(define-hook-setup 'text-mode-hook
+  "Turn off RUN-TOGETHER option when spell check `text-mode'."
+  ;; (wucuo-start)
+  nil)
 
 (add-hook 'prog-mode-hook 'flyspell-prog-mode)
 (add-hook 'text-mode-hook 'flyspell-prog-mode)
