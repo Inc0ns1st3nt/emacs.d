@@ -4,6 +4,7 @@
 ;; @see http://emacs.stackexchange.com/questions/13820/inline-verbatim-and-code-with-quotes-in-org-mode
 
 (require-package 'org-re-reveal)
+(require-package 'org-appear)
 (require-package 'org-superstar)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -32,41 +33,25 @@
   (define-key org-clock-mode-line-map [header-line mouse-2] #'org-clock-goto)
   (define-key org-clock-mode-line-map [header-line mouse-1] #'org-clock-menu))
 
-(defun org-op-on-tree-and-subtree (procedure)
-  "Call procedure on the tree and its subtree or tree in region"
-  (lambda ()
-    (interactive)
-    ;; fix edge case when heading at EOF and only has spaces as heading title
-    (beginning-of-line)
-    (save-excursion
-      (unless (or (region-active-p)
-                  (let ((line (thing-at-point 'line t)))
-                    (and (string-match-p "^\\*+ $" line) ;; is node only one spaced
-                         (= (point) (- (point-max) (length line))) ;; is line at EOF
-                         )))
-        (org-mark-subtree)))
-    (funcall procedure)))
 
 ;; {{ @see http://orgmode.org/worg/org-contrib/org-mime.html
 (with-eval-after-load 'org-mime
   (setq org-mime-export-options
-		  '(:section-numbers nil :with-author nil :with-toc nil))
-  (defun org-mime-html-hook-setup ()
+		'(:section-numbers nil :with-author nil :with-toc nil))
+  (define-hook-setup org-mime-html-hook
     (org-mime-change-element-style
      "pre"
      "color:#E6E1DC; background-color:#232323; padding:0.5em;")
-    (org-mime-change-element-style "blockquote"
-                                   "border-left: 2px solid gray; padding-left: 4px;"))
-  (add-hook 'org-mime-html-hook #'org-mime-html-hook-setup))
-
-(autoload 'org-mime-edit-mail-in-org-mode "org-mime" nil t)
-(autoload 'org-mime-revert-to-plain-text-mail "org-mime" nil t)
+    (org-mime-change-element-style
+     "blockquote"
+     "border-left: 2px solid gray; padding-left: 4px;")))
 ;; }}
 
-(defun org-mode-hook-setup ()
+(define-hook-setup org-mode-hook
   (unless (buffer-file-temp-p)
 
-    ;; org-mime setup, run this command in org-file, than yank in `message-mode'
+    ;; org-mime setup, run this command in org-file, than
+    ;; yank in `message-mode'
     (local-set-key (kbd "C-c M-o") 'org-mime-org-buffer-htmlize)
     (local-set-key (kbd "M-+") 'org-count-words)
 
@@ -79,24 +64,55 @@
 
     ;; display wrapped lines instead of truncated lines
     (setq truncate-lines nil)
-    (setq word-wrap t)))
-(add-hook 'org-mode-hook #'org-mode-hook-setup)
+    (setq word-wrap t)
+    (setq prettify-symbols-alist
+          (append prettify-symbols-alist
+                  `(("[ ]" . ?☐)          ; checkbox
+                    ("[-]" . ?◼)          ; pending
+                    ("[X]" . ?☑)          ; checked box
+                    ("::" . ?∷)           ; list property
+                    ("---" . "—")         ; em dash
+                    ("..." . ?…)          ; ellipsis
+                    ("->" . ?→)
+                    ("<-" . ?←)
+                    ;; ("#+title:" . ?𝙏)
+                    ;; ("#+subtitle:"      ?𝙩)
+                    ;; ("#+author:" . ?𝘼)
+                    ;; ("#+date:" . ?𝘿)
+                    ;; ("#+property" . ?⚙)
+                    ;; ("#+options:" . ?⌥)
+                    ("#+header:" . ?›)
+                    ("#+latex_header:" . ?⇥)
+                    ("#+beamer_header" . ?↠)
+                    ;; ("#+caption" . ?☰)
+                    ("#+begin_quote" . ?❝)
+                    ("#+end_quote" . ?❞)
+                    ("#+begin_export" . ?⏩)
+                    ("#+end_export" . ?⏪)
+                    ("[#A]" . ,(propertize "⚑" 'face 'all-the-icons-red))
+                    ("[#B]" . ,(propertize "⬆" 'face 'all-the-icons-orange))
+                    ("[#C]" . ,(propertize "■" 'face 'all-the-icons-yellow))
+                    ("[#D]" . ,(propertize "⬇" 'face 'all-the-icons-green))
+                    ("[#E]" . ,(propertize "❓" 'face 'all-the-icons-blue))
+                    (":PROPERTIES:" . ?☸)
+                    (":END" . ?∎))))
+    (prettify-symbols-mode 1)))
 
 (with-eval-after-load 'org
   ;; {{
   (defvar inc0n/org-src--saved-temp-window-config nil
     "Window layout before edit special element.")
+
   (defun inc0n/org-edit-special (&optional arg)
     "Save current window layout before `org-edit' buffer is open.
 ARG is ignored."
-    (setq inc0n/org-src--saved-temp-window-config (current-window-configuration)))
+    (setq inc0n/org-src--saved-temp-window-config
+          (current-window-configuration)))
 
   (defun inc0n/org-edit-src-exit ()
-    "Restore the window layout that was saved before `org-edit-special' is called."
+    "Restore the window layout that was saved in `inc0n/org-edit-special'."
     (when inc0n/org-src--saved-temp-window-config
-      (set-window-configuration inc0n/org-src--saved-temp-window-config)
-      ;; (setq inc0n/org-src--saved-temp-window-config nil)
-      ))
+      (set-window-configuration inc0n/org-src--saved-temp-window-config)))
 
   ;; org 9.3 do not restore windows layout when editing special element
   (advice-add 'org-edit-special :before #'inc0n/org-edit-special)
@@ -111,11 +127,6 @@ ARG is ignored."
   ;; markdown export
   (util/ensure 'ox-md)
   (add-to-list 'org-export-backends 'md)
-
-  (defun org-agenda-show-agenda-and-todo (&optional arg)
-    "Better org-mode agenda view."
-    (interactive "P")
-    (org-agenda arg "n"))
 
   (defun inc0n/org-publish-hack (orig-func &rest args)
     "Stop running `major-mode' hook when `org-publish'."
@@ -136,19 +147,21 @@ ARG is ignored."
 
   (defun inc0n/org-mode-flyspell-verify-hack (orig-func &rest args)
     "flyspell only uses `ispell-word'."
-    (let ((run-spellcheck
-           (apply orig-func args)))
+    (let ((run-spellcheck (apply orig-func args)))
       (and run-spellcheck
            ;; will not run if any of the following it `t'
            (not (or
-                 ;; skip checking in below fonts
+                 ;; skip checking in certain faces
                  (font-belongs-to (point) '(org-verbatim org-code))
                  ;; skip checking property lines
-                 (string-match "^[ \t]+:[A-Z]+:[ \t]+" (util/line-str))
+                 (save-excursion
+                   (goto-char (line-beginning-position))
+                   (looking-at-p "^[ \t]+:[A-Z]+:[ \t]+"))
                  ;; skipping checking in code snippet
                  ;; slow test should be placed at last
                  (inc0n/org-mode-code-snippet-p))))))
-  (advice-add 'org-mode-flyspell-verify :around #'inc0n/org-mode-flyspell-verify-hack)
+  (advice-add 'org-mode-flyspell-verify
+              :around #'inc0n/org-mode-flyspell-verify-hack)
   ;; }}
 
   (defun inc0n/org-refile-hack (orig-func &rest args)
@@ -157,13 +170,11 @@ ARG is ignored."
       (apply orig-func args)))
   (advice-add 'org-refile :around #'inc0n/org-refile-hack)
 
-  (defun log-todo-next-creation-date (&rest ignore)
+  (define-hook-setup org-after-todo-state-change-hook
     "Log NEXT creation time in the property drawer under the key 'ACTIVATED'"
     (when (and (string= (org-get-todo-state) "NEXT")
                (not (org-entry-get nil "ACTIVATED")))
       (org-entry-put nil "ACTIVATED" (format-time-string "[%Y-%m-%d]"))))
-  (add-hook 'org-after-todo-state-change-hook
-			#'log-todo-next-creation-date)
 
   ;; {{ export org-mode in Chinese into PDF
   ;; @see http://freizl.github.io/posts/tech/2012-04-06-export-orgmode-file-in-Chinese.html
@@ -176,14 +187,19 @@ ARG is ignored."
           "xelatex -interaction nonstopmode -output-directory %o %f")) ;; org v8
   ;; }}
 
-  (setq org-latex-listings t)
+  (setq org-list-demote-modify-bullet '(("+" . "-") ("-" . "+") ("*" . "+") ("1." . "a."))
+        org-list-allow-alphabetical t  ; have a. A. a) A) list bullets
+        )
+  (setq org-export-in-background t ; run export processes in external emacs process
+        org-catch-invisible-edits 'smart ; try not to accidently do weird stuff in invisible regions
+        org-export-with-sub-superscripts '{} ; don't treat lone _ / ^ as sub/superscripts, require _{} / ^{}
+        )
 
   ;; misc
   (setq org-startup-with-latex-preview t
         org-startup-indented t
         org-indent-mode-turns-on-hiding-stars nil
 		org-hide-leading-stars nil
-		org-pretty-entities t ;; render entity
         org-log-done 'note
         org-edit-src-content-indentation 0
         org-edit-timestamp-down-means-later t
@@ -202,8 +218,8 @@ ARG is ignored."
           (sequence "PROJECT(P@)" "|" "CANCELLED(c@/!)"))
         org-imenu-depth 5
         ;; @see http://irreal.org/blog/1
-        org-src-fontify-natively t
         org-return-follows-link t)
+  ;; org agenda
   (setq org-agenda-start-on-weekday nil
         org-agenda-span 14
         ;; org-agenda-include-diary t
@@ -215,22 +231,13 @@ ARG is ignored."
         ;; }}
         org-agenda-tags-column 80)
 
-  (defun org-insert-heading-hooker ()
+  (define-hook-setup org-insert-heading-hook
     (evil-insert-state 1))
-  (add-hook 'org-insert-heading-hook 'org-insert-heading-hooker)
 
-  (defun inc0n/org-insert (&optional arg)
-    "insert item or heading depending on context, insert before
-if arg is non-nil"
-    (interactive "P")
-    (if (and (null arg)
-             (org-in-item-p))
-        (org-insert-item)
-      (org-insert-heading-respect-content)))
-  (define-key org-mode-map [C-return] 'inc0n/org-insert)
-  (define-key org-mode-map [return] 'org-return-indent)
-
-  (global-set-key (kbd "C-c C-C") 'org-capture)
+  (general-define-key
+   :keymaps 'org-mode-map
+   [C-return] 'inc0n/org-insert
+   [return] 'org-return-indent)
 
   (setq org-directory "~/sources/org/agenda/")
   (setq org-agenda-files (list (concat org-directory "agenda.org")
@@ -239,6 +246,25 @@ if arg is non-nil"
                                (concat org-directory "projects.org")
                                (concat org-directory "notes.org")
                                (concat org-directory "todo.org")))
+  (setq org-agenda-custom-commands
+        '(("n" "Agenda and all TODOs"
+           ((tags "CLOSED>=\"<today>\""
+                  ((org-agenda-overriding-header "Completed today")))
+            (agenda ""
+                    ((org-agenda-skip-function
+					  'org-agenda-skip-if-past-schedule)
+                     (org-deadline-warning-days 7)))
+            ;; (tags-todo "TODO")
+            (todo "TODO"
+                  (;; (org-agenda-format-date "")
+                   (org-agenda-prefix-format " %-10:c %s %l")
+                   (org-agenda-overriding-header "Todo")))
+            (todo "PROJECT"
+                  ((org-agenda-overriding-header "Projects")))
+            (todo "HOLD"
+                  ((org-agenda-overriding-header "Maybe")))))
+		  ("b" "buffer summary"
+		   ((agenda "" ((org-agenda-files (list (buffer-file-name)))))))))
   (setq org-capture-templates
 		`(("t" "Todo" entry  (file "todo.org")
 		   ,(concat "* TODO %?\n"
@@ -265,45 +291,65 @@ if arg is non-nil"
 		  ("n" "Note" entry  (file "notes.org")
 		   ,(concat "* Note (%a)\n"
 					"/Entered on/ %U\n" "\n" "%?"))
+		  ;; ("n" "note" entry (file "note.org")
+		  ;;  "* %? :NOTE:\n%U\n%a\n")
 		  ("r" "Rant" entry  (file "notes.org")
 		   "* %T %? :rant:\n" :jump-to-captured t)
 		  ;; ("d" "Diary" entry (file+datetree "diary.org")
 		  ;;  "* %?\n%U\n")
-		  ("p" "Project" entry (file "projects.org")
-		   ,(concat "* PROJECT [%<%Y-%m-%d %a>] %?"))
-		  ;; ("n" "note" entry (file "note.org")
-		  ;;  "* %? :NOTE:\n%U\n%a\n")
 		  ;; ("p" "Phone call" entry (file "refile.org")
 		  ;;  "* PHONE %? :PHONE:\n%U")
 		  ;; ("h" "Habit" entry (file "refile.org")
 		  ;;  "* NEXT %?\n%U\n%a\nSCHEDULED: %(format-time-string \"%<<%Y-%m-%d %a .+1d/3d>>\")\n:PROPERTIES:\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:END:\n")
-		  ))
-  (setq org-agenda-custom-commands
-        '(("n" "Agenda and all TODOs"
-           ((tags "CLOSED>=\"<today>\""
-                  ((org-agenda-overriding-header "Completed today")))
-            (agenda ""
-                    ((org-agenda-skip-function
-					  'org-agenda-skip-if-past-schedule)
-                     (org-deadline-warning-days 7)))
-            ;; (tags-todo "TODO")
-            (todo "TODO"
-                  (;; (org-agenda-format-date "")
-                   (org-agenda-prefix-format " %-10:c %s %l")
-                   (org-agenda-overriding-header "Todo")))
-            (todo "PROJECT"
-                  ((org-agenda-overriding-header "Projects")))
-            (todo "HOLD"
-                  ((org-agenda-overriding-header "Maybe")))))
-		  ("b" "buffer summary"
-		   ((agenda "" ((org-agenda-files (list (buffer-file-name)))))))))
+		  ("p" "Project" entry (file "projects.org")
+		   ,(concat "* PROJECT [%<%Y-%m-%d %a>] %?"))))
+  (setq org-pretty-entities t ;; render entity
+        org-fontify-quote-and-verse-blocks t
+        org-src-fontify-natively t
+        org-src-preserve-indentation t
+        org-link-descriptive t
+        org-hide-emphasis-markers t)
   ;; org-babel for gnuplot
   ;; @see https://www.orgmode.org/worg/org-contrib/babel/languages/ob-doc-gnuplot.html
   (org-babel-do-load-languages
    'org-babel-load-languages
    '((gnuplot . t)))
   ;; (require 'org-protocol)
-  )
+  ;; org style
+  (custom-set-faces
+   '(org-document-title ((t (:height 1.2))))
+   '(outline-1 ((t (:weight black :height 1.25))))
+   '(outline-2 ((t (:weight bold :height 1.15))))
+   '(outline-3 ((t (:weight bold :height 1.12))))
+   '(outline-4 ((t (:weight semi-bold :height 1.09))))
+   '(outline-5 ((t (:weight semi-bold :height 1.06))))
+   '(outline-6 ((t (:weight semi-bold :height 1.03))))
+   '(outline-8 ((t (:weight semi-bold))))
+   '(outline-9 ((t (:weight semi-bold))))))
+
+(defun inc0n/org-insert (&optional arg)
+    "Insert item or heading depending on context.
+Insert before if ARG is non-nil"
+    (interactive "P")
+    (if (and (null arg)
+             (org-in-item-p))
+        (org-insert-item)
+      (org-insert-heading-after-current)))
+
+;;; org-appear
+(add-hook 'org-mode-hook 'org-appear-mode)
+(with-eval-after-load 'org-appear
+  (setq org-appear-autoemphasis t
+        org-appear-autosubmarkers t
+        org-appear-autolinks nil)
+  ;; for proper first-time setup, `org-appear--set-elements'
+  ;; needs to be run after other hooks have acted.
+  (run-at-time nil nil #'org-appear--set-elements))
+
+(defun org-agenda-show-agenda-and-todo (&optional arg)
+    "Better org-mode agenda view."
+    (interactive "P")
+    (org-agenda arg "n"))
 
 (defun org-agenda-skip-if-past-schedule ()
   "If this function return nil, the current match should not be skipped.
@@ -320,23 +366,79 @@ should be continued."
          (<= scheduled-seconds now)
          subtree-end)))
 
-(defun org-agenda-mode-setup ()
+(define-hook-setup org-agenda-mode-hook
   (evil-mode 1)
   (evil-normal-state))
-(add-hook 'org-agenda-mode-hook #'org-agenda-mode-setup)
 
 (with-eval-after-load 'org-superstar
   ;; (setq org-superstar-headline-bullets-list '(?◉ ?◈ ?✸ ?▣)
   ;;   	org-superstar-item-bullet-alist '((?* . ?•) (?+ . ?➤) (?- . ?-)))
-  (setq org-superstar-headline-bullets-list '(?•)
-        org-superstar-item-bullet-alist '((?* . ?▶) (?+ . ?⬘) (?- . ?⬙)))
-  (setq org-superstar-cycle-headline-bullets t
+  ;;    org-superstar-item-bullet-alist '((?* . ?▶) (?+ . ?⬘) (?- . ?⬙))
+  (setq-default org-superstar-prettify-item-bullets t
+                ;; org-superstar-headline-bullets-list '(?⬘)
+                org-superstar-leading-bullet "."
+                org-superstar-headline-bullets-list '("Ⅰ" "Ⅱ" "Ⅲ" "Ⅳ" "Ⅴ" "Ⅵ" "Ⅶ" "Ⅷ" "Ⅸ" "Ⅹ"))
+  (setq org-superstar-cycle-headline-bullets nil
 		org-superstar-special-todo-items nil)
-  (set-face-attribute 'org-superstar-leading
-                      nil
-                      :foreground "dark gray")
+  (set-face-attribute 'org-superstar-leading nil :foreground "dark gray")
   (org-superstar-restart))
 (add-hook 'org-mode-hook 'org-superstar-mode)
+
+;; org capture
+(global-set-key (kbd "C-c C-c") 'org-capture)
+
+(define-hook-setup org-ctrl-c-ctrl-c-final-hook :capture
+  (org-capture)
+  t)
+
+(defun org-goto-item-between-region (start forward)
+  "Find the item between START and END, direction is controlled by FORWARD."
+  (call-interactively
+   (if forward 'next-line 'previous-line))
+  (let ((item (org-in-item-p)))
+    (or (if (and item start)
+            (and (/= start item) item)
+          item)
+        (and (org-at-heading-p) (point))
+        ;; (unless (if forward (> (point) end) (< (point) end)))
+        (org-goto-item-between-region start forward))))
+
+;; (evil-declare-key 'normal org-mode-map
+;;   "g=" nil)
+
+(defun org-goto-visible-element (arg forward)
+  "Move cursor to the previous visible item or heading.
+ARG will repeat the operation ARG number of times.
+FORWARD will go forward unless nil"
+  ;; (setq forward (if forward 1 -1))
+  (when (> arg 0)
+    (let* ((item (org-in-item-p))
+           (next-pos
+            (if (or (null item)
+                    (= item (point)))
+                (org-goto-item-between-region item forward)
+              item)))
+      ;; (message "item %s %s" next-pos arg)
+      (goto-char next-pos)
+      (org-goto-visible-element (1- arg) forward))))
+
+(defun org-next-visible-element (arg)
+  "Move cursor to the previous visible item or heading.
+ARG will repeat this function ARG number of times."
+  (interactive "P")
+  ;; (message "arg %s" format-args)
+  (if (consp arg)
+      ;; (org-back-to-heading)
+      (org-forward-element)
+    (org-goto-visible-element (or arg 1) t)))
+
+(defun org-previous-visible-element (arg)
+  "Move cursor to the previous visible item or heading.
+ARG will repeat this function ARG number of times."
+  (interactive "P")
+  (if (consp arg)
+      (org-backward-heading-same-level 1)
+    (org-goto-visible-element (or arg 1) nil)))
 
 (defun org-count-words (start end)
   "This is the count words version that skips comments.
@@ -362,33 +464,38 @@ It will operate between the region from START to END."
                finally (message "region has %d lines, %d words, %d characters"
                                 lines-count words-count chars-count)))))
 
-(defvar org-latex-link-prefix-alist nil)
-(defun latex-set-org-link-parameters (type name)
-  (add-to-list 'org-latex-link-prefix-alist (cons type name))
-  (org-link-set-parameters
-   type
-   :export (lambda (path desc backend)
-             (cond ((eq 'latex backend)
-                    (format "\\autoref{%s}" path))))))
 
-(with-eval-after-load 'ol
-  (latex-set-org-link-parameters "lst" "Listing")
-  (latex-set-org-link-parameters "table" "Table")
-  (setq org-link-descriptive nil))
+(defun latex-auto-ref-link-export (path _desc backend)
+  "Exporting link using autoref of PATH for latex BACKEND."
+  (cond ((eq 'latex backend)
+         (format "\\autoref{%s}" path))))
+
+(defun latex-set-org-link-parameters (&rest types)
+  "Link parameter of TYPES will be using `latex-auto-ref-link-export' for latex."
+  (mapc (lambda (type)
+          (org-link-set-parameters type :export 'latex-auto-ref-link-export))
+        types))
 
 (with-eval-after-load 'ox-latex
+  (latex-set-org-link-parameters "lst" "table")
+  ;;
   (defun inc0n/org-latex-link (orig-func link desc info)
     "Advice function that will find a default description, i.e. the caption to pass on into the original `org-latex-link' function"
     (let ((type (org-element-property :type link)))
-      (when (assoc type org-latex-link-prefix-alist)
-        ;; store the type back into the `path' of link
-        (org-element-put-property link :path (org-element-property :raw-link link))
-        ;; the correct reference can be found now
-        (org-export-resolve-fuzzy-link link info))
+      (when-let* ((link-params (assoc type org-link-parameters #'string=))
+                  (export (plist-get (cdr link-params) :export)))
+        (when (eq export latex-auto-ref-link-export)
+          ;; store the `raw-link' back into the `path' of link
+          (org-element-put-property link :path (org-element-property :raw-link link))
+          ;; TEST - the correct reference can be found now
+          ;;        this line  can be removed
+          (org-export-resolve-fuzzy-link link info)))
       (funcall orig-func link nil info)))
   (advice-add 'org-latex-link :around 'inc0n/org-latex-link)
   (add-to-list 'org-latex-listings-langs '(javascript "Javascript"))
   (setq org-latex-caption-above '(table src-block)
+        ;; Our hack for using auto ref to generate our nice labels
+        org-latex-listings t
         org-latex-prefer-user-labels t))
 
 ;; org-emphasis-alist

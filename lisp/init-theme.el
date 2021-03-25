@@ -9,8 +9,12 @@
 (require-package 'atom-one-dark-theme)
 (require-package 'doom-themes)
 
-(defvar theme/night 'doom-moonlight) ;; atom-one-dark
-(defvar theme/day 'doom-homage-white) ;;doom-one-light
+;; (load-theme-only 'doom-moonlight)
+;; doom-moonlight, heading face color too bright in org-mode
+;; besides that, absolutely great.
+(defvar theme/night 'atom-one-dark) ;; doom-moonlight, doom-vibrant
+(defvar theme/day 'doom-homage-white)
+;; (defvar theme/day 'doom-one-light)
 ;; (defvar themes/day '(doom-homage-white doom-one-light))
 
 ;; timers
@@ -36,6 +40,7 @@
   (load-theme theme t)
   ;; update colour for correct evil state mode line face colour
   (inc0n/faces-setup))
+
 
 (defun load-day-theme ()
   (load-theme-only theme/day))
@@ -65,26 +70,28 @@
     (cl-labels ((time-abs
                  (time)
                  (if (< time 0)
-                     (+ time one-day-secs)
-                   time))
+                     (- time)
+                   (- one-day-secs time)))
                 (time-diff
                  (time1 time2)
-                 (+ (* 60 (- (car time1) (car time2)))
-                    (* 3600 (- (cdr time1) (cdr time2))))))
+                 (+ (* 3600 (- (car time1) (car time2)))
+                    (* 60 (- (cdr time1) (cdr time2))))))
       (when theme/day-timer (cancel-timer theme/day-timer))
       (when theme/night-timer (cancel-timer theme/night-timer))
       (setq theme/day-timer
-            (run-with-timer (time-abs (time-diff theme/day-time current-time))
+            (run-with-timer (time-abs (time-diff current-time theme/day-time))
                             one-day-secs
                             #'load-day-theme)
             theme/night-timer
-            (run-with-timer (time-abs (time-diff theme/night-time current-time))
+            (run-with-timer (time-abs
+                             (time-diff current-time theme/night-time))
                             one-day-secs
                             #'load-night-theme))
-      (if (or (> (time-diff theme/night-time current-time) 0) ; past night
-              (< (time-diff theme/day-time current-time) 0)) ; before day
-          (load-night-theme)
-        (load-day-theme)))))
+      (if (and (plusp (time-diff current-time theme/day-time)) ; past day time
+              ;; before night
+              (minusp (time-diff current-time theme/night-time)))
+          (load-day-theme)
+        (load-night-theme)))))
 
 (theme/update-day-night-theme-timers)
 

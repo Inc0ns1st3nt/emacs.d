@@ -56,12 +56,11 @@
       (select-window window))))
 
 (with-eval-after-load 'popper
-  (require 'project)
   (setq popper-mode-line '(:eval (propertize " POP" 'face 'bold))
         popper-mode-line-position 2
         popper-display-function 'inc0n/popper-select-popup-at-bottom)
   (setq popper-reference-buffers
-        '(Custom-mode
+        '(;; Custom-mode
           compilation-mode
           messages-mode
           help-mode
@@ -71,25 +70,32 @@
           debugger-mode
           xref--xref-buffer-mode gtags-select-mode
           Info-mode
-          "^\\*Warning\\*"
+          "^\*Compile-log\*"
+          "^\*Warning\*"
           "^\\*Messages-Log\\*"
           "^\\*Completions\\*"
           "^\\*Shell Command Output\\*")
-        popper-group-function 'popper-group-by-project
+        popper-group-function (defun inc0n/popper-group-by-project ()
+                                "Return an identifier (project root) to group popups."
+                                (let ((project (project-current)))
+                                  (or (and project
+                                           (car (project-roots project)))
+                                      default-directory)))
         popper-display-control t))
-(defun popper-group-by-project ()
-  "Return an identifier (project root) to group popups."
-  (let ((project (project-current)))
-    (or (and project
-             (car (project-roots project)))
-        default-directory)))
+
+;; (autoload #'popper-group-by-project "project"
+;;   "Setups the gtags project root-dir." nil)
+
 (util/add-to-timed-init-hook 1 'popper-mode)
 
 (global-set-key [C-iso-lefttab] 'popper-cycle) ;; ctrl-shift-tab
 (global-set-key (kbd "C-S-l") 'popper-toggle-latest)
 (global-set-key (kbd "C-S-o") (lambda () (interactive)
                                 (if inc0n/popper-last-window
-                                    (select-window inc0n/popper-last-window)
+                                    (select-window
+                                     (if (eq (selected-window) inc0n/popper-last-window)
+                                         (frame-root-window)
+                                       inc0n/popper-last-window))
                                   (message "no popper window opened!"))))
 
 

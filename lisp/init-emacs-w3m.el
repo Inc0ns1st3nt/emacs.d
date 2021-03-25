@@ -124,13 +124,12 @@
 (add-hook 'w3m-display-hook 'w3m-display-hook-setup)
 
 
-(defun w3m-mode-hook-setup ()
-  (setq-local truncate-lines nil)
-  (local-set-key (kbd "RET") 'w3m-view-this-url)
-  (w3m-lnum-mode 1)
-  (setq-local display-line-numbers nil))
-
-(add-hook 'w3m-mode-hook #'w3m-mode-hook-setup)
+(add-hook 'w3m-mode-hook
+          (defun w3m-mode-hook-setup ()
+            (setq-local truncate-lines nil)
+            (local-set-key (kbd "RET") 'w3m-view-this-url)
+            (w3m-lnum-mode 1)
+            (setq-local display-line-numbers nil)))
 
 (defun w3m-edit-url-and-goto ()
   (interactive)

@@ -51,12 +51,11 @@
 ;; (custom/reset-var 'preview-default-preamble)
 
 (add-hook 'TeX-mode-hook 'flyspell-mode); Enable Flyspell mode for TeX modes such as AUCTeX. Highlights all misspelled words.
-(defun latex-mode-setup ()
-  ;; (inc0n/yas-insert-template "template")
-  ;; (setq-local electric-pair-pairs
-  (setq-local word-wrap t))
 (add-hook 'LaTeX-mode-hook 'LaTeX-math-mode)
-(add-hook 'LaTeX-mode-hook 'latex-mode-setup)
+(add-hook 'LaTeX-mode-hook (defun latex-mode-setup ()
+                             ;; (inc0n/yas-insert-template "template")
+                             ;; (setq-local electric-pair-pairs
+                             (setq-local word-wrap t)))
 (add-hook 'LaTeX-mode-hook 'electric-pair-mode)
 
 (provide 'init-latex)

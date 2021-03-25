@@ -17,27 +17,25 @@
   (add-to-list 'evil-emacs-state-modes 'eww-buffer-mode))
 
 
-(defun eww-after-render-hook-setup ()
-  "My eww hook setup."
-  (let* ((title (plist-get eww-data :title))
-         (title (if (string-empty-p title)
-                    "untitled"
-                  (if (> (length title) 45)
-                      (concat (substring title 0 45) "...")
-                    title))))
-    (rename-buffer (format "*eww: %s*" title)
-                   t)))
-(add-hook 'eww-after-render-hook 'eww-after-render-hook-setup)
-
-
-(defun eww-mode-hook-setup ()
-  (setq-local truncate-lines t)
-  (setq-local shr-width 90)
-  (setq-local fill-column 90
-              visual-fill-column-center-text nil)
-  (visual-line-mode 1)
-  (visual-fill-column-mode 1))
-(add-hook 'eww-mode-hook 'eww-mode-hook-setup)
+(add-hook 'eww-after-render-hook
+          (defun eww-after-render-hook-setup ()
+            "My eww hook setup."
+            (let* ((title (plist-get eww-data :title))
+                   (title (if (string-empty-p title)
+                              "untitled"
+                            (if (> (length title) 45)
+                                (concat (substring title 0 45) "...")
+                              title))))
+              (rename-buffer (format "*eww: %s*" title)
+                             t))))
+(add-hook 'eww-mode-hook
+          (defun eww-mode-hook-setup ()
+            (setq-local truncate-lines t)
+            (setq-local shr-width 90)
+            (setq-local fill-column 90
+                        visual-fill-column-center-text nil)
+            (visual-line-mode 1)
+            (visual-fill-column-mode 1)))
 
 (defun eww-edit-url-and-goto ()
   (interactive)

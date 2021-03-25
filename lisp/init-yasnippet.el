@@ -20,39 +20,25 @@
                 ))
   (add-hook hook #'inc0n/enable-yas-minor-mode))
 
-(defun inc0n/yas-expand-from-trigger-key-hack (orig-func &rest args)
-  "Tab key won't trigger yasnippet expand in org heading."
-  (if (and (eq major-mode 'org-mode)
-           (string-match "^org-level-"
-                         (format "%S" (get-text-property (point) 'face))))
-      ;; skip yas expand in org heading
-      (org-cycle)
-    (apply orig-func args)))
-(advice-add 'yas-expand-from-trigger-key
-			:around #'inc0n/yas-expand-from-trigger-key-hack)
+(advice-add 'yas-expand-from-trigger-key :around
+            (defun inc0n/yas-expand-from-trigger-key-hack (orig-func &rest args)
+              "Tab key won't trigger yasnippet expand in org heading.
+Argument ORIG-FUNC the original function.
+Optional argument ARGS the arguements that the original function was called with."
+              (if (and (eq major-mode 'org-mode)
+                       (org-at-heading-p))
+                  ;; skip yas expand in org heading
+                  (org-cycle)
+                (apply orig-func args))))
 
 (defun inc0n/yas-reload-all ()
   "Compile and reload snippets.  Run the command after adding new snippets."
   (interactive)
   (yas-compile-directory (inc0n/emacs-d "snippets"))
-  (yas-reload-all)
-  (inc0n/enable-yas-minor-mode))
-
-(defun inc0n/yas-field-to-statement (str sep)
-  "If STR=='a.b.c' and SEP=' && ', 'a.b.c' => 'a && a.b && a.b.c'"
-  (mapconcat 'identity
-             (cl-reduce (lambda (acc elm)
-						  (if acc
-							  (concat acc "." elm)
-							elm))
-						(split-string str "\\."))
-             sep))
+  (yas-reload-all))
 
 (defun inc0n/yas-get-first-name-from-to-field ()
-  (let ((str (save-excursion
-               (goto-char (point-min))
-               ;; first line in email could be some hidden line containing NO to field
-               (util/buffer-str))))
+  (let ((str (util/buffer-str)))
     ;; (message "str=%s" str)
     (if (string-match "^To: \"?\\([a-zA-Z]+\\)" str)
         (capitalize (match-string 1 str))
@@ -82,42 +68,16 @@
    "\"" "\\\\\""
    (replace-regexp-in-string "'" "\\\\'" s)))
 
-(defun inc0n/read-n-from-kill-ring ()
-  (let ((cands (subseq kill-ring 0 (min (read-number "fetch N `kill-ring'?" 1)
-                                        (length kill-ring)))))
-    (mapc (lambda (txt)
-            (set-text-properties 0 (length txt) nil txt))
-          cands)))
-
-(defun inc0n/yas-get-var-list-from-kill-ring ()
-  "Variable name is among the `kill-ring'.  Multiple major modes supported."
-  (let ((top-kill-ring (inc0n/read-n-from-kill-ring)))
-    (cond
-     ((memq major-mode '(js-mode javascript-mode js2-mode js3-mode rjsx-mode web-mode))
-      (mapconcat (lambda (i)
-                   (format "'%s=', %s" (inc0n/yas-escape-string i) i))
-                 top-kill-ring
-                 ", "))
-     ((memq major-mode '(emacs-lisp-mode lisp-interaction-mode))
-      (concat (mapconcat (lambda (i) (format "%s=%%s" i)) top-kill-ring ", ")
-              "\" "
-              (mapconcat (lambda (i) (format "%s" i)) top-kill-ring " ")))
-     ((memq major-mode '(c-mode c++-mode))
-      (concat (mapconcat (lambda (i) (format "%s=%%s" i)) top-kill-ring ", ")
-              "\\n\", "
-              (mapconcat (lambda (i) (format "%s" i)) top-kill-ring ", ")))
-     (t ""))))
-
 (with-eval-after-load 'yasnippet
   ;; http://stackoverflow.com/questions/7619640/emacs-latex-yasnippet-why-are-newlines-inserted-after-a-snippet
-  (setq-default yas/prompt-functions
-				(delete 'yas-dropdown-prompt yas/prompt-functions))
   (setq-default mode-require-final-newline nil)
   ;; Use `yas-dropdown-prompt' if possible. It requires `dropdown-list'.
   (local-require 'dropdown-list)
-  (setq yas-prompt-functions '(yas-dropdown-prompt
-                               yas-completing-prompt
-							   yas-maybe-ido-prompt))
+  (add-to-list 'yas/prompt-functions 'yas-dropdown-prompt)
+  ;; (setq-default yas/prompt-functions (delete 'yas-dropdown-prompt yas/prompt-functions))
+  ;; (setq yas-prompt-functions '(yas-dropdown-prompt
+  ;;                              yas-completing-prompt
+  ;;   						   yas-maybe-ido-prompt))
   ;; yas fallback when no expansion found
   (setq yas-fallback-behavior 'return-nil)
 
@@ -132,8 +92,8 @@
   ;; how to add custom yasnippet directory
   ;; (add-to-list 'yas-snippet-dirs inc0n/yasnippets)
   (yas-reload-all))
-(global-set-key [C-tab] 'yas-expand)
 
+(global-set-key [C-tab] 'yas-expand)
 
 (provide 'init-yasnippet)
 ;;; init-yasnippet ends here

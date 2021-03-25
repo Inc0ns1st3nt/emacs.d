@@ -1,4 +1,5 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
+;;; Code:
 
 (defun diredext-exec-git-command-in-shell (command &optional arg file-list)
   "Run a shell command `git COMMAND`' on the marked files.
@@ -35,7 +36,7 @@ If no files marked, always operate on current line in dired-mode."
                     (lambda ()
 					  (setq ediff-after-quit-hook-internal nil)
 					  (set-window-configuration wnd))))
-	  (error "no more than 2 files should be marked"))))
+	  (error "No more than 2 files should be marked"))))
 
 
 (with-eval-after-load 'dired-x
@@ -67,22 +68,23 @@ If no files marked, always operate on current line in dired-mode."
                  (list (concat "\\." (regexp-opt (cdr file) t) "$")
                        (car file)))))
 
-(defun dired-mode-hook-setup ()
-  "Set up dired."
-  (dired-hide-details-mode 1)
-  (local-set-key  "e" 'inc0n/ediff-files)
-  (local-set-key  "/" 'dired-isearch-filenames)
-  (local-set-key  "\\" 'diredext-exec-git-command-in-shell)
-  ;;
-  ;; (local-set-key (kbd "h")
-  ;;   (lambda () (interactive) (find-alternate-file "..")))
-  ;; (local-set-key (kbd "j") 'dired-next-line)
-  ;; (local-set-key (kbd "k") 'dired-previous-line)
-  ;; (local-set-key (kbd "l") 'dired-find-alternate-file)
-  ;; (local-set-key (kbd "r") 'dired-do-redisplay)
-  )
-(add-hook 'dired-mode-hook #'dired-mode-hook-setup)
-
+(add-hook 'dired-mode-hook
+          (defun dired-mode-hook-setup ()
+            "Set up dired."
+            (dired-hide-details-mode 1)
+            (general-define-key
+             :keymaps 'local
+             "e" 'inc0n/ediff-files
+             "/" 'dired-isearch-filenames
+             "\\" 'diredext-exec-git-command-in-shell)
+            ;;
+            ;; (local-set-key (kbd "h")
+            ;;   (lambda () (interactive) (find-alternate-file "..")))
+            ;; (local-set-key (kbd "j") 'dired-next-line)
+            ;; (local-set-key (kbd "k") 'dired-previous-line)
+            ;; (local-set-key (kbd "l") 'dired-find-alternate-file)
+            ;; (local-set-key (kbd "r") 'dired-do-redisplay)
+            ))
 
 ;; https://www.emacswiki.org/emacs/EmacsSession which is easier to use
 ;; See `session-globals-regexp'
@@ -109,6 +111,7 @@ If no files marked, always operate on current line in dired-mode."
   (defun inc0n/dired-basename ()
     (file-name-base (car (dired-get-marked-files 'no-dir))))
 
+  (advice-add 'dired-guess-default :around #'inc0n/dired-guess-default-hack)
   (defun inc0n/dired-guess-default-hack (orig-func &rest args)
     "Detect subtitles for mplayer."
     (let ((rlt (apply orig-func args)))
@@ -133,21 +136,25 @@ If no files marked, always operate on current line in dired-mode."
              ((file-exists-p (concat dir basename ".sub"))
               (concat rlt " -sub Subs/" basename ".srt"))))
         rlt)))
-  (advice-add 'dired-guess-default :around #'inc0n/dired-guess-default-hack)
 
   ;; @see https://emacs.stackexchange.com/questions/5649/sort-file-names-numbered-in-dired/5650#5650
   (setq dired-listing-switches "-laGh1v")
   (setq dired-recursive-deletes 'always)
 
-  (defun inc0n/dired-copy-filename-as-kill-hack (&optional arg)
-	"Copy the file name or file path from dired into clipboard.
+  (advice-add 'dired-copy-filename-as-kill :after
+              (defun inc0n/dired-copy-filename-as-kill-hack ()
+                "Copy the file name or file path from dired into clipboard.
 Press \"w\" to copy file name.
 Press \"C-u 0 w\" to copy full path."
-	(let ((str (current-kill 0)))
-	  (util/set-clip str)
-	  (message "%s => clipboard" str)))
-  (advice-add 'dired-copy-filename-as-kill :after
-			  #'inc0n/dired-copy-filename-as-kill-hack))
+                (let ((str (current-kill 0)))
+	              (copy-to-clipboard str)
+	              (message "%s => clipboard" str))))
+
+  ;; avy, jump between texts, like easymotion in vim
+  ;; @see http://emacsredux.com/blog/2015/07/19/ace-jump-mode-is-dead-long-live-avy/ for more tips
+  ;; (diredfl-global-mode 1)
+  (add-hook 'dired-mode-hook 'diredfl-mode)
+  (define-key dired-mode-map (kbd ";") 'avy-goto-subword-1))
 
 (with-eval-after-load 'dired-aux
   (add-to-list 'dired-compress-file-suffixes '("\\.rar\\'" "" "7z x -aoa -o%o %i")))

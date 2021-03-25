@@ -1,4 +1,7 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
+;;; Code:
+
+(require-package 'magit)
 
 ;; ;; {{ Solution 1: disable all vc backends
 ;; @see http://stackoverflow.com/questions/5748814/how-does-one-disable-vc-git-in-emacs
@@ -246,9 +249,8 @@ If USER-SELECT-BRANCH is not nil, rebase on the tag or branch selected by user."
     (save-excursion
       (while (<= linenum-start linenum-end)
         (goto-line linenum-start)
-        (let ((tmp-line (replace-regexp-in-string
-						 "^[ \t]*" ""
-						 (util/line-str))))
+        (let ((tmp-line
+               (string-trim (util/line-str))))
           (when (> (length tmp-line) max-line-length)
 			(setq target-linenum linenum-start)
 			(setq target-line tmp-line)
