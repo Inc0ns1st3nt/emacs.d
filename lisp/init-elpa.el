@@ -20,7 +20,7 @@
 ;;   ("melpa-stable" . "http://mirrors.tuna.tsinghua.edu.cn/elpa/melpa-stable/"))
 
 (defun inc0n/emacs-d (path)
-  "get the expanded path under .emacs.d"
+  "Get the expanded PATH under .emacs.d."
   (expand-file-name path user-emacs-directory))
 
 (when (and (null noninteractive)         ; no popup in batch mode
@@ -37,7 +37,7 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
 
 ;; On-demand installation of packages
 (defun require-package (package &optional min-version no-refresh)
-  "Ask elpa to install given PACKAGE."
+  "Ask elpa to install given PACKAGE for MIN-VERSION."
   (or (package-installed-p package min-version)
       (if (or (assoc package package-archive-contents)
               no-refresh)
@@ -135,10 +135,8 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
 (require-package 'pinyinlib)
 (require-package 'find-by-pinyin-dired)
 (require-package 'nvm)
-(require-package 'writeroom-mode)
 (require-package 'link)
 (require-package 'connection)
-(require-package 'dictionary) ; dictionary requires 'link and 'connection
 (require-package 'htmlize)
 (require-package 'scratch)
 (require-package 'textile-mode)
@@ -194,7 +192,6 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
 ;; }}
 
 (require-package 'rainbow-mode)
-(require-package 'magit)
 
 ;; kill buffer without my confirmation
 ;; (setq kill-buffer-query-functions (delq 'process-kill-buffer-query-function kill-buffer-query-functions))

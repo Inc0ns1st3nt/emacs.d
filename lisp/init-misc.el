@@ -69,38 +69,45 @@
 (defun selectrum-select-fonts ()
   "`completion-read' style font selection."
   (interactive)
-  (let ((font (completing-read
+  (let ((font (selectrum-read
                "Selector font: "
                '("DejaVu Sans Mono"
                  ;; "Bitstream Vera Sans Mono"
                  "Source Code Pro"
                  "Fira Code"
-                 "Monoid"
                  "Hack"
-                 "Liberation mono"
+                 "Liberation Mono"
+                 "Inconsolata"
                  "Consolas Ligaturized"
-                 "OCRA"
                  "Roboto Mono"
+                 "Jetbrains Mono"
                  "monego"
-                 "monaco"))))
-    (set-face-attribute 'default nil :font font :weight 'normal :slant 'normal)
+                 "Courier Prime"
+                 "Anonymous Pro"
+                 "Amiri Typewriter"
+                 "Alegreya"
+                 "AR PL New Kai")
+               :require-match t)))
+    (set-face-attribute 'default nil :font font :weight 'normal :slant 'normal :height 140)
+    (chinese/fix-font)
     (message "Font: %s" font)))
+;; (setq-default line-spacing 3)
+;; (set-face-attribute 'default nil :weight 'normal :slant 'normal :height 140)
 
-;; {{ auto-yasnippet
+
 (require-package 'auto-yasnippet)
 ;; Use C-q instead tab to complete snippet
 ;; - aya-create at first, input ~ to mark the thing next
 ;; - aya-expand to expand snippet
 ;; - aya-open-line to finish
 (global-set-key (kbd "C-q") 'aya-open-line)
-;; }}
 
-;; {{ ace-link
+
 (require-package 'ace-link)
 (with-eval-after-load 'ace-link
   (ace-link-setup-default))
 (global-set-key (kbd "M-z") 'ace-link) ;; zap-to-char
-;; }}
+
 
 ;; {{ isearch
 ;; Use regex to search by default
@@ -108,6 +115,10 @@
 (global-set-key (kbd "C-M-r") 'isearch-backward-regexp)
 (define-key isearch-mode-map (kbd "C-o") 'isearch-occur)
 ;; }}
+
+;; paren mode
+(add-hook 'after-init-hook 'show-paren-mode)
+(show-paren-mode 1)
 
 ;; {{ misc
 (blink-cursor-mode 0)
@@ -119,6 +130,7 @@
               grep-highlight-matches t
               grep-scroll-output t
               indent-tabs-mode nil
+              delete-by-moving-to-trash t
               mouse-yank-at-point nil
               set-mark-command-repeat-pop t
               tooltip-delay 1.5
@@ -129,9 +141,12 @@
               ;; visible-bell has some issue
               ;; @see https://github.com/redguardtoo/mastering-emacs-in-one-year-guide/issues/9#issuecomment-97848938
               visible-bell nil
-			  line-spacing 1)
+			  line-spacing 3)
 
-;; some project prefer tab, so be it
+(setq calc-symbolic-mode t
+      calc-angle-mode 'rad)
+
+;; Some project prefer tab, so be it
 ;; @see http://stackoverflow.com/questions/69934/set-4-space-indent-in-emacs-in-text-mode
 (setq-default tab-width 4)
 
@@ -146,7 +161,7 @@
   (setq indent-tabs-mode (not indent-tabs-mode))
   (message "indent-tabs-mode is turned %s" (if indent-tabs-mode "off" "on")))
 
-;; {{ find-file-in-project (ffip)
+;
 (require-package 'find-file-in-project)
 (with-eval-after-load 'find-file-in-project
   (defun inc0n/search-git-reflog-code ()
@@ -158,25 +173,7 @@
   (push 'inc0n/search-git-reflog-code ffip-diff-backends)
   (setq ffip-match-path-instead-of-filename t))
 
-(defun neotree-project-dir ()
-  "Open NeoTree using the git root."
-  (interactive)
-  (if-let ((project-dir (ffip-get-project-root-directory))
-           (file-name (buffer-file-name)))
-      (progn
-        (neotree-dir project-dir)
-        (neotree-find file-name))
-    (message "Could not find git project root.")))
-;; }}
-
-;; {{ gradle
-(defun inc0n/run-gradle-in-shell (cmd)
-  (interactive "sEnter a string:")
-  (when-let ((default-directory
-              (locate-dominating-file default-directory "build.gradle")))
-    (shell-command (concat "gradle " cmd "&"))))
-;; }}
-
+(require-package 'dictionary) ; dictionary requires 'link and 'connection
 (defun inc0n/lookup-dict-org (word)
   (interactive (list (util/thing-at-point)))
   (dictionary-new-search
@@ -184,12 +181,12 @@
                                           word)
          dictionary-default-dictionary)))
 
-;; {{ bookmark
+
 (with-eval-after-load 'bookmark
   ;; use my own bookmark if it exists
   (when (file-exists-p (file-truename "~/.emacs.bmk"))
     (setq bookmark-file (file-truename "~/.emacs.bmk"))))
-;; }}
+
 
 (defun lookup-doc-in-man ()
   "Read man by querying keyword at point."
@@ -217,41 +214,40 @@ This function can be re-used by other major modes after compilation."
       ;; (winner-undo)
       (message "NO COMPILATION ERRORS!"))))
 
-(defun inc0n/electric-pair-inhibit (char)
-  ;; (electric-pair-conservative-inhibit char)
-  (or (and (memq major-mode '(minibuffer-inactive-mode))
-		   (not (string-match "^Eval:" (buffer-string))))
-	  ;; input single/double quotes at the end of word
-	  (and (memq char '(?\" ?\'))
-           (char-before (1- (point)))
-           (eq (char-syntax (char-before (1- (point)))) ?w))
-	  ;; I find it more often preferable not to pair when the
-	  ;; same char is next.
-	  (eq char (char-after))
-	  ;; Don't pair up when we insert the second of "" or of ((.
-	  (and (eq char ?\")
-           (eq char (char-before (1- (point)))))
-      ;; I also find it often preferable not to pair next to a word.
-      (eq (char-syntax (following-char)) ?w)))
-
 (with-eval-after-load 'elec-pair
-  (setq electric-pair-inhibit-predicate #'inc0n/electric-pair-inhibit))
+  (setq electric-pair-inhibit-predicate
+        (defun inc0n/electric-pair-inhibit (char)
+          ;; (electric-pair-conservative-inhibit char)
+          (or (and (memq major-mode '(minibuffer-inactive-mode))
+		           (not (string-match "^Eval:" (buffer-string))))
+	          ;; input single/double quotes at the end of word
+	          (and (memq char '(?\" ?\'))
+                   (char-before (1- (point)))
+                   (eq (char-syntax (char-before (1- (point)))) ?w))
+	          ;; I find it more often preferable not to pair when the
+	          ;; same char is next.
+	          (eq char (char-after))
+	          ;; Don't pair up when we insert the second of "" or of ((.
+	          (and (eq char ?\")
+                   (eq char (char-before (1- (point)))))
+              ;; I also find it often preferable not to pair next to a word.
+              (eq (char-syntax (following-char)) ?w)))))
 
-(defun my-prog-nuke-trailing-whitespace ()
-  "Only operate in the visible region of the window.
+(add-hook 'before-save-hook
+          (defun my-prog-nuke-trailing-whitespace ()
+            "Only operate in the visible region of the window.
 With exception to the current line."
-  (when (derived-mode-p 'prog-mode)
-    (let ((win-beg (window-start))
-          (win-end (window-end))
-          (line-beg (line-beginning-position))
-          (line-end (line-end-position)))
-      (if (and (not (or (< line-beg win-beg)
-                        (> line-end win-end)))
-               (evil-state-p 'insert))
-          (progn (delete-trailing-whitespace win-beg line-beg)
-                 (delete-trailing-whitespace line-end win-end))
-        (delete-trailing-whitespace win-beg win-end)))))
-(add-hook 'before-save-hook 'my-prog-nuke-trailing-whitespace)
+            (when (derived-mode-p 'prog-mode)
+              (let ((win-beg (window-start))
+                    (win-end (window-end))
+                    (line-beg (line-beginning-position))
+                    (line-end (line-end-position)))
+                (if (and (not (or (< line-beg win-beg)
+                                  (> line-end win-end)))
+                         (evil-insert-state-p))
+                    (progn (delete-trailing-whitespace win-beg line-beg)
+                           (delete-trailing-whitespace line-end win-end))
+                  (delete-trailing-whitespace win-beg win-end))))))
 
 (defun buffer-too-big-p ()
   ;; 5000 lines
@@ -330,6 +326,8 @@ With exception to the current line."
                           "/sudo:"
                           "recentf$"
                           "company-statistics-cache\\.el$"
+                          ".emacs.d/elpa"
+                          "/usr/share/emacs"
                           ;; ctags
                           "/TAGS$"
                           ;; global
@@ -348,6 +346,20 @@ With exception to the current line."
                           "\\.srt$"
                           "\\.ass$")))
 (util/add-to-timed-init-hook 1 #'recentf-mode)
+;; }}
+
+
+;; {{ show current function name in `mode-line'
+;; (defun inc0n/which-func-update-hack (orig-func &rest args)
+;;   "`which-function-mode' scanning makes Emacs unresponsive in big buffer."
+;;   (unless (buffer-too-big-p)
+;;     (apply orig-func args)))
+;; (advice-add 'which-func-update :around #'inc0n/which-func-update-hack)
+
+;; (autoload 'which-function "which-func")
+;; (with-eval-after-load 'which-function
+;;   (add-to-list 'which-func-modes 'org-mode))
+(which-function-mode 0)
 ;; }}
 
 ;; {{ popup functions
@@ -380,15 +392,6 @@ With exception to the current line."
 ;; (require-package 'ace-pinyin)
 ;; (add-hook 'after-init-hook 'ace-pinyin-global-mode)
 
-;; {{ avy, jump between texts, like easymotion in vim
-;; @see http://emacsredux.com/blog/2015/07/19/ace-jump-mode-is-dead-long-live-avy/ for more tips
-;; dired
-(with-eval-after-load 'dired
-  ;; (diredfl-global-mode 1)
-  (add-hook 'dired-mode-hook 'diredfl-mode)
-  (define-key dired-mode-map (kbd ";") 'avy-goto-subword-1))
-;; }}
-
 ;; {{ start dictionary lookup
 ;; use below commands to create dictionary
 ;; mkdir -p ~/.stardict/dic
@@ -406,33 +409,18 @@ With exception to the current line."
 ;; ANSI-escape coloring in compilation-mode
 ;; {{ http://stackoverflow.com/questions/13397737/ansi-coloring-in-compilation-mode
 (when (require 'ansi-color nil t)
-  (defun inc0n/colorize-compilation-buffer ()
-    (ansi-color-apply-on-region compilation-filter-start (point-max)))
-  (add-hook 'compilation-filter-hook #'inc0n/colorize-compilation-buffer))
+  (define-hook-setup 'compilation-filter-hook
+    (ansi-color-apply-on-region compilation-filter-start (point-max))))
 ;; }}
 
-(defun inc0n/minibuffer-setup-hook ()
+;; @see http://bling.github.io/blog/2016/01/18/why-are-you-changing-gc-cons-threshold/
+(define-hook-setup 'minibuffer-setup-hook
   ;; (local-set-key (kbd "C-k") #'kill-line)
   (subword-mode t)             ; enable subword movement in minibuffer
   (setq gc-cons-threshold most-positive-fixnum))
-
-(defun inc0n/minibuffer-exit-hook ()
+(define-hook-setup 'minibuffer-exit-hook
   ;; evil-mode also use minibuf
   (setq gc-cons-threshold normal-gc-cons-threshold))
-
-;; @see http://bling.github.io/blog/2016/01/18/why-are-you-changing-gc-cons-threshold/
-(add-hook 'minibuffer-setup-hook #'inc0n/minibuffer-setup-hook)
-(add-hook 'minibuffer-exit-hook #'inc0n/minibuffer-exit-hook)
-
-(defun extract-list-from-package-json ()
-  "Extract package list from package.json."
-  (interactive)
-  (let ((str (util/use-selected-string-or-ask)))
-	(setq str (replace-regexp-in-string ":.*$\\|\"" "" str))
-	;; join lines)
-	(setq str (replace-regexp-in-string "[\r\n \t]+" " " str))
-    (util/set-clip str)
-    (message "%s => clipboard & yank ring" str)))
 
 (defun inc0n/insert-absolute-path ()
   "Relative path to full path."
@@ -464,10 +452,9 @@ With exception to the current line."
 ;;   (add-hook 'after-init-hook 'auto-save-enable))
 ;; }}
 
-;; {{ csv
+
 (with-eval-after-load 'csv-mode
   (setq csv-separators '("," ";" "|" " ")))
-;; }}
 
 ;; {{ regular expression tools
 (defun inc0n/create-regex-from-kill-ring (&optional n)
@@ -505,21 +492,21 @@ With exception to the current line."
 (add-hook 'rjsx-mode-hook  'emmet-mode)
 ;; }}
 
-(defun sgml-mode-hook-setup ()
-  "`sgml-mode' or `html-mode' setup."
-  ;; let web-mode handle indentation by itself since it does not
-  ;; derive from `sgml-mode'
-  (setq-local indent-region-function #'sgml-pretty-print))
-(add-hook 'sgml-mode-hook #'sgml-mode-hook-setup)
+(add-hook 'sgml-mode-hook
+          (defun sgml-mode-hook-setup ()
+            "`sgml-mode' or `html-mode' setup."
+            ;; let web-mode handle indentation by itself since it does not
+            ;; derive from `sgml-mode'
+            (setq-local indent-region-function #'sgml-pretty-print)))
 
 ;; {{ xterm
-(defun run-after-make-frame-hooks (frame)
-  (select-frame frame)
-  (unless window-system
-    ;; Mouse in a terminal (Use shift to paste with middle button)
-    ;; (xterm-mouse-mode 1)
-    ))
-(add-hook 'after-make-frame-functions #'run-after-make-frame-hooks)
+(add-hook 'after-make-frame-functions
+          (defun run-after-make-frame-hooks (frame)
+            (select-frame frame)
+            (unless window-system
+              ;; Mouse in a terminal (Use shift to paste with middle button)
+              ;; (xterm-mouse-mode 1)
+              )))
 ;; }}
 
 ;; {{ check attachments
@@ -553,26 +540,26 @@ With exception to the current line."
 (add-hook 'message-send-hook #'inc0n/message-pre-send-check-attachment)
 ;; }}
 
-(defun minibuffer-inactive-mode-hook-setup ()
-  "Make `try-expand-dabbrev' from `hippie-expand' work in mini-buffer.
-@see `he-dabbrev-beg', so we need re-define syntax for '/'."
-  (set-syntax-table (let ((table (make-syntax-table)))
-                      (modify-syntax-entry ?/ "." table)
-                      table)))
-;; (add-hook 'minibuffer-inactive-mode-hook #'minibuffer-inactive-mode-hook-setup)
+;; (add-hook 'minibuffer-inactive-mode-hook
+;;           (defun minibuffer-inactive-mode-hook-setup ()
+;;             "Make `try-expand-dabbrev' from `hippie-expand' work in mini-buffer.
+;; @see `he-dabbrev-beg', so we need re-define syntax for '/'."
+;;             (set-syntax-table (let ((table (make-syntax-table)))
+;;                                 (modify-syntax-entry ?/ "." table)
+;;                                 table))))
 
 ;; {{ vc-msg
-(defun vc-msg-hook-setup (vcs-type commit-info)
-  "Copy commit id from COMMIT-INFO to clipboard.
+(add-hook 'vc-msg-hook
+          (defun vc-msg-hook-setup (vcs-type commit-info)
+            "Copy commit id from COMMIT-INFO to clipboard.
 VCS-TYPE is ignored."
-  (util/set-clip (plist-get commit-info :id)))
-(add-hook 'vc-msg-hook #'vc-msg-hook-setup)
+            (util/set-clip (plist-get commit-info :id))))
 
-(defun vc-msg-show-code-setup ()
-  "Use `ffip-diff-mode' instead of `diff-mode'."
-  (util/ensure 'find-file-in-project)
-  (ffip-diff-mode))
-(add-hook 'vc-msg-show-code-hook #'vc-msg-show-code-setup)
+(add-hook 'vc-msg-show-code-hook
+          (defun vc-msg-show-code-setup ()
+            "Use `ffip-diff-mode' instead of `diff-mode'."
+            (util/ensure 'find-file-in-project)
+            (ffip-diff-mode)))
 ;; }}
 
 (with-eval-after-load 'grep
@@ -608,13 +595,12 @@ VCS-TYPE is ignored."
   (add-hook 'grep-mode-hook (lambda () (setf truncate-lines nil))))
 
 ;; {{ https://www.emacswiki.org/emacs/EmacsSession better than "desktop.el" or "savehist".
-(require-package 'session)
 ;; Any global variable matching `session-globals-regexp' is saved *automatically*.
+(require-package 'session)
 (with-eval-after-load 'session
   (setq session-save-file (inc0n/emacs-d ".session"))
   (setq session-globals-max-size 512)
-  ;; can store 4Mb string
-  (setq session-globals-max-string (* 4 1024))
+  (setq session-globals-max-string (* 4 1024)) ; can store 4Mb string
   (setq session-globals-include '(kill-ring
                                   (session-file-alist 100 t)
                                   inc0n/dired-commands-history
@@ -634,11 +620,11 @@ VCS-TYPE is ignored."
     (save-excursion
       (imenu--generic-function patterns))))
 
-(defun adoc-mode-hook-setup ()
-  "Don't wrap lines because there is table in `adoc-mode'."
-  (setq truncate-lines t)
-  (setq imenu-create-index-function 'adoc-imenu-index))
-(add-hook 'adoc-mode-hook #'adoc-mode-hook-setup)
+(add-hook 'adoc-mode-hook
+          (defun adoc-mode-hook-setup ()
+            "Don't wrap lines because there is table in `adoc-mode'."
+            (setq truncate-lines t)
+            (setq imenu-create-index-function 'adoc-imenu-index)))
 ;; }}
 
 (with-eval-after-load 'compile
@@ -772,13 +758,10 @@ version control automatically."
   "Set/unset the environment variable http_proxy used by w3m."
   (interactive)
   (let ((proxy "http://127.0.0.1:8000"))
-    (cond
-     ((string= (getenv "http_proxy") proxy)
-      (setenv "http_proxy" "")
-      (message "env http_proxy is empty now"))
-     (t
-      (setenv "http_proxy" proxy)
-      (message "env http_proxy is %s now" proxy)))))
+    (if (string= (getenv "http_proxy") proxy)
+        (setenv "http_proxy" "")
+      (setenv "http_proxy" proxy))
+    (message "env http_proxy is %s now" (or proxy "empty"))))
 
 ;; Don't disable narrowing commands
 (put 'narrow-to-region 'disabled nil)
@@ -792,35 +775,21 @@ version control automatically."
 ;; {{ easygpg setup
 ;; @see http://www.emacswiki.org/emacs/EasyPG#toc4
 (with-eval-after-load 'epg
-  (defun inc0n/epg--start-hack (orig-func &rest args)
-    "Make `epg--start' not able to find gpg-agent."
-    (let ((agent (getenv "GPG_AGENT_INFO")))
-      (setenv "GPG_AGENT_INFO" nil)
-      (apply orig-func args)
-      (setenv "GPG_AGENT_INFO" agent)))
-  (advice-add 'epg--start :around #'inc0n/epg--start-hack)
+  (advice-add 'epg--start :around
+              (defun inc0n/epg--start-hack (orig-func &rest args)
+                "Make `epg--start' not able to find gpg-agent."
+                (let ((agent (getenv "GPG_AGENT_INFO")))
+                  (setenv "GPG_AGENT_INFO" nil)
+                  (apply orig-func args)
+                  (setenv "GPG_AGENT_INFO" agent))))
 
   (unless (string-match-p
            "^gpg (GnuPG) 1.4"
            (shell-command-to-string (format "%s --version" epg-gpg-program)))
-
-    ;; "apt-get install pinentry-tty" if using emacs-nox
+    ;; install "pinentry-tty" package if using emacs-nox
     ;; Create `~/.gnupg/gpg-agent.conf' which has one line
     ;; "pinentry-program /usr/bin/pinentry-curses"
     (setq epa-pinentry-mode 'loopback)))
-;; }}
-
-;; {{ show current function name in `mode-line'
-;; (defun inc0n/which-func-update-hack (orig-func &rest args)
-;;   "`which-function-mode' scanning makes Emacs unresponsive in big buffer."
-;;   (unless (buffer-too-big-p)
-;;     (apply orig-func args)))
-;; (advice-add 'which-func-update :around #'inc0n/which-func-update-hack)
-
-;; (autoload 'which-function "which-func")
-;; (with-eval-after-load 'which-function
-;;   (add-to-list 'which-func-modes 'org-mode))
-(which-function-mode 0)
 ;; }}
 
 ;; {{ pomodoro
@@ -855,26 +824,36 @@ version control automatically."
 		 (forward-word)
 		 (forward-char -1)
 		 (sdcv-search-input (thing-at-point 'word))))
-  (defun nov-mode-setup ()
-    (setq-local visual-fill-column-extra-text-width '(0 . 0)
-                visual-fill-column-center-text t)
-    (visual-line-mode 1)
-    (visual-fill-column-mode 1)
+  (define-hook-setup 'nov-mode-hook
     (face-remap-add-relative 'variable-pitch
                              :family "Libreation Serif"
-                             :height 1.0))
-  (add-hook 'nov-mode-hook 'nov-mode-setup))
+                             :width 'semi-expanded
+                             :height 1.0)
+    (setq-local line-spacing 0.2
+                next-screen-context-lines 4)
+    (setq-local visual-fill-column-center-text t
+                ;; visual-fill-column-extra-text-width '(0 . 0)
+                nov-text-width 80)
+    ;; nov-render-html
+    (visual-line-mode 1)
+    (visual-fill-column-mode 1)
+    (setq-local simple-modeline-segments
+                `((simple-modeline-segment-winum
+                   simple-modeline-segment-evil-modal
+                   simple-modeline-segment-modified
+                   simple-modeline-segment-nov-info)
+                  (simple-modeline-segment-major-mode)))))
 ;; }}
 
 ;; {{ octave
-(defun octave-mode-hook-setup ()
-  "Set up of `octave-mode'."
-  (abbrev-mode 1)
-  (auto-fill-mode 1)
-  (font-lock-mode 1)
-  (setq-local comment-start "%"
-			  comment-add 0))
-(add-hook 'octave-mode-hook #'octave-mode-hook-setup)
+(add-hook 'octave-mode-hook
+          (defun octave-mode-hook-setup ()
+            "Set up of `octave-mode'."
+            (abbrev-mode 1)
+            (auto-fill-mode 1)
+            (font-lock-mode 1)
+            (setq-local comment-start "%"
+			            comment-add 0)))
 ;; }}
 
 ;; {{ wgrep setup
@@ -888,6 +867,15 @@ version control automatically."
 ;; }}
 
 ;; {{ edit-server
+(when (require-package 'edit-server)
+  (with-eval-after-load 'edit-server
+    (setq edit-server-new-frame t)
+    (add-hook 'edit-server-start-hook #'edit-server-start-hook-setup))
+  ;; (when (require-package 'edit-server-htmlize)
+  ;;   (add-hook 'edit-server-start-hook #'edit-server-maybe-dehtmlize-buffer)
+  ;;   (add-hook 'edit-server-done-hook #'edit-server-maybe-htmlize-buffer))
+  (add-hook 'after-init-hook 'edit-server-start))
+
 (defun edit-server-start-hook-setup ()
   "Some web sites actually pass html to edit server."
   (let ((url (buffer-name)))
@@ -907,21 +895,11 @@ version control automatically."
 		   (replace-regexp "<br data-text=\"true\">" "")))
     ;; just to ensure that if the major got overwritten
     (edit-server-edit-mode)))
-
-(when (require-package 'edit-server)
-  (with-eval-after-load 'edit-server
-    (setq edit-server-new-frame t)
-    (add-hook 'edit-server-start-hook #'edit-server-start-hook-setup))
-  (add-hook 'after-init-hook 'edit-server-start)
-  ;; (when (require-package 'edit-server-htmlize)
-  ;;   (add-hook 'edit-server-start-hook #'edit-server-maybe-dehtmlize-buffer)
-  ;;   (add-hook 'edit-server-done-hook #'edit-server-maybe-htmlize-buffer))
-  )
 ;; }}
 
+(autoload #'server-running-p "server" "runs the emacs server." nil)
 (defun run-server ()
   "Run a singleton Emacs server."
-  (require 'server)
   (if (server-running-p)
       (message "server already started")
     (message "server started")
@@ -931,12 +909,14 @@ version control automatically."
 ;; {{ which-key
 (require-package 'which-key)
 (setq which-key-allow-imprecise-window-fit t ; performance
-      which-key-idle-delay 0.5
+      which-key-idle-delay 0.7
       which-key-separator ":"
 	  which-key-add-column-padding 0
       which-key-allow-evil-operators t
       which-key-show-operator-state-maps t
       which-key-max-description-length 25
+      which-key-side-window-max-height 0.25
+      which-key-frame-max-height 25
       which-key-min-display-lines 2)
 (add-hook 'after-init-hook 'which-key-mode)
 ;; }}
@@ -948,6 +928,44 @@ version control automatically."
 		eldoc-echo-area-use-multiline-p t))
 ;; }}
 
+;; {{ ligature
+(local-require 'ligature)
+;; (setq ligature-composition-table nil)
+(with-eval-after-load 'ligature
+  (add-to-list-multi 'ligature-ignored-major-modes '(c-mode c++-mode))
+  (ligature-set-ligatures 'text-mode
+                          '("::" "->" "=>" "==" "===" "!="
+							"++" "<-" "/=" ">=" "<=" "..." "&&" "||" "//"))
+  (ligature-set-ligatures 'prog-mode
+                          '("::" ":::" "->" "=>" "==" "===" "!="
+							"++" "<-" "/=" ">=" "<=" ".."
+							"..." "&&" "||" "//")))
+(add-hook 'after-init-hook
+          (lambda () (global-ligature-mode -1)))
+;; }}
+
+;; {{
+(local-package 'highlight-symbol)
+(with-eval-after-load 'highlight-symbol
+  (setq highlight-symbol-colors
+		(delete "SpringGreen1"
+				(delete "yellow" highlight-symbol-colors))
+        highlight-symbol-just-one t
+		highlight-symbol-idle-delay 1.0))
+;; }}
+
+
+(require-package 'rainbow-delimiters)
+(setq rainbow-delimiters-max-face-count 1)
+
+
+;; {{ `browse-url' setup
+;; default browser would be w3m or eww
+(setq-default browse-url-generic-program "firefox"
+              browse-url-generic-args '("--private-window")
+              browse-url-firefox-arguments '("--private-window")
+              browse-url-browser-function 'browse-url-firefox)
+
 (defun inc0n/browse-file ()
   "Read a file name and open it in browser."
   (interactive)
@@ -956,11 +974,43 @@ version control automatically."
 				   (or (buffer-file-name)
 					   default-directory))))
 
-;; {{ `browse-url' setup
-;; default browser would be w3m or eww
-;; (setq-default browse-url-generic-program "firefox")
-;; (setq-default browse-url-generic-args '("--private-window"))
-(setq-default browse-url-firefox-arguments '("--private-window"))
+(defun browse-hackernews ()
+  "Browse hackernews."
+  (interactive)
+  (browse-url "https://news.ycombinator.com/"))
+;; }}
+
+
+;; (require-package 'golden-ratio)
+(autoload 'golden-ratio-mode "golden-ratio" "golden ratio")
+(add-hook 'after-init-hook 'golden-ratio-mode)
+
+(with-eval-after-load 'golden-ratio
+  (setq golden-ratio-max-width 120
+        golden-ratio-adjust-factor 1.0
+        golden-ratio-auto-scale t
+        golden-ratio-exclude-modes '(ediff-mode xref--xref-buffer-mode)))
+
+(require-package 'focus)
+(with-eval-after-load 'focus
+  (setq focus-current-thing 'paragraph)
+  (setq focus-mode-to-thing '((org-mode . defun)
+                              (prog-mode . defun)
+                              (text-mode . line))))
+
+;; {{ project
+(defun project-try-npm (dir)
+  "My project-try for JavaScript (Nodejs) projects.
+By locating package.json around DIR."
+  (when-let ((root (and (memq major-mode '(js-mode js2-mode rjsx-mode))
+                        (locate-dominating-file dir "package.json"))))
+    (cons 'npm root)))
+
+(cl-defmethod project-roots ((project (head npm)))
+  (list (cdr project)))
+
+(with-eval-after-load 'project
+  (add-to-list 'project-find-functions 'project-try-npm))
 ;; }}
 
 ;; {{ cache files
@@ -983,31 +1033,6 @@ version control automatically."
   (setq keyfreq-file (inc0n/emacs.d/cache "keyfreq")
 		keyfreq-file-lock (inc0n/emacs.d/cache "keyfreq.lock")))
 ;; }}
-
-;; {{ ligature
-(local-require 'ligature)
-;; (setq ligature-composition-table nil)
-(with-eval-after-load 'ligature
-  (ligature-set-ligatures 'prog-mode '("::" ":::" "->" "=>" "==" "===" "!="
-									   "++" "<-" "/=" ">=" "<=" ".."
-									   "..." "&&" "||" "//")))
-(add-hook 'after-init-hook
-		  (lambda ()
-			(global-ligature-mode 0)))
-;; }}
-
-;; {{
-(require-package 'highlight-symbol)
-(with-eval-after-load 'highlight-symbol
-  (setq highlight-symbol-colors
-		(delete "SpringGreen1"
-				(delete "yellow" highlight-symbol-colors))
-		highlight-symbol-idle-delay 1.0))
-;; }}
-
-
-(with-eval-after-load 'rainbow-delimiters
-  (setq rainbow-delimiters-max-face-count 1))
 
 (defun clean-backup-dir ()
   "Delete the files in the backup dir that are not in the list of `recentf-list'."
@@ -1052,42 +1077,16 @@ Optional argument IGNORED is ignored."
     (sorted t)
     (no-cache t)))
 
-(define-key minibuffer-local-map (kbd "M-ESC") 'keyboard-escape-quit)
+(defun system-move-file-to-trash (file)
+  "Use `trash' to move FILE to the system trash."
+  ;; (async-shell-command )
+  (call-process (executable-find "trash")
+		        nil 0 nil
+		        file))
+
+;; (define-key minibuffer-local-map (kbd "M-ESC") nil)
+(define-key minibuffer-local-map [escape] 'keyboard-escape-quit)
 (global-set-key (kbd "C-;") 'company-kill-ring) ;; replaces fly spell-auto-correct-previous-word
-
-(defun browse-hackernews ()
-  "Browse hackernews."
-  (interactive)
-  (browse-url "https://news.ycombinator.com/"))
-
-(require-package 'golden-ratio)
-(with-eval-after-load 'golden-ratio
-  (add-hook 'after-init-hook 'golden-ratio-mode)
-  (setq ;; golden-ratio-max-width 100
-   ;; golden-ratio-adjust-factor
-   golden-ratio-auto-scale t))
-
-(require-package 'focus)
-(with-eval-after-load 'focus
-  (setq focus-current-thing 'paragraph)
-  (setq focus-mode-to-thing '((org-mode . defun)
-                              (prog-mode . defun)
-                              (text-mode . line))))
-
-;; {{ project
-(defun project-try-npm (dir)
-  "My project-try for JavaScript (Nodejs) projects.
-By locating package.json around DIR."
-  (when-let ((root (and (memq major-mode '(js-mode js2-mode rjsx-mode))
-                        (locate-dominating-file dir "package.json"))))
-    (cons 'npm root)))
-
-(cl-defmethod project-roots ((project (head npm)))
-  (list (cdr project)))
-
-(with-eval-after-load 'project
-  (add-to-list 'project-find-functions 'project-try-npm))
-;; }}
 
 (provide 'init-misc)
 ;;; init-misc.el ends here

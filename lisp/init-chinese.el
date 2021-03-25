@@ -2,7 +2,17 @@
 ;;; Code:
 
 (require-package 'pyim)
-(require-package 'cnfonts)
+
+(defun chinese/fix-font ()
+  "Chinese font setup."
+  (interactive)
+  (let ((chinese "AR PL UKai CN"))
+    (dolist (charset '(kana han symbol cjk-misc bopomofo))
+      (set-fontset-font (frame-parameter nil 'font) charset
+                        (font-spec :family chinese)))))
+
+(chinese/fix-font)
+;; (add-hook 'after-init-hook 'chinese/fix-font)
 
 ;; {{ make IME compatible with evil-mode
 (defun evil-toggle-input-method ()
@@ -60,21 +70,20 @@
 
   ;; automatically load pinyin dictionaries "*.pyim" under "~/.eim/"
   ;; `directory-files-recursively' requires Emacs 25
-
-  (let ((files (and (file-exists-p inc0n/pyim-directory)
-					(directory-files-recursively inc0n/pyim-directory "\.pyim$"))))
-    (when (and files (> (length files) 0))
-	  (setq pyim-dicts
-            (mapcar (lambda (f)
-					  (list :name (file-name-base f) :file f))
-                    files))
-	  ;; disable "basedict" if bigdict or greatdict is used
-	  (when (cl-notany (lambda (f)
-						 (or (string= "pyim-another-dict" (file-name-base f))
-							 (string= "pyim-bigdict" (file-name-base f))
-							 (string= "pyim-greatdict" (file-name-base f))))
-					   files)
-		(pyim-basedict-enable))))
+  (when (file-exists-p inc0n/pyim-directory)
+    (let ((files (directory-files-recursively inc0n/pyim-directory "\.pyim$")))
+      (when (and files (> (length files) 0))
+	    (setq pyim-dicts
+              (mapcar (lambda (f)
+					    (list :name (file-name-base f) :file f))
+                      files))
+	    ;; disable "basedict" if bigdict or greatdict is used
+	    (when (cl-notany (lambda (f)
+						   (or (string= "pyim-another-dict" (file-name-base f))
+							   (string= "pyim-bigdict" (file-name-base f))
+							   (string= "pyim-greatdict" (file-name-base f))))
+					     files)
+		  (pyim-basedict-enable)))))
 
   ;; don't use tooltip
   (setq pyim-use-tooltip 'popup))
@@ -2653,7 +2662,7 @@
 				 "罐" 110)))
 
 (defun inc0n/chinese-compare (w1 w2)
-  "Compare Chinese word W2 and W3 by pinyin."
+  "Compare Chinese word W1 and W2 by pinyin."
   (cl-loop with max-len = (min (length w1) (length w2))
 		   while (< i max-len)
 		   for i from 0
@@ -2666,11 +2675,11 @@
 		   finally return (eq max-len (legnth w1))))
 
 (defun inc0n/chinese-sort-word-list (word-list)
-  (when word-list
-    (sort word-list #'inc0n/chinese-compare)))
+  (and word-list (sort word-list #'inc0n/chinese-compare)))
 
 ;; (message "test: %s" (inc0n/chinese-sort-word-list '("小明" "小红" "张三" "李四" "王二" "大李" "古力娜扎" "迪丽热巴")))
 ;; '(大李 古力娜扎 李四 王二 小红 小明 张三 迪丽热巴)
 
 ;; }}
 (provide 'init-chinese)
+;;; init-chinese ends here
