@@ -32,4 +32,3 @@
   (setq css-indent-offset 2))
 
 (provide 'init-css)
-;;; init-css.el ends here

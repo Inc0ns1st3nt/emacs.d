@@ -190,7 +190,7 @@ ARG is ignored."
   (setq org-list-demote-modify-bullet '(("+" . "-") ("-" . "+") ("*" . "+") ("1." . "a."))
         org-list-allow-alphabetical t  ; have a. A. a) A) list bullets
         )
-  (setq org-export-in-background t ; run export processes in external emacs process
+  (setq org-export-in-background nil ; run export processes in external emacs process
         org-catch-invisible-edits 'smart ; try not to accidently do weird stuff in invisible regions
         org-export-with-sub-superscripts '{} ; don't treat lone _ / ^ as sub/superscripts, require _{} / ^{}
         )
@@ -281,7 +281,8 @@ ARG is ignored."
 		  ;;   		"%a\n"))
 		  ("s" "Schedule" entry (file+headline "agenda.org" "Future")
 		   ,(concat "* %?\n"
-					"SCHEDULED: %t"))
+					"SCHEDULED: %t")
+           :time-prompt t)
           ("m" "Meeting" entry  (file+headline "agenda.org" "Future")
 		   ,(concat "* %? :meeting:\n"
 					"<%<%Y-%m-%d %a %H:00>>"))
@@ -315,7 +316,6 @@ ARG is ignored."
    'org-babel-load-languages
    '((gnuplot . t)))
   ;; (require 'org-protocol)
-  ;; org style
   (custom-set-faces
    '(org-document-title ((t (:height 1.2))))
    '(outline-1 ((t (:weight black :height 1.25))))
@@ -347,24 +347,23 @@ Insert before if ARG is non-nil"
   (run-at-time nil nil #'org-appear--set-elements))
 
 (defun org-agenda-show-agenda-and-todo (&optional arg)
-    "Better org-mode agenda view."
-    (interactive "P")
-    (org-agenda arg "n"))
+  "Better `org-mode' agenda view.  ARG is passed in."
+  (interactive "P")
+  (org-agenda arg "n"))
 
 (defun org-agenda-skip-if-past-schedule ()
   "If this function return nil, the current match should not be skipped.
 Otherwise, the function must return a position from where the search
 should be continued."
-  (when-let* ((subtree-end (save-excursion (org-end-of-subtree t)))
-			  (schedule (org-entry-get nil "SCHEDULED"))
-			  (scheduled-seconds
-			   (time-to-seconds
-				(org-time-string-to-time schedule)))
-			  (now (time-to-seconds (current-time))))
-    (and (not (string= (org-get-todo-state) "NEXT")) ;; never skip todo NEXT state
-		 scheduled-seconds
-         (<= scheduled-seconds now)
-         subtree-end)))
+  (when-let ((subtree-end (save-excursion (org-end-of-subtree t)))
+			 (schedule (org-entry-get nil "SCHEDULED"))
+             (now (time-to-seconds (current-time))))
+    (when-let ((scheduled-seconds
+			    (time-to-seconds
+				 (org-time-string-to-time schedule))))
+      (and (not (string= (org-get-todo-state) "NEXT")) ;; never skip todo NEXT state
+           (< scheduled-seconds now)
+           subtree-end))))
 
 (define-hook-setup org-agenda-mode-hook
   (evil-mode 1)
@@ -484,7 +483,7 @@ It will operate between the region from START to END."
     (let ((type (org-element-property :type link)))
       (when-let* ((link-params (assoc type org-link-parameters #'string=))
                   (export (plist-get (cdr link-params) :export)))
-        (when (eq export latex-auto-ref-link-export)
+        (when (eq export 'latex-auto-ref-link-export)
           ;; store the `raw-link' back into the `path' of link
           (org-element-put-property link :path (org-element-property :raw-link link))
           ;; TEST - the correct reference can be found now

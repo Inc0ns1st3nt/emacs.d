@@ -114,5 +114,5 @@ Check for `highlight-symbol' for more information such as for SYMBOL."
 ;;                  :on-exit 'transient-highlight-symbol-exit))
 
 ;; (global-set-key (kbd "M-o") nil)
+
 (provide 'init-transient)
-;;; init-transient ends here

@@ -4,7 +4,9 @@
 
 (require-package 'expand-region) ; I prefer stable version
 (require-package 'evil)
-(local-require 'evil-mark-replace)
+;; (local-require 'evil-mark-replace)
+(autoload 'evilmr-replace-in-defun "evil-mark-replace")
+(autoload 'evilmr-replace-in-buffer "evil-mark-replace")
 
 ;; enable evil-mode
 (evil-mode 1)
@@ -46,6 +48,7 @@
 (add-hook 'prog-mode-hook
           (defun evil-surround-prog-mode-hook-setup ()
             "Set up surround shortcuts."
+            (util/ensure 'evil-surround)
             (push (if (memq major-mode '(sh-mode))
                       '(?$ . ("$(" . ")"))
                     '(?$ . ("${" . "}")))
@@ -305,11 +308,16 @@ Check `util/delim-p' for the definition of delim."
   (kbd "M-p") #'previous-complete-history-element
   (kbd "M-n") #'next-complete-history-element)
 
-;; evil g leader key
 (evil-declare-key 'normal 'global
   (kbd "C-e") 'evil-scroll-up
   "Y" #'evil-yank-line ;; "y$"
   "U" #'join-line
+  ;;
+  (kbd "TAB") #'indent-for-tab-command
+  (kbd "RET") #'newline-and-indent)
+
+;; evil g leader key
+(evil-declare-key '(normal motion) 'global
   ;;
   "ga" #'selectsel-quick-repeat
   "gs" #'selectsel-recentf
@@ -327,10 +335,7 @@ Check `util/delim-p' for the definition of delim."
   "gr" [?Y ?p]                       ; copy-line
   "go" #'endless/capitalize
   "gl" #'endless/downcase
-  "gu" #'endless/upcase
-  ;;
-  (kbd "TAB") #'indent-for-tab-command
-  (kbd "RET") #'newline-and-indent)
+  "gu" #'endless/upcase)
 
 (evil-declare-key 'visual 'global
   "gr" [?y ?h ?p])
@@ -834,4 +839,3 @@ Argument N the number of lines to operate on."
         evil-want-C-i-jump t))
 
 (provide 'init-evil)
-;;; init-evil.el ends here

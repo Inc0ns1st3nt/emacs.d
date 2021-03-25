@@ -279,17 +279,17 @@ If region is active get region string and deactivate."
 
 (defun buffer-file-temp-p ()
   "If variable `buffer-file-name' is nil or a temp file or HTML file converted from org file."
-  (and (not scratch-buffer) ;; treat scratch-buffer not as temp
-	   (or
-		;; file does not exist at all
-		;; org-babel edit inline code block need calling hook
-		(null buffer-file-name)
-		;; file is create from temp directory
-		(string-match (concat "^" temporary-file-directory) buffer-file-name)
-		;; file is a html file exported from org-mode
-		(and (string-match "\.html$" buffer-file-name)
-			 (file-exists-p (replace-regexp-in-string "\.html$" ".org" f)))
-		force-buffer-file-temp-p)))
+  (and (not scratch-buffer)       ; don't treat scratch-buffer as temp
+       (let ((f buffer-file-name))
+         (or (null f) ;; file does not exist at all
+		     ;; org-babel edit inline code block need calling hook
+		     ;; file is create from temp directory
+		     (string-match (concat "^" temporary-file-directory) f)
+		     ;; file is a html file exported from org-mode
+		     (and (string-match "\.html$" f)
+			      (file-exists-p
+                   (replace-regexp-in-string "\.html$" ".org" f)))
+		     force-buffer-file-temp-p))))
 
 (defvar inc0n/mplayer-extra-opts ""
   "Extra options for mplayer (ao or vo setup).

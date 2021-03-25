@@ -34,18 +34,12 @@ Check Stolen from http://stackoverflow.com/a/26297700"
   (when (executable-find "pandoc")
     (setq markdown-command "pandoc -f markdown"))
   (custom-set-faces
-   '(markdown-header-face-1
-     ((t (:height 1.25 :weight extra-bold :inherit markdown-header-face))))
-   '(markdown-header-face-2
-     ((t (:height 1.15 :weight bold       :inherit markdown-header-face))))
-   '(markdown-header-face-3
-     ((t (:height 1.08 :weight bold       :inherit markdown-header-face))))
-   '(markdown-header-face-4
-     ((t (:height 1.00 :weight bold       :inherit markdown-header-face))))
-   '(markdown-header-face-5
-     ((t (:height 0.90 :weight bold       :inherit markdown-header-face))))
-   '(markdown-header-face-6
-     ((t (:height 0.75 :weight extra-bold :inherit markdown-header-face))))))
+   '(markdown-header-face-1 ((t (:height 1.25 :weight extra-bold :inherit markdown-header-face))))
+   '(markdown-header-face-2 ((t (:height 1.15 :weight bold :inherit markdown-header-face))))
+   '(markdown-header-face-3 ((t (:height 1.08 :weight bold :inherit markdown-header-face))))
+   '(markdown-header-face-4 ((t (:height 1.0 :weight bold :inherit markdown-header-face))))
+   '(markdown-header-face-5 ((t (:height 0.9 :weight bold :inherit markdown-header-face))))
+   '(markdown-header-face-6 ((t (:height 0.75 :weight extra-bold :inherit markdown-header-face))))))
 
 (provide 'init-markdown)
 ;;; init-markdown ends here

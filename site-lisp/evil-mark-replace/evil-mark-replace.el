@@ -26,7 +26,7 @@
 
 ;;; Code:
 
-(require 'evil nil t)
+(require 'evil)
 
 (defun evilmr-replace (mark-fn)
   "Mark region with MARK-FN and replace in marked area."

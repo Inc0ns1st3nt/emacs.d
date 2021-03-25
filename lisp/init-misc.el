@@ -409,18 +409,21 @@ With exception to the current line."
 ;; ANSI-escape coloring in compilation-mode
 ;; {{ http://stackoverflow.com/questions/13397737/ansi-coloring-in-compilation-mode
 (when (require 'ansi-color nil t)
-  (define-hook-setup 'compilation-filter-hook
-    (ansi-color-apply-on-region compilation-filter-start (point-max))))
+  (add-hook 'compilation-filter-hook
+            (defun compilation-filter-hook-setup ()
+              (ansi-color-apply-on-region compilation-filter-start (point-max)))))
 ;; }}
 
 ;; @see http://bling.github.io/blog/2016/01/18/why-are-you-changing-gc-cons-threshold/
-(define-hook-setup 'minibuffer-setup-hook
-  ;; (local-set-key (kbd "C-k") #'kill-line)
-  (subword-mode t)             ; enable subword movement in minibuffer
-  (setq gc-cons-threshold most-positive-fixnum))
-(define-hook-setup 'minibuffer-exit-hook
-  ;; evil-mode also use minibuf
-  (setq gc-cons-threshold normal-gc-cons-threshold))
+(add-hook 'minibuffer-setup-hook
+          (defun inc0n/minibuffer-setup-hook ()
+            ;; (local-set-key (kbd "C-k") #'kill-line)
+            (subword-mode t)   ; enable subword movement in minibuffer
+            (setq gc-cons-threshold most-positive-fixnum)))
+(add-hook 'minibuffer-exit-hook
+          (defun inc0n/minibuffer-exit-hook ()
+            ;; evil-mode also use minibuf
+            (setq gc-cons-threshold normal-gc-cons-threshold)))
 
 (defun inc0n/insert-absolute-path ()
   "Relative path to full path."
@@ -824,25 +827,26 @@ version control automatically."
 		 (forward-word)
 		 (forward-char -1)
 		 (sdcv-search-input (thing-at-point 'word))))
-  (define-hook-setup 'nov-mode-hook
-    (face-remap-add-relative 'variable-pitch
-                             :family "Libreation Serif"
-                             :width 'semi-expanded
-                             :height 1.0)
-    (setq-local line-spacing 0.2
-                next-screen-context-lines 4)
-    (setq-local visual-fill-column-center-text t
-                ;; visual-fill-column-extra-text-width '(0 . 0)
-                nov-text-width 80)
-    ;; nov-render-html
-    (visual-line-mode 1)
-    (visual-fill-column-mode 1)
-    (setq-local simple-modeline-segments
-                `((simple-modeline-segment-winum
-                   simple-modeline-segment-evil-modal
-                   simple-modeline-segment-modified
-                   simple-modeline-segment-nov-info)
-                  (simple-modeline-segment-major-mode)))))
+  (add-hook 'nov-mode-hook
+            (defun nov-mode-hook-setup ()
+              (face-remap-add-relative 'variable-pitch
+                                       :family "Libreation Serif"
+                                       :width 'semi-expanded
+                                       :height 1.0)
+              (setq-local line-spacing 0.2
+                          next-screen-context-lines 4)
+              (setq-local visual-fill-column-center-text t
+                          ;; visual-fill-column-extra-text-width '(0 . 0)
+                          nov-text-width 80)
+              ;; nov-render-html
+              (visual-line-mode 1)
+              (visual-fill-column-mode 1)
+              (setq-local simple-modeline-segments
+                          `((simple-modeline-segment-winum
+                             simple-modeline-segment-evil-modal
+                             simple-modeline-segment-modified
+                             simple-modeline-segment-nov-info)
+                            (simple-modeline-segment-major-mode))))))
 ;; }}
 
 ;; {{ octave
@@ -980,9 +984,8 @@ version control automatically."
   (browse-url "https://news.ycombinator.com/"))
 ;; }}
 
-
-;; (require-package 'golden-ratio)
-(autoload 'golden-ratio-mode "golden-ratio" "golden ratio")
+(local-require 'golden-ratio)
+;; (autoload 'golden-ratio-mode "golden-ratio" "golden ratio")
 (add-hook 'after-init-hook 'golden-ratio-mode)
 
 (with-eval-after-load 'golden-ratio

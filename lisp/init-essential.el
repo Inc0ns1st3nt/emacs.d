@@ -81,7 +81,7 @@ If USE-INDIRECT-BUFFER is not nil, use `indirect-buffer' to hold the widen conte
 ;; @see https://emacs.stackexchange.com/questions/20240/how-to-distinguish-c-m-from-return
 (define-key input-decode-map [?\C-m] [C-m])   ;; let C-m be C-m instead of RET
 ;; actually let's use this one in place of evil-escape
-;; (define-key input-decode-map [?\C-\]] [C-\]]) ;; let C-] be C-] instead of ESC
+;; (define-key input-decode-map [?\C-\[] [C-\[]) ;; let C-[ be C-[ instead of ESC
 (define-key input-decode-map [?\C-i] [C-i])   ;; let C-i be C-i instead of TAB
 
 

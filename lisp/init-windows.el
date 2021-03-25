@@ -25,13 +25,12 @@
 ;;          t))
 ;;     (message "turn on winner-mode first")))
 
-(general-define-key
- "C-x 4 u" 'winner-undo
- "C-x 2" 'split-window-vertically
- "C-x 3" 'split-window-horizontally
+(global-set-key (kbd "C-x 4 u") 'winner-undo)
+(global-set-key (kbd "C-x 2") 'split-window-vertically)
+(global-set-key (kbd "C-x 3") 'split-window-horizontally)
  ;; https://github.com/abo-abo/ace-window
  ;; `M-x ace-window ENTER m` to swap window
- "C-x o" 'ace-window)
+(global-set-key (kbd "C-x o") 'ace-window)
 
 ;; https://emacs.stackexchange.com/questions/46664/switch-between-horizontal-and-vertical-splitting
 

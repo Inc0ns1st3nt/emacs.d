@@ -6,13 +6,14 @@
 
 ;;; Code:
 
-(define-hook-setup 'web-mode-hook
-  (unless (buffer-file-temp-p)
-    (setq inc0n/flyspell-check-doublon nil)
-    (remove-hook 'yas-after-exit-snippet-hook
-                 #'web-mode-yasnippet-exit-hook t)
-    (remove-hook 'yas/after-exit-snippet-hook
-                 #'web-mode-yasnippet-exit-hook t)))
+(add-hook 'web-mode-hook
+          (defun web-mode-hook-setup ()
+            (unless (buffer-file-temp-p)
+              (setq inc0n/flyspell-check-doublon nil)
+              (remove-hook 'yas-after-exit-snippet-hook
+                           #'web-mode-yasnippet-exit-hook t)
+              (remove-hook 'yas/after-exit-snippet-hook
+                           #'web-mode-yasnippet-exit-hook t))))
 
 (with-eval-after-load 'web-mode
   ;; make org-mode export fail, I use evil and evil-matchit

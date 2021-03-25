@@ -87,9 +87,8 @@
                              (time-diff current-time theme/night-time))
                             one-day-secs
                             #'load-night-theme))
-      (if (and (plusp (time-diff current-time theme/day-time)) ; past day time
-              ;; before night
-              (minusp (time-diff current-time theme/night-time)))
+      (if (and (> (time-diff current-time theme/day-time) 0) ; past day time
+               (< (time-diff current-time theme/night-time) 0)) ; before night
           (load-day-theme)
         (load-night-theme)))))
 

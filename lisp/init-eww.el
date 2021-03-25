@@ -90,4 +90,3 @@ Non-nil ARG will allow search engine selection."
   (defvar eww-search-default-engine "duckduckgo"))
 
 (provide 'init-eww)
-;;; init-eww.el ends here

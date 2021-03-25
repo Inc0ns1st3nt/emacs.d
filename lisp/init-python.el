@@ -23,4 +23,3 @@
   (setq electric-indent-chars (delq ?: electric-indent-chars)))
 
 (provide 'init-python)
-;;; init-python.el ends here

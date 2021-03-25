@@ -19,11 +19,12 @@
 (let ((init-gc-cons-threshold (* 128 1024 1024))) ;; 128mb
   (setq garbage-collection-messages t) ; for debug
   (setq gc-cons-threshold init-gc-cons-threshold)
-  (setq gc-cons-percentage 0.20))
+  (setq gc-cons-percentage 0.5))
 (add-hook 'emacs-startup-hook
           (lambda ()
+            (message "startup time: %s" (emacs-init-time))
             (setq gc-cons-threshold normal-gc-cons-threshold)
-            (message "startup time: %s" (emacs-init-time))))
+            (setq gc-cons-percentage 0.1)))
 
 ;;----------------------------------------------------------------------------
 ;; Bootstrap config
@@ -40,14 +41,14 @@
   "My site directory.")
 (defun local-require (pkg)
   "Require PKG in site-lisp directory."
-  (unless (featurep pkg)
-	(let* ((pkg (symbol-name pkg))
-           (path (expand-file-name pkg inc0n/site-lisp-dir))
-           (load-path (cons path load-path)))
-	  (load (if (file-exists-p path)
-				(expand-file-name pkg path)
-			  (file-truename path))
-			t nil))))
+  (or (featurep pkg)
+	  (let* ((pkg (symbol-name pkg))
+             (path (expand-file-name pkg inc0n/site-lisp-dir))
+             (load-path (cons path load-path)))
+	    (load (if (file-exists-p path)
+				  (expand-file-name pkg path)
+			    (file-truename path))
+			  t nil))))
 (defalias 'local-package 'local-require)
 
 (defun add-subdirs-to-load-path (parent-dir)

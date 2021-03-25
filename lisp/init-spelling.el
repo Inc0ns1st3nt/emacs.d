@@ -80,9 +80,10 @@ Please note RUN-TOGETHER makes aspell less capable.  So it should be used in `pr
 	  ;; check to speed up the whole process.
 	  (append args '("--run-together" "--run-together-limit=16")))))
 
-(setq ispell-program-name "aspell"
-	  ispell-extra-args (inc0n/detect-ispell-args)
-	  ispell-silently-savep t)
+(with-eval-after-load 'ispell
+  (setq ispell-program-name "aspell"
+	    ispell-extra-args (inc0n/detect-ispell-args)
+	    ispell-silently-savep t))
 
 ;; un-comment to enable wucuo
 (autoload 'wucuo-start "wucuo" "loads wucuo." nil)

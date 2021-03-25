@@ -116,4 +116,3 @@
 ;;                             "gtags: top of source tree:" default-directory)))
 
 (provide 'init-tags)
-;;; init-tags ends here

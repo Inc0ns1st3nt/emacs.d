@@ -1,12 +1,15 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
+;;; Code:
+
 (require 'package)
 
 ;;; Install into separate package dirs for each Emacs version, to prevent bytecode incompatibility
 ;; (setq package-user-dir
 ;;       (expand-file-name (format "elpa-%s.%s" emacs-major-version emacs-minor-version)
 ;;                         user-emacs-directory))
-;; (package-initialize)
+(package-initialize)
+
 (add-to-list-multi
  'package-archives
  '(("melpa" . "https://melpa.org/packages/")
@@ -128,6 +131,7 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
 (require-package 'gitignore-mode)
 (require-package 'gitconfig-mode)
 
+(require-package 'general)
 (require-package 'request)
 ;; (require-package 'jump)
 ;; (require-package 'findr)

@@ -307,5 +307,5 @@ INDENT-SIZE decide the indentation level.
   (setq nodejs-repl-prompt "nodejs> "
         nodejs-repl-command "node"
         nodejs-repl-arguments '("--experimental-modules")))
+
 (provide 'init-javascript)
-;;; init-javascript.el ends here

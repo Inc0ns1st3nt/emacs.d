@@ -100,4 +100,3 @@
 
 
 (provide 'init-shackle)
-;;; init-shackle.el ends here

@@ -53,4 +53,3 @@ Optional argument N does nothing right now"
   (util/insert-str (shell-command-to-string "wl-paste -n")))
 
 (provide 'init-clipboard)
-;;; init-clipboard.el ends here

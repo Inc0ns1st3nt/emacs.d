@@ -4,6 +4,13 @@ PROFILER =
 
 .PHONY: test clean githooks
 
+org:
+	emacs --batch --eval "(progn (require 'org) (setq org-confirm-babel-evaluate nil) (org-babel-tangle-file \"org/config.org\"))"
+
+time:
+	emacs -q --eval='(message "%s" (emacs-init-time))'
+
+
 # Delete byte-compiled files etc.
 clean:
 	@rm -f *~

@@ -1,5 +1,8 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
+;;; Commentary:
+;; themes also some selectrum specific theme hacks
+
 ;;; Code:
 
 (require-package 'writeroom-mode)
@@ -127,4 +130,3 @@ Also converts full stops to commas."
 (global-set-key (kbd "M-u") 'endless/upcase)
 
 (provide 'init-writting)
-;;; init-writting ends here

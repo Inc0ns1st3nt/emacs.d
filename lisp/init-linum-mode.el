@@ -59,4 +59,3 @@
 (add-hook 'after-init-hook 'global-display-line-numbers-mode)
 
 (provide 'init-linum-mode)
-;;; init-linum-mode.el ends here

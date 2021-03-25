@@ -8,6 +8,7 @@
 (defun inc0n/enable-yas-minor-mode ()
   "Enable `yas-minor-mode'."
   (unless (buffer-file-temp-p)
+    (require 'yasnippet)
     (yas-minor-mode 1)))
 
 (dolist (hook '(prog-mode-hook
