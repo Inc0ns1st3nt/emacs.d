@@ -1,10 +1,13 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
+;;; Commentary:
 ;; Like "init-misc.el", the difference is this file is always loaded
+
+;;; Code:
 
 ;; {{ narrow region
 (defun narrow-to-region-indirect-buffer-maybe (start end use-indirect-buffer)
-  "Indirect buffer could multiple widen on same file."
+  "Indirect buffer could multiple widen on same file between START and END."
   (when (region-active-p)
 	(deactivate-mark))
   (if use-indirect-buffer
@@ -19,16 +22,12 @@
         (goto-char (point-min)))
       (narrow-to-region start end)))
 
-;; @see https://www.reddit.com/r/emacs/comments/988paa/emacs_on_windows_seems_lagging/
-;; speed up font rendering for special characters
-(setq inhibit-compacting-font-caches t)
-
 ;; @see https://gist.github.com/mwfogleman/95cc60c87a9323876c6c
 ;; fixed to behave correctly in org-src buffers; taken from:
 ;; https://lists.gnu.org/archive/html/emacs-orgmode/2019-09/msg00094.html
 (defun narrow-or-widen-dim (&optional use-indirect-buffer)
   "If the buffer is narrowed, it widens.
- Otherwise, it narrows to region, or Org subtree.
+Otherwise, it narrows to region, or Org subtree.
 If USE-INDIRECT-BUFFER is not nil, use `indirect-buffer' to hold the widen content."
   (interactive "P")
   (cond
@@ -72,6 +71,19 @@ If USE-INDIRECT-BUFFER is not nil, use `indirect-buffer' to hold the widen conte
                                             use-indirect-buffer))
    (t (error "Please select a region to narrow to"))))
 ;; }}
+
+
+;; @see https://www.reddit.com/r/emacs/comments/988paa/emacs_on_windows_seems_lagging/
+;; speed up font rendering for special characters
+(setq inhibit-compacting-font-caches t)
+
+;; Key fixes
+;; @see https://emacs.stackexchange.com/questions/20240/how-to-distinguish-c-m-from-return
+(define-key input-decode-map [?\C-m] [C-m])   ;; let C-m be C-m instead of RET
+;; actually let's use this one in place of evil-escape
+;; (define-key input-decode-map [?\C-\]] [C-\]]) ;; let C-] be C-] instead of ESC
+(define-key input-decode-map [?\C-i] [C-i])   ;; let C-i be C-i instead of TAB
+
 
 ;; {{ Write backup files to its own directory
 ;; @see https://www.gnu.org/software/emacs/manual/html_node/tramp/Auto_002dsave-and-Backup.html
@@ -133,3 +145,4 @@ If USE-INDIRECT-BUFFER is not nil, use `indirect-buffer' to hold the widen conte
 ;; (global-set-key (kbd "C-TAB") 'hippie-expand)
 
 (provide 'init-essential)
+;;; init-essential ends here

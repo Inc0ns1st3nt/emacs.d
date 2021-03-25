@@ -20,7 +20,19 @@
     )
   "The `major-mode's to try to find TAGS.")
 
-(add-hook 'after-save-hook 'generic-tag-after-save-update)
+(add-hook 'after-save-hook
+          (defun generic-tag-after-save-update ()
+            "The TAGS update function."
+            (if (and generic-tag-enable tags-file-name)
+                (message "tags %s updated %s"
+                         tags-file-name
+                         (when-let* ((pair (assoc major-mode generic-tag-major-modes))
+                                     (ext (cdr pair)))
+                           (shell-command-to-string
+                            (format (concat "PWD=%s " tag-shell-format-string)
+                                    (file-name-directory tags-file-name)
+                                    ext))))
+              (setq tags-file-name nil))))
 
 (defvar tag-shell-format-string
   "ctags -e -f TAGS -R *%s"
@@ -30,49 +42,40 @@
 (defvar generic-tag-enable nil
   "Enable generic-tag if non-nil.")
 
-(defun generic-tag-after-save-update ()
-  "The TAGS update function."
-  (when (and generic-tag-enable tags-file-name)
-    (message "tags %s updated %s"
-             tags-file-name
-             (when-let* ((pair (assoc major-mode generic-tag-major-modes))
-                         (ext (cdr pair)))
-               (shell-command-to-string
-                (format (concat "PWD=%s " tag-shell-format-string)
-                        (file-name-directory tags-file-name)
-                        ext))))))
-
-(defun generic-prog-mode-tag-setup ()
-  "My generic tag file setup for `prog-mode'."
-  (when (and (assoc major-mode generic-tag-major-modes)
-             buffer-file-name)
-    (when generic-tag-enable
-      (util/ensure 'etags)
-      (when (and (null tags-file-name)
-                 (null tags-completion-table)
-                 ;; (not (y-or-n-p "Keep current tags? "))
-                 )
-        (when-let ((tag (or (locate-dominating-file default-directory "TAGS")
-                            (when (y-or-n-p "Find (create) TAGS? ")
-                              (read-file-name "TAGS: ")))))
-          (util/make-file tag)
-          (setq-local tags-completion-table nil)
-          ;; Set the local value of tags-file-name.
-          (setq-local tags-file-name tag)
-          (message "%s found tag: %s" major-mode tag))))
-    ;; gtags setup
-    (require 'gtags)
-    (when-let ((root-dir (gtags-visit-project-rootdir)))
-      (gtags-setup-in-project-rootdir root-dir))
-    ;; (ggtags-mode 1)
-    (gtags-mode 1)))
-
-(add-hook 'prog-mode-hook #'generic-prog-mode-tag-setup)
+(autoload #'gtags-mode "gtags" "Loads the gtags." nil)
+;; (when generic-tag-enable
+;;       (util/ensure 'etags)
+;;       (when (and (null tags-file-name)
+;;                  (null tags-completion-table)
+;;                  ;; (not (y-or-n-p "Keep current tags? "))
+;;                  )
+;;         (when-let ((tag (or (locate-dominating-file default-directory "TAGS")
+;;                             (when (y-or-n-p "Find (create) TAGS? ")
+;;                               (read-file-name "TAGS: ")))))
+;;           (util/make-file tag)
+;;           (setq-local tags-completion-table nil)
+;;           ;; Set the local value of tags-file-name.
+;;           (setq-local tags-file-name tag)
+;;           (message "%s found tag: %s" major-mode tag))))
+(add-hook 'prog-mode-hook
+          (defun generic-prog-mode-tag-setup ()
+            "My generic tag file setup for `prog-mode'."
+            (when (and (assoc major-mode generic-tag-major-modes)
+                       buffer-file-name)
+              ;; (generic-tags-mode 1)
+              ;; gtags setup
+              (when-let ((root-dir (gtags-visit-project-rootdir)))
+                (when (gtags-setup-in-project-rootdir root-dir)
+                  (gtags-mode 1))))))
 
 ;;; gtags init
 
 (with-eval-after-load 'gtags
-  (setq gtags-auto-update t))
+  (setq gtags-auto-update t)
+  (general-define-key
+   :keymaps 'gtags-select-mode-map
+   "n" [?\C-n return ?\C-x ?o]
+   "p" [?\C-p return ?\C-x ?o]))
 
 (defvar fd-command-format
   "fd --extension %s --type f --color never"
@@ -83,16 +86,20 @@
 
 (defun gtags-setup-in-project-rootdir (root-dir)
   "Setup gtags in ROOT-DIR."
-  (pcase-let* ((tag-info (assoc major-mode generic-tag-major-modes))
-               (`(,_major-mode ,ext . ,info-plist) tag-info)
-               (command (format (concat "PWD=%S " fd-command-format)
-                                root-dir ext)))
-    ;; append ignore
-    (when-let ((ignore (plist-get info-plist :ignore)))
-      (setq command (concat command " --exclude " ignore)))
-    (shell-command
-     (concat command ;; finds all files
-             (format " | %s -f -" generic-tag-command)))))
+  (when (y-or-n-p (format "Setup tags for this project (%s)? " root-dir))
+    (pcase-let* ((tag-info (assoc major-mode generic-tag-major-modes))
+                 (`(,_major-mode ,ext . ,info-plist) tag-info)
+                 (command (format fd-command-format ext)))
+      ;; append ignore
+      (when-let ((ignore (plist-get info-plist :ignore)))
+        (setq command (concat command " --exclude " ignore)))
+      ;; lets gtag
+      (let ((default-directory root-dir))
+        (message "tags: %s" command)
+        (shell-command
+         (concat command ;; finds all files
+                 (format " | %s -f -" generic-tag-command)))))
+    t))
 
 (defun gtags-visit-project-rootdir ()
   "Find and set the root directory of source tree for gtags."

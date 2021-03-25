@@ -40,13 +40,14 @@ EVENT is ignored."
     ;; Don't waste time on dumb shell which `shell-write-history-on-exit' is binding to
     (unless (string-match shell-dumb-shell-regexp shell)
       (set-process-sentinel proc #'inc0n/kill-process-buffer-when-exit))))
-(add-hook 'shell-mode-hook #'shell-mode-hook-setup)
+(add-hook 'shell-mode-hook
+          #'shell-mode-hook-setup)
 ;; }}
 
-(defun eshell-mode-hook-setup ()
-  "Set up `eshell-mode'."
-  (local-set-key (kbd "M-n") 'counsel-esh-history))
-(add-hook 'eshell-mode-hook #'eshell-mode-hook-setup)
+(add-hook 'eshell-mode-hook
+          (defun eshell-mode-hook-setup ()
+            "Set up `eshell-mode'."
+            (local-set-key (kbd "M-n") 'counsel-esh-history)))
 
 ;; {{ @see http://emacs-journey.blogspot.com.au/2012/06/improving-ansi-term.html
 ;; TODO - see if process buffer would exit without this advice
@@ -56,8 +57,10 @@ EVENT is ignored."
 ;; (defun inc0n/term-use-utf8 ()
 ;;   (set-buffer-process-coding-system 'utf-8-unix 'utf-8-unix))
 ;; (add-hook 'term-exec-hook #'inc0n/term-use-utf8)
-(defadvice ansi-term (after advise-ansi-term-coding-system)
-  (set-buffer-process-coding-system 'utf-8-unix 'utf-8-unix))
+(advice-add 'ansi-term :after
+            (defun advise-ansi-term-coding-system ()
+              "Ensure the ansi=term has the utf8 encoding."
+              (set-buffer-process-coding-system 'utf-8-unix 'utf-8-unix)))
 ;; }}
 
 ;; {{ hack counsel-browser-history
@@ -88,15 +91,14 @@ EVENT is ignored."
   ;; Github prompt is like "Password for 'https://user@github.com/':"
   (setq comint-password-prompt-regexp
         (format "%s\\|^ *Password for .*: *$" comint-password-prompt-regexp))
-  (add-hook 'comint-output-filter-functions #'comint-watch-for-password-prompt))
-
-(defun comint-mode-hook-setup ()
-  ;; look up shell command history
-  (local-set-key (kbd "M-n") #'counsel-shell-history)
-  ;; Don't show trailing whitespace in REPL.
-  (local-set-key (kbd "M-;") #'comment-dwim))
-
-(add-hook 'comint-mode-hook #'comint-mode-hook-setup)
+  (general-define-key
+   :keymaps 'comint-mode-map
+   ;; look up shell command history
+   (kbd "M-n") #'counsel-shell-history
+   ;; Don't show trailing whitespace in REPL.
+   (kbd "M-;") #'comment-dwim)
+  (add-hook 'comint-output-filter-functions
+            #'comint-watch-for-password-prompt))
 ;; }}
 
 (provide 'init-term-mode)
