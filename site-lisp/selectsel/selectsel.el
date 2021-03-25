@@ -60,7 +60,7 @@
 			   (point-max) nil)
 			  (exit-minibuffer))))))))
 
-(defun selectrum--yank-search (regex-str)
+(defun selectsel--yank-search (regex-str)
   "Set search item as str.
 Argument REGEX-STR the regex str to find in buffer."
   (re-search-forward regex-str (line-end-position) t)
@@ -70,9 +70,9 @@ Argument REGEX-STR the regex str to find in buffer."
 	(isearch-mode t)
 	(isearch-yank-string regex-str)))
 
-;; selectrum-swiper
+;; selectsel-swiper
 
-(defun selectrum--swiper-candidates (&optional beg end)
+(defun selectsel--swiper-candidates (&optional beg end)
   (let ((inhibit-field-text-motion t)
 		(beg (or beg (point-min)))
 		(end (or end (point-max))))
@@ -97,8 +97,8 @@ Argument REGEX-STR the regex str to find in buffer."
 				   (format number-format num))
 	   do (goto-char (1+ line-end))))))
 
-(defvar selectrum--swiper-history nil
-  "Submission history for `selectrum-swiper'.")
+(defvar selectsel-swiper-history nil
+  "Submission history for `selectsel-swiper'.")
 
 (defun selectsel-rename-in-defun ()
   (interactive)
@@ -111,12 +111,13 @@ Argument REGEX-STR the regex str to find in buffer."
 	   (let* ((beg (point))
 			  (end (progn (end-of-defun)
 						  (point))))
-		 (selectrum--swiper-candidates beg end))))))
+		 (selectsel--swiper-candidates beg end))))))
 
-(defun selectrum-swiper (&optional initial-input)
-  "Search for a matching line and jump to the beginning of its text.  Obeys narrowing."
-  (interactive (list (util/thing-at-point/deselect)))
-  (let* ((cands (selectrum--swiper-candidates))
+(defun selectsel-swiper (&optional initial-input)
+  "Search for a matching line and jump to the beginning of its text.
+Obeys narrowing.  Can have INITIAL-INPUT"
+  (interactive)
+  (let* ((cands (selectsel--swiper-candidates))
 		 (current-line-number (line-number-at-pos (point) t))
          (selectrum-minibuffer-map
 		  (let ((map (make-sparse-keymap)))
@@ -132,7 +133,7 @@ Argument REGEX-STR the regex str to find in buffer."
 						   cands
 						   :default-candidate (nth (1- current-line-number) cands)
 						   :initial-input initial-input
-						   :history 'selectrum--swiper-history
+						   :history 'selectsel-swiper-history
 						   :may-modify-candidates t
 						   :require-match t
 						   :no-move-default-candidate t))
@@ -142,11 +143,11 @@ Argument REGEX-STR the regex str to find in buffer."
       (push-mark (point) nil)
       (forward-line (- (string-to-number chosen-line-number-str)
 					   current-line-number))
-	  (selectrum--yank-search selectrum--last-input))))
+	  (selectsel--yank-search selectrum--last-input))))
 
 ;; imenu
 
-(defun selectrum--imenu-candidates ()
+(defun selectsel--imenu-candidates ()
   (require 'imenu)
   (let* ((imenu-auto-rescan t)
          (imenu-auto-rescan-maxout (if current-prefix-arg
@@ -186,7 +187,7 @@ Argument REGEX-STR the regex str to find in buffer."
 
 ;; selectrum-rg
 
-(defvar selectrum--rg-history nil
+(defvar selectsel--rg-history nil
   "history for `selectrum-rg'")
 
 (defvar selectrum-rg-base-cmd
@@ -216,7 +217,8 @@ Argument REGEX-STR the regex str to find in buffer."
 					        (concat file-name ":" line-num ":")))))
           cands))
 
-(defun selectrum-rg (&optional initial-input)
+(defun selectsel-rg (&optional initial-input)
+  "My selectrum interface to rg, takes on INITIAL-INPUT."
   (interactive (list (util/thing-at-point)))
   (let* ((command selectrum-rg-base-cmd)
 		 (selectrum-preprocess-candidates-function
@@ -234,7 +236,7 @@ Argument REGEX-STR the regex str to find in buffer."
 		 (cand (selectrum--read "rg: " cands
 								:initial-input initial-input
 								;; :may-modify-candidates t
-								:history 'selectrum--rg-history
+								:history 'selectsel--rg-history
 								:require-match nil))
 		 (file-n-line (get-text-property 0 'selectrum-candidate-display-prefix cand)))
 	(when (and file-n-line
@@ -242,15 +244,16 @@ Argument REGEX-STR the regex str to find in buffer."
 	  (let ((file-name (match-string-no-properties 1 file-n-line))
 			(line-number (match-string-no-properties 2 file-n-line))
 			(input selectrum--last-input))
+        ;; TODO: open in already opened buffer instead of current buffer
 		(find-file file-name)
 		(goto-char (point-min)) ;; reset to line 1
 		(forward-line (1- (string-to-number line-number)))
-		(selectrum--yank-search input)))))
+		(selectsel--yank-search input)))))
 
 ;; selectrum-ffip
 
 (defvar selectsel-search-file-max-depth 3
-  "the maximum depth `selectrum-search-file-list' will reach into, default is 3")
+  "The maximum depth `selectrum-search-file-list' will reach into, default is 3.")
 
 (defun selectsel--ffip-project-root ()
   "Return project root or `default-directory'."
@@ -370,7 +373,8 @@ Argument CANDS list of files to process."
 
 ;;
 
-(defun selectsel--package-candidates ()
+(defun selectsel--package-candidates (package-alist)
+  "Process PACKAGE-ALIST into selectrum-read object."
   (cl-loop for (pkg-name pkg-desc) in package-alist
            collect (propertize
                     (symbol-name pkg-name)
@@ -383,12 +387,15 @@ Argument CANDS list of files to process."
                       'face 'package-name)
                      " "))))
 
-(defun selectsel-list-packages ()
-  (interactive)
+(defun selectsel-list-packages (&optional arg)
+  (interactive "P")
   ;; (list (util/thing-at-point/deselect))
   (let* ((selectrum-preprocess-candidates-function #'identity)
 	     (package (selectrum--read "Selectrum packages: "
-					               (selectsel--package-candidates)
+					               (selectsel--package-candidates
+                                    (if (consp arg)
+                                        package-archive-contents
+                                      package-alist))
 					               ;; :initial-input initial-input
 					               :may-modify-candidates t
 					               :require-match t

@@ -43,39 +43,39 @@
 (require-package 'evil-surround)
 ;; @see https://github.com/timcharper/evil-surround
 (add-hook 'after-init-hook 'global-evil-surround-mode)
-(add-hook 'prog-mode-hook #'evil-surround-prog-mode-hook-setup)
+(add-hook 'prog-mode-hook
+          (defun evil-surround-prog-mode-hook-setup ()
+            "Set up surround shortcuts."
+            (push (if (memq major-mode '(sh-mode))
+                      '(?$ . ("$(" . ")"))
+                    '(?$ . ("${" . "}")))
+                  evil-surround-pairs-alist)
 
-(defun evil-surround-prog-mode-hook-setup ()
-  "Set up surround shortcuts."
-  (push (if (memq major-mode '(sh-mode))
-            '(?$ . ("$(" . ")"))
-          '(?$ . ("${" . "}")))
-        evil-surround-pairs-alist)
+            (when (memq major-mode '(org-mode))
+              (push '(?\[ . ("[[" . "]]")) evil-surround-pairs-alist)
+              (push '(?= . ("=" . "=")) evil-surround-pairs-alist))
 
-  (when (memq major-mode '(org-mode))
-    (push '(?\[ . ("[[" . "]]")) evil-surround-pairs-alist)
-    (push '(?= . ("=" . "=")) evil-surround-pairs-alist))
+            (push '(?\( . ("(" . ")")) evil-surround-pairs-alist)
+            (when (memq major-mode '(emacs-lisp-mode))
+              (push '(?` . ("`" . "'")) evil-surround-pairs-alist))
 
-  (push '(?\( . ("(" . ")")) evil-surround-pairs-alist)
-  (when (memq major-mode '(emacs-lisp-mode))
-    (push '(?` . ("`" . "'")) evil-surround-pairs-alist))
+            (when (derived-mode-p 'js-mode)
+	          (push '(?j . ("JSON.stringify(" . ")")) evil-surround-pairs-alist)
+              (push '(?> . ("(e) => " . "(e)")) evil-surround-pairs-alist))
 
-  (when (derived-mode-p 'js-mode)
-	(push '(?j . ("JSON.stringify(" . ")")) evil-surround-pairs-alist)
-    (push '(?> . ("(e) => " . "(e)")) evil-surround-pairs-alist))
-
-  ;; generic
-  (push '(?/ . ("/" . "/")) evil-surround-pairs-alist))
+            ;; generic
+            (push '(?/ . ("/" . "/")) evil-surround-pairs-alist)))
 ;; }}
 
 ;; ffip-diff-mode (read only) evil setup
-(defun ffip-diff-mode-hook-setup ()
-  (evil-local-set-key 'normal "q" (lambda () (interactive) (quit-window t)))
-  (evil-local-set-key 'normal (kbd "RET") #'ffip-diff-find-file)
-  ;; "C-c C-a" is binding to `diff-apply-hunk' in `diff-mode'
-  (evil-local-set-key 'normal "a" #'ffip-diff-apply-hunk)
-  (evil-local-set-key 'normal "o" #'ffip-diff-find-file))
-(add-hook 'ffip-diff-mode-hook #'ffip-diff-mode-hook-setup)
+(add-hook 'ffip-diff-mode-hook
+          (defun ffip-diff-mode-hook-setup ()
+            (evil-declare-key 'normal 'local
+              "q" (lambda () (interactive) (quit-window t))
+              (kbd "RET") #'ffip-diff-find-file
+              ;; "C-c C-a" is binding to `diff-apply-hunk' in `diff-mode'
+              "a" #'ffip-diff-apply-hunk
+              "o" #'ffip-diff-find-file)))
 
 ;; {{ define my own text objects, works on evil v1.0.9 using older method
 ;; @see http://stackoverflow.com/questions/18102004/emacs-evil-mode-how-to-create-a-new-text-object-to-select-words-with-any-non-sp
@@ -214,9 +214,10 @@ If the character before and after CH is space or tab, CH is NOT slash"
 ;; evil-escape will be disabled when input method is on
 (setq-default evil-escape-delay 0.2)
 (with-eval-after-load 'evil-escape
+  (setq-default evil-escape-key-sequence "fd")
   (setq evil-escape-excluded-major-modes '(dired-mode)))
-(setq-default evil-escape-key-sequence "fd")
-(add-hook 'after-init-hook 'evil-escape-mode)
+;; evil-escape uses pre-command-hook, which may slow down emacs??
+;; (add-hook 'after-init-hook 'evil-escape-mode)
 ;; }}
 
 (defun handle-error (fn handler)
@@ -238,24 +239,30 @@ If the character before and after CH is space or tab, CH is NOT slash"
 
 ;; TODO: mark region if char syntax is ?\)
 (defun delim-or-normal (paredit-fn normal-fn)
-  (if (or (util/delim-p (point))
-		  (region-active-p))
-	  (funcall paredit-fn)
-	(and (functionp normal-fn)
-		 (call-interactively normal-fn))))
+  "If current point on delim and no prefix args call PAREDIT-FN.
+Otherwise call NORMAL-FN.
+Check `util/delim-p' for the definition of delim."
+  (if (or (not (functionp normal-fn))
+          (not (commandp normal-fn)))
+      (warn "normal-fn is not an interactive function, %s" normal-fn)
+    (lambda (&optional arg)
+      (interactive "P")
+      (if (and (null arg)
+               (or (util/delim-p (point))
+		           (region-active-p)))
+	      (funcall paredit-fn)
+	    (and (functionp normal-fn)
+		     (call-interactively normal-fn))))))
 
 ;; (popup-tip (documentation 'paredit-copy-as-kill))
-;; (evil-global-set-key 'normal (kbd "RET") #'indent-for-tab-command)
 
 (evil-declare-key '(normal visual) paredit-mode-map
-  "C" (lambda () (interactive)
-        (delim-or-normal #'paredit-copy-as-kill #'evil-change-line))
+  "C" (delim-or-normal #'paredit-copy-as-kill #'evil-change-line)
+  "R" (delim-or-normal #'paredit-raise-sexp   #'evil-replace-state)
   "X" #'kill-sexp
-  "R" (lambda () (interactive)
-        (delim-or-normal #'paredit-raise-sexp #'evil-replace-state))
   "(" #'paredit-wrap-round
-  "[" (handle-error 'backward-sexp 'backward-paragraph)
-  "]" (handle-error 'forward-sexp 'forward-paragraph)
+  "[" (handle-error #'backward-sexp #'backward-paragraph)
+  "]" (handle-error #'forward-sexp  #'forward-paragraph)
   "\"" #'paredit-meta-doublequote
   ;; (kbd "C-<") #'paredit-forward-barf-sexp
   ;; (kbd "C->") #'paredit-forward-slurp-sexp
@@ -264,7 +271,7 @@ If the character before and after CH is space or tab, CH is NOT slash"
   "+" #'paredit-join-sexps
   "-" #'paredit-split-sexp)
 
-(evil-declare-key '(insert) paredit-mode-map
+(evil-declare-key '(insert normal) paredit-mode-map
   (kbd "C-<") #'paredit-forward-barf-sexp
   (kbd "C->") #'paredit-forward-slurp-sexp)
 
@@ -272,11 +279,18 @@ If the character before and after CH is space or tab, CH is NOT slash"
 ;; with upper cased character or 'g' or special character except "=" and "-"
 (evil-declare-key 'normal org-mode-map
   (kbd "C-M-u") 'outline-up-heading
-  "gh" 'outline-up-heading
-  "$" 'org-end-of-line ; smarter behaviour on headlines etc.
-  "^" 'org-beginning-of-line ; ditto
-  "<" (org-op-on-tree-and-subtree #'org-do-promote)
-  ">" (org-op-on-tree-and-subtree #'org-do-demote) ; indent
+  "gh" 'org-up-element
+  "gj" 'org-next-visible-element
+  "gk" 'org-previous-visible-element
+  "gl" nil ;; 'org-forward-heading-same-level
+
+  "gJ" 'org-move-subtree-down
+  "gK" 'org-move-subtree-up
+
+  "$" 'org-end-of-line           ; smarter behaviour on headlines etc.
+  "^" 'org-beginning-of-line     ; ditto
+  "<" 'org-shiftmetaleft
+  ">" 'org-shiftmetaright
   ;; (kbd "RET") #'newline-and-indent
   (kbd "TAB") #'org-cycle)
 
@@ -291,29 +305,36 @@ If the character before and after CH is space or tab, CH is NOT slash"
   (kbd "M-p") #'previous-complete-history-element
   (kbd "M-n") #'next-complete-history-element)
 
+;; evil g leader key
 (evil-declare-key 'normal 'global
   (kbd "C-e") 'evil-scroll-up
   "Y" #'evil-yank-line ;; "y$"
   "U" #'join-line
-  "gh" #'what-cursor-position
   ;;
-  "ga" #'avy-goto-line-above
-  "gb" #'avy-goto-line-below
-  "go" #'avy-goto-char-timer
+  "ga" #'selectsel-quick-repeat
+  "gs" #'selectsel-recentf
+  "gj" #'avy-goto-line-below
+  "gk" #'avy-goto-line-above
+  "gb" #'switch-to-buffer
+  [?g ?\C-b] (lambda () (interactive)   ; to previous buffer
+               (switch-to-buffer nil))
+  [?g ?\C-k] #'kill-buffer
+  ;; "gp" #'
   ;;
+  "g " #'just-one-space
   "gc" #'comment-operator               ; same as doom-emacs
   "gy" #'comment-and-copy-line
-  "gr" [?Y ?k ?p]                       ; copy-line
-  "gk" #'endless/capitalize
+  "gr" [?Y ?p]                       ; copy-line
+  "go" #'endless/capitalize
   "gl" #'endless/downcase
-  "gu" #'endless/upcase)
-
-(evil-declare-key 'visual 'global
-  "gr" [?y ?k ?p])
-
-(evil-declare-key '(normal motion) 'global
+  "gu" #'endless/upcase
+  ;;
   (kbd "TAB") #'indent-for-tab-command
   (kbd "RET") #'newline-and-indent)
+
+(evil-declare-key 'visual 'global
+  "gr" [?y ?h ?p])
+
 
 (evil-define-key 'insert 'global
   (kbd "TAB") #'tab-out-delimiter
@@ -339,9 +360,8 @@ If the character before and after CH is space or tab, CH is NOT slash"
   (evil-search search t t pos)
   ;; ignore this.f1 = this.fn.bind(this) code
   (when (and (memq major-mode '(js-mode js2-mode rjsx-mode))
-             (string-match-p
-              "^[ \t]*this\.[a-zA-Z0-9]+[ \t]*=[ \t]*this\.[a-zA-Z0-9]*\.bind(this);"
-              (util/line-str)))
+             (util/looking-at-line-p
+              "^[ \t]*this\.[a-zA-Z0-9]+[ \t]*=[ \t]*this\.[a-zA-Z0-9]*\.bind(this);"))
     (forward-line 1)
     (evil-search search t t (point))))
 
@@ -519,7 +539,7 @@ Argument BACKWARD non-nil will jump backwards initially, otherwise jump forwards
   "cxr" 'org-clock-report               ; `C-c C-x C-r'
   ;;
   ;; "cf" 'counsel-grep           ; grep current buffer
-  "cg" 'counsel-git            ; find file
+  "cg" 'counsel-git                     ; find file
   ;;
   "da" 'diff-region-tag-selected-as-a
   "db" 'diff-region-compare-with-b
@@ -581,7 +601,7 @@ Argument BACKWARD non-nil will jump backwards initially, otherwise jump forwards
   "kb" 'kill-buffer-and-window ;; "k" is preserved to replace "C-g"
   "kc" 'inc0n/select-from-kill-ring
 
-  "ls" 'highlight-symbol
+  "ls" 'inc0n/transient-highlight-symbol
   "ln" 'highlight-symbol-next
   "lp" 'highlight-symbol-prev
   "lq" 'highlight-symbol-query-replace
@@ -589,7 +609,7 @@ Argument BACKWARD non-nil will jump backwards initially, otherwise jump forwards
 
   "mm" 'lookup-doc-in-man
   "mf" 'mark-defun
-  "mp" 'pop-to-mark-command;; 'avy-pop-mark
+  "mp" 'pop-to-mark-command ;; 'avy-pop-mark
 
   "op" 'compile
   "oa" 'selectrum-org-agenda-headlines
@@ -622,7 +642,7 @@ Argument BACKWARD non-nil will jump backwards initially, otherwise jump forwards
   "sf" 'selectsel-recentf
   ;; "sm" 'selectrum-evil-marks
   "sk" 'inc0n/select-from-kill-ring
-  "ss" 'selectrum-rg
+  "ss" 'selectsel-rg
 
   ;; "ti" 'inc0n/toggle-indentation
   ;; @see https://github.com/pidu/git-timemachine
@@ -642,8 +662,8 @@ Argument BACKWARD non-nil will jump backwards initially, otherwise jump forwards
 
   "xv" 'vc-next-action                  ; 'C-x v v' in original
   "xe" 'eval-last-sexp
-  "xb" 'switch-to-buffer
-  "xf" 'find-file
+  "xb" nil                       ; 'switch-to-buffer ; use gb instead!
+  "xf" nil                       ; 'find-file ; use gf instead
   "xh" 'mark-whole-buffer
   "xc" 'save-buffers-kill-emacs
   "xm" 'execute-extended-command
@@ -809,6 +829,7 @@ Argument N the number of lines to operate on."
   ;; Here is the workaround
   (setq evil-default-cursor t
         evil-auto-indent t
+        evil-want-fine-undo t
         evil-buffer-regexps nil
         evil-want-C-i-jump t))
 

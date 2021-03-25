@@ -1,6 +1,79 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
 ;;; Code:
+
+(require-package 'writeroom-mode)
+(local-require 'mixed-pitch)
+
+;;; mixed-pitch
+
+(autoload #'mixed-pitch-serif-mode "mixed-pitch"
+  "Change the default face of the current buffer to a serifed variable pitch, while keeping some faces fixed pitch." t)
+
+(with-eval-after-load 'mixed-pitch
+  (defface variable-pitch-serif
+    '((t (:family "serif")))
+    "A variable-pitch face with serifs."
+    :group 'basic-faces)
+  (face-remap-add-relative 'variable-pitch :family "Merriweather")
+  (setq mixed-pitch-set-height t))
+
+(defun mixed-pitch-serif-mode (&optional arg)
+  "Change the default face of the current buffer to a serifed variable pitch.
+ARG is passed in."
+  (interactive)
+  (let ((mixed-pitch-face 'variable-pitch-serif)
+        (mixed-pitch-fixed-pitch-faces nil))
+    (mixed-pitch-mode (or arg 'toggle))))
+
+;; (setq text-scale-mode-step 1.05)
+(text-scale-set 1)
+
+;;; writeroom
+
+(autoload #'writeroom-mode "writeroom-mode")
+
+(with-eval-after-load 'writeroom-mode
+  (add-to-list-multi 'writeroom--local-variables
+                     '(mixed-pitch-mode
+                       org-indent-mode
+                       org-adapt-indentation
+                       display-line-numbers-mode))
+  (setq writeroom-width 0.8
+        ;; writetoom-
+        writeroom-window-maximized nil
+        writeroom-fullscreen-effect 'maximized
+        writeroom-extra-line-spacing 7))
+
+(define-hook-setup 'writeroom-mode-enable-hook :zen
+  "Reformat the current Org buffer appearance for prose."
+  (when (eq major-mode 'org-mode)
+    ;; (setq-local visual-fill-column-center-text t)
+    (message "%s" visual-fill-column-width)
+    ;; (setq-local visual-fill-column-width 60)
+    ;; (setq-local visual-fill-column-extra-text-width '(0 . 0))
+    ;; (when (fboundp 'org-pretty-table-mode)
+    ;;   (org-pretty-table-mode 1))
+    (setq-local org-adapt-indentation t)
+    (org-indent-mode -1)
+    (display-line-numbers-mode -1)
+    (mixed-pitch-serif-mode 1)
+    (text-scale-increase 1.5)))
+
+(define-hook-setup 'writeroom-mode-disable-hook :zen
+  (when (eq major-mode 'org-mode)
+    (mapc (lambda (val)
+            (if (symbolp val)
+                (kill-local-variable val)
+              (if (fboundp (car val))
+                  (funcall (car val) (cdr val))
+                (set (car val) (cdr val)))))
+          writeroom--saved-data)
+    (text-scale-decrease 1.5)))
+
+
+;;; writing
+
 ;; @see http://endlessparentheses.com/super-smart-capitalization.html
 (defun endless/convert-punctuation (rg rp)
   "Look for regexp RG around point, and replace with RP.
