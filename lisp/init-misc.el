@@ -38,7 +38,7 @@
 		(t (message "unexpected %s" arg))))
 
 ;; prevent kill ring
-(define-key minibuffer-local-map (kbd "<C-backspace>") 'backward-delete-word)
+;; (define-key minibuffer-local-map (kbd "<C-backspace>") 'backward-delete-word)
 
 (general-define-key
  "C-c C-u" 'inc0n/unbound-symbol
@@ -47,6 +47,7 @@
  "C-h C-f" 'find-function
  "C-h K" 'find-function-on-key
  "C-k" 'kill-sexp
+ [C-backspace] 'backward-delete-word
  ;;
  "TAB" 'tab-out-delimiter) ;; 'indent-for-tab-command
 
@@ -66,10 +67,10 @@
 	(just-one-space 0) ;; delete any space before delimiter
 	(forward-char 1)))
 
-(defun selectrum-select-fonts ()
+(defun completing-read-fonts ()
   "`completion-read' style font selection."
   (interactive)
-  (let ((font (selectrum-read
+  (let ((font (completing-read
                "Selector font: "
                '("DejaVu Sans Mono"
                  ;; "Bitstream Vera Sans Mono"
@@ -86,13 +87,12 @@
                  "Anonymous Pro"
                  "Amiri Typewriter"
                  "Alegreya"
-                 "AR PL New Kai")
-               :require-match t)))
+                 "AR PL New Kai"))))
     (set-face-attribute 'default nil :font font :weight 'normal :slant 'normal :height 140)
     (chinese/fix-font)
     (message "Font: %s" font)))
-;; (setq-default line-spacing 3)
-;; (set-face-attribute 'default nil :weight 'normal :slant 'normal :height 140)
+;; (setq-default line-spacing 2)
+;; (set-face-attribute 'default nil :weight 'normal :width 'semi-condensed :slant 'normal :height 140)
 
 
 (require-package 'auto-yasnippet)
@@ -141,7 +141,7 @@
               ;; visible-bell has some issue
               ;; @see https://github.com/redguardtoo/mastering-emacs-in-one-year-guide/issues/9#issuecomment-97848938
               visible-bell nil
-			  line-spacing 3)
+			  line-spacing 2)
 
 (setq calc-symbolic-mode t
       calc-angle-mode 'rad)
@@ -933,7 +933,8 @@ version control automatically."
 ;; }}
 
 ;; {{ ligature
-(local-require 'ligature)
+;; (local-require 'ligature)
+(autoload 'global-ligature-mode "ligature")
 ;; (setq ligature-composition-table nil)
 (with-eval-after-load 'ligature
   (add-to-list-multi 'ligature-ignored-major-modes '(c-mode c++-mode))
@@ -949,7 +950,8 @@ version control automatically."
 ;; }}
 
 ;; {{
-(local-package 'highlight-symbol)
+;; (local-require 'highlight-symbol)
+(autoload 'highlight-symbol "highlight-symol")
 (with-eval-after-load 'highlight-symbol
   (setq highlight-symbol-colors
 		(delete "SpringGreen1"
@@ -984,8 +986,8 @@ version control automatically."
   (browse-url "https://news.ycombinator.com/"))
 ;; }}
 
-(local-require 'golden-ratio)
-;; (autoload 'golden-ratio-mode "golden-ratio" "golden ratio")
+;; (local-require 'golden-ratio)
+(autoload 'golden-ratio-mode "golden-ratio")
 (add-hook 'after-init-hook 'golden-ratio-mode)
 
 (with-eval-after-load 'golden-ratio

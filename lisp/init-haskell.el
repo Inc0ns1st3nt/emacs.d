@@ -2,6 +2,7 @@
 
 ;;; Code:
 (require-package 'haskell-mode)
+(require-package 'elm-mode)
 
 (custom-set-variables
  ;; '(haskell-interactive-types-for-show-ambiguous nil)
@@ -72,5 +73,9 @@
 ;; 'switch-to-haskell
 
 ;; @see http://haskell.github.io/haskell-mode/manual/latest/Aligning-code.html#Aligning-code
+
+(with-eval-after-load 'elm-mode
+  (setq elm-interactive-command '("npm-do" "elm" "repl"))
+  (setq elm-indent-offset 2))
 
 (provide 'init-haskell)

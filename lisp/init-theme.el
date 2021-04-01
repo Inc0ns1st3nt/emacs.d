@@ -12,7 +12,7 @@
 ;; (load-theme-only 'doom-moonlight)
 ;; doom-moonlight, heading face color too bright in org-mode
 ;; besides that, absolutely great.
-(defvar theme/night 'atom-one-dark) ;; doom-moonlight, doom-vibrant
+(defvar theme/night 'nord) ;; doom-moonlight, doom-vibrant, atom-one-dark
 (defvar theme/day 'doom-homage-white)
 ;; (defvar theme/day 'doom-one-light)
 ;; (defvar themes/day '(doom-homage-white doom-one-light))
@@ -62,8 +62,14 @@
   )
 
 (defun theme/update-day-night-theme-timers ()
-  "Setup the day night timer."
+  "Update the day night timer."
   (interactive)
+  (when theme/day-timer (cancel-timer theme/day-timer))
+  (when theme/night-timer (cancel-timer theme/night-timer))
+  (theme/initialize-day-night-theme-timers))
+
+(defun theme/initialize-day-night-theme-timers ()
+  "Initialize the day night timer."
   (let ((one-day-secs (* 24 60 60))
         (current-time (let ((decoded-time (decode-time)))
                         (cons (caddr decoded-time) (cadr decoded-time)))))
@@ -76,8 +82,6 @@
                  (time1 time2)
                  (+ (* 3600 (- (car time1) (car time2)))
                     (* 60 (- (cdr time1) (cdr time2))))))
-      (when theme/day-timer (cancel-timer theme/day-timer))
-      (when theme/night-timer (cancel-timer theme/night-timer))
       (setq theme/day-timer
             (run-with-timer (time-abs (time-diff current-time theme/day-time))
                             one-day-secs
@@ -92,7 +96,7 @@
           (load-day-theme)
         (load-night-theme)))))
 
-(theme/update-day-night-theme-timers)
+(add-hook 'after-init-hook 'theme/initialize-day-night-theme-timers)
 
 (defun inc0n/toggle-day/night ()
   "Toggle between day and night themes."
@@ -122,16 +126,16 @@
     (backward-char)                  ; move cursor just before the "{"
     (when-let* ((pkgs (json-read))   ; now read the json at point
                 (names (inc0n/theme-packages pkgs)))
-      (let* ((selectrum-should-sort-p nil)
-			 (cand (selectrum-read
+      (let* ((cand (completing-read
 				    "Select theme to install: "
 				    (mapcar (lambda (x)
-                              (propertize (propertize (symbol-name (car x))
-                                                      'face 'package-name)
-                                          'selectrum-candidate-display-prefix
-                                          (concat (number-to-string (cdr x)) " ")))
-						    names))))
-		(package-install (intern cand))))))
+                              (concat (number-to-string (cdr x))
+                                      " "
+                                      (propertize (symbol-name (car x))
+                                                  'face 'package-name)))
+						    names)))
+             (pkg-name (cadr (split-string cand " "))))
+		(package-install (intern pkg-name))))))
 
 (provide 'init-theme)
 ;;; init-theme.el ends here

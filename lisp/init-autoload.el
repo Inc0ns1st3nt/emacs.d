@@ -43,5 +43,9 @@
 (autoload 'vc-msg-show "vc-msg" "")
 (autoload 'gtags-mode "gtags" "" t)
 
+(autoload 'dropdown-list "dropdown-list")
+
+(autoload 'selectsel-recentf "selectsel")
+
 (provide 'init-autoload)
 ;;; init-autoload.el ends here

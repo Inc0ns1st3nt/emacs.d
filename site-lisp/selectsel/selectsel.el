@@ -63,12 +63,13 @@
 (defun selectsel--yank-search (regex-str)
   "Set search item as str.
 Argument REGEX-STR the regex str to find in buffer."
-  (re-search-forward regex-str (line-end-position) t)
-  (if (and (boundp 'evil-mode)
-		   evil-mode)
-	  (evil-search regex-str t t (line-beginning-position))
-	(isearch-mode t)
-	(isearch-yank-string regex-str)))
+  (when regex-str
+    (re-search-forward regex-str (line-end-position) t)
+    (if (and (boundp 'evil-mode)
+		     evil-mode)
+	    (evil-search regex-str t t (line-beginning-position))
+	  (isearch-mode t)
+	  (isearch-yank-string regex-str))))
 
 ;; selectsel-swiper
 
@@ -147,6 +148,7 @@ Obeys narrowing.  Can have INITIAL-INPUT"
 
 ;; imenu
 
+
 (defun selectsel--imenu-candidates ()
   (require 'imenu)
   (let* ((imenu-auto-rescan t)
@@ -172,27 +174,38 @@ Obeys narrowing.  Can have INITIAL-INPUT"
                          (concat prefix
 								 (and prefix ".")
 								 (car elm)))
-                      (let ((key (propertize
-								  (car elm)
-								  'selectrum-candidate-display-prefix
-								  (when prefix
-									(concat (propertize prefix 'face
-														'font-lock-keyword-face)
-											": ")))))
-                        `((,key . ,(if (overlayp (cdr elm))
-									   (overlay-start (cdr elm))
-									 (cdr elm)))))))
+                      (list (propertize
+					         (car elm)
+					         'selectrum-candidate-display-prefix
+					         (when prefix
+						       (concat (propertize prefix 'face
+											       'font-lock-keyword-face)
+								       ": "))
+                             'imenu-marker
+                             (if (overlayp (cdr elm))
+						         (overlay-start (cdr elm))
+						       (cdr elm))))))
                   alist)))
       (get-candidates items))))
+
+(defun selectsel-imenu ()
+  "`imenu' interfacing with `selectrum'."
+  (interactive)
+  (let* ((cands (selectsel--imenu-candidates))
+		 (cand (completing-read "imenu items: " cands
+                                nil
+                                t))
+         (marker (get-text-property 0 'imenu-marker cand)))
+	(imenu marker)))
 
 ;; selectrum-rg
 
 (defvar selectsel--rg-history nil
-  "history for `selectrum-rg'")
+  "History for `selectrum-rg'.")
 
 (defvar selectrum-rg-base-cmd
   "rg -M 240 --with-filename --no-heading --line-number --color never -S -e <R>"
-  "selectrum rg base cmd, can be used to set to use different command to grep")
+  "Selectrum rg base cmd, can be used to set to use different command to grep.")
 
 (autoload 'grep-expand-template "grep" "")
 (autoload 'counsel--elisp-to-pcre "counsel" "")
@@ -298,11 +311,10 @@ as deep as `selectrum--search-file-max-depth'"
 	  (find-file cand))))
 
 (defun selectsel-recentf (&optional initial-input)
-  "Find a file on `recentf-list'."
+  "Find a file on `recentf-list' using INITIAL-INPUT."
   (interactive (list (and (region-active-p)
 						  (util/selected-str))))
-  (if (and (boundp 'recentf-mode)
-		   recentf-mode)
+  (if (bound-and-true-p recentf-mode)
 	  (let* ((files (mapcar 'abbreviate-file-name recentf-list))
 			 (cand (completing-read "Find recent file: " files
 									nil nil initial-input)))
@@ -310,7 +322,7 @@ as deep as `selectrum--search-file-max-depth'"
 	(message "turn on recentf-mode first")))
 
 (defun selectsel--hash-coloured-modes ()
-  "selectsel created hashed table coloured modes"
+  "Selectsel created hashed table coloured modes."
   (let ((modes (make-hash-table :test #'equal)))
 	(mapc (lambda (var)
 			(when (and (boundp var)
@@ -325,7 +337,7 @@ as deep as `selectrum--search-file-max-depth'"
 	modes))
 
 (defvar selectsel--M-x-history nil
-  "history for `selectsel-M-x'")
+  "History for `selectsel-M-x'.")
 
 (defun selectsel-M-x ()
   ""
@@ -370,37 +382,33 @@ Argument CANDS list of files to process."
   (let ((selectrum-preprocess-candidates-function 'selectsel--preprocess-files)
         (selectrum-max-window-height 15)) ;; display more files
 	(selectrum-read-file-name "File file: ")))
-
 ;;
 
 (defun selectsel--package-candidates (package-alist)
-  "Process PACKAGE-ALIST into selectrum-read object."
+  "Process PACKAGE-ALIST into `completing-read' object."
   (cl-loop for (pkg-name pkg-desc) in package-alist
            collect (propertize
-                    (symbol-name pkg-name)
-                    'selectrum-candidate-display-prefix
                     (concat
                      (propertize
                       (mapconcat 'number-to-string
                                  (package-desc-version pkg-desc)
                                  ".")
                       'face 'package-name)
-                     " "))))
+                     " "
+                     (symbol-name pkg-name))
+                    'pkg pkg-name)))
 
 (defun selectsel-list-packages (&optional arg)
   (interactive "P")
   ;; (list (util/thing-at-point/deselect))
-  (let* ((selectrum-preprocess-candidates-function #'identity)
-	     (package (selectrum--read "Selectrum packages: "
-					               (selectsel--package-candidates
-                                    (if (consp arg)
-                                        package-archive-contents
-                                      package-alist))
-					               ;; :initial-input initial-input
-					               :may-modify-candidates t
-					               :require-match t
-					               :no-move-default-candidate t)))
-    (describe-package (intern package))))
+  (let ((package (completing-read
+                  "Selectrum packages: "
+				  (selectsel--package-candidates
+                   (if (consp arg)
+                       package-archive-contents
+                     package-alist))
+                  nil t)))
+    (describe-package (get-text-property 0 'pkg package))))
 
 ;;;; ChangeLog:
 

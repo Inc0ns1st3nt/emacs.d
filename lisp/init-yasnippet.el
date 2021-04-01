@@ -73,7 +73,7 @@ Optional argument ARGS the arguements that the original function was called with
   ;; http://stackoverflow.com/questions/7619640/emacs-latex-yasnippet-why-are-newlines-inserted-after-a-snippet
   (setq-default mode-require-final-newline nil)
   ;; Use `yas-dropdown-prompt' if possible. It requires `dropdown-list'.
-  (local-require 'dropdown-list)
+  ;; (local-require 'dropdown-list)
   (add-to-list 'yas/prompt-functions 'yas-dropdown-prompt)
   ;; (setq-default yas/prompt-functions (delete 'yas-dropdown-prompt yas/prompt-functions))
   ;; (setq yas-prompt-functions '(yas-dropdown-prompt

@@ -22,7 +22,7 @@
     ivy-occur-grep-mode ; better performance
     ivy-occur-mode ; better performance
     twittering-mode
-    compilation-mode
+    ;; compilation-mode
     woman-mode
     Info-mode
     calc-mode
@@ -57,5 +57,14 @@
 				display-line-numbers-type t)))
 (add-hook 'display-line-numbers-mode-hook #'display-line-numbers-mode-hook-setup)
 (add-hook 'after-init-hook 'global-display-line-numbers-mode)
+
+(defun toggle-display-line-numbers-relative ()
+  "Toggle relative line numbers."
+  (interactive)
+  (if (eq display-line-numbers 'relative)
+      (setq-local display-line-numbers t
+			      display-line-numbers-type t)
+    (setq-local display-line-numbers 'relative
+			    display-line-numbers-type 'relative)))
 
 (provide 'init-linum-mode)

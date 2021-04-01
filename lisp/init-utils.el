@@ -139,7 +139,7 @@
 
 (defun inc0n/select-from-kill-ring (n)
   "If N > 1, yank the Nth item in `kill-ring'.
-If N is nil, use `selectrum-mode' to browse `kill-ring'."
+If N is nil, use `completing-read' to browse `kill-ring'."
   (interactive "P")
   (let* ((candidates
 		  (cl-remove-if
@@ -147,7 +147,8 @@ If N is nil, use `selectrum-mode' to browse `kill-ring'."
              (or (< (length s) 5)
                  (string-match-p "\\`[\n[:blank:]]+\\'" s)))
            (delete-dups kill-ring)))
-		 (cand (selectrum-read "Browse `kill-ring':" candidates)))
+		 (cand (completing-read "Browse `kill-ring':" candidates)))
+    (util/insert-str plain-str)
     (util/set-clip cand)
     (message "%s => clipboard" cand)))
 
@@ -376,6 +377,9 @@ The setup hook function will have the name `HOOK-NAME'-setup"
                            [&rest def-body]))
            (indent defun)
            (doc-string 2))
+  (unless (or (symbolp hook-name)
+              (and (listp hook-name) (eq (car hook-name) 'quote)))
+    (warn "bad define-hook-setup name %s" hook-name))
   (let* ((hook-name (if (listp hook-name)
                         (cadr hook-name)
                       hook-name))
@@ -386,8 +390,6 @@ The setup hook function will have the name `HOOK-NAME'-setup"
                                       (substring (symbol-name (car body)) 1))
                             "")
                           "-setup"))))
-    ;; (when (fboundp hook-setup-fn-name)
-    ;;   (warn "redefining setup hook function %s" hook-setup-fn-name))
     `(add-hook ',hook-name
                (defun ,hook-setup-fn-name ()
                  ,@(if (keywordp (car body))

@@ -1,7 +1,10 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
-
-;; {{ use pdf-tools to view pdf
+;;; Commentary:
+;; use pdf-tools to view pdf
 ;; run "M-x pdf-tool-install" at debian and open pdf in GUI Emacs
+
+;;; Code:
+
 (require-package 'pdf-tools)
 
 (with-eval-after-load 'pdf-tools

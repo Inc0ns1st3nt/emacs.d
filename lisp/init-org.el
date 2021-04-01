@@ -70,9 +70,9 @@
                   `(("[ ]" . ?☐)          ; checkbox
                     ("[-]" . ?◼)          ; pending
                     ("[X]" . ?☑)          ; checked box
-                    ("::" . ?∷)           ; list property
-                    ("---" . "—")         ; em dash
-                    ("..." . ?…)          ; ellipsis
+                    ;; ("::" . ?∷)           ; list property
+                    ;; ("---" . "—")         ; em dash
+                    ;; ("..." . ?…)          ; ellipsis
                     ("->" . ?→)
                     ("<-" . ?←)
                     ;; ("#+title:" . ?𝙏)
@@ -96,7 +96,8 @@
                     ("[#E]" . ,(propertize "❓" 'face 'all-the-icons-blue))
                     (":PROPERTIES:" . ?☸)
                     (":END" . ?∎))))
-    (prettify-symbols-mode 1)))
+    (prettify-symbols-mode 1)
+    (org-fragtog-mode 1)))
 
 (with-eval-after-load 'org
   ;; {{
@@ -201,7 +202,7 @@ ARG is ignored."
         org-indent-mode-turns-on-hiding-stars nil
 		org-hide-leading-stars nil
         org-log-done 'note
-        org-edit-src-content-indentation 0
+        org-edit-src-content-indentation 2
         org-edit-timestamp-down-means-later t
         org-fast-tag-selection-single-key 'expert
         ;; org v8
@@ -237,7 +238,7 @@ ARG is ignored."
   (general-define-key
    :keymaps 'org-mode-map
    [C-return] 'inc0n/org-insert
-   [return] 'org-return-indent)
+   [return] 'org-return-and-maybe-indent)
 
   (setq org-directory "~/sources/org/agenda/")
   (setq org-agenda-files (list (concat org-directory "agenda.org")
@@ -310,11 +311,16 @@ ARG is ignored."
         org-src-preserve-indentation t
         org-link-descriptive t
         org-hide-emphasis-markers t)
+  ;; org latex preview scale
+  (setq org-format-latex-options
+        (plist-put org-format-latex-options :scale 1.8))
   ;; org-babel for gnuplot
   ;; @see https://www.orgmode.org/worg/org-contrib/babel/languages/ob-doc-gnuplot.html
   (org-babel-do-load-languages
    'org-babel-load-languages
-   '((gnuplot . t)))
+   '((emacs-lisp . t)
+     (gnuplot . t)
+     (dot . t)))
   ;; (require 'org-protocol)
   (custom-set-faces
    '(org-document-title ((t (:height 1.2))))
@@ -337,11 +343,14 @@ Insert before if ARG is non-nil"
       (org-insert-heading-after-current)))
 
 ;;; org-appear
-(add-hook 'org-mode-hook 'org-appear-mode)
+(add-hook 'org-mode-hook
+          (defun org-appear-setup ()
+            ;; (setq org-appear-elements (delq 'verbatim org-appear-elements))
+            (org-appear-mode 1)))
 (with-eval-after-load 'org-appear
   (setq org-appear-autoemphasis t
         org-appear-autosubmarkers t
-        org-appear-autolinks nil)
+        org-appear-autolinks t)
   ;; for proper first-time setup, `org-appear--set-elements'
   ;; needs to be run after other hooks have acted.
   (run-at-time nil nil #'org-appear--set-elements))
@@ -390,17 +399,29 @@ should be continued."
   (org-capture)
   t)
 
+(define-hook-setup org-tab-first-hook :indent
+  (org-indent-line))
+
 (defun org-goto-item-between-region (start forward)
   "Find the item between START and END, direction is controlled by FORWARD."
-  (call-interactively
-   (if forward 'next-line 'previous-line))
-  (let ((item (org-in-item-p)))
-    (or (if (and item start)
-            (and (/= start item) item)
-          item)
-        (and (org-at-heading-p) (point))
-        ;; (unless (if forward (> (point) end) (< (point) end)))
-        (org-goto-item-between-region start forward))))
+  ;; (memq (org-element-property :type (org-element-at-point))
+  ;;       '(plain-list headline))
+  ;; (goto-char (line-beginning-position))
+  (let ((forward (if forward 1 -1)))
+    (forward-line forward)
+    (while (invisible-p (org-element-property :begin (org-element-at-point)))
+      (forward-line forward)))
+  ;; (message "%s" (list (or (org-element-property :value elm)
+  ;;                         (org-element-property :raw-value elm))
+  ;;                     (org-element-type elm)))
+  (and (not (eobp))
+       (let ((item (org-in-item-p)))
+         (or (if (and item start)
+                 (and (/= start item) item)
+               item)
+             (and (org-at-heading-p) (point))
+             ;; (unless (if forward (> (point) end) (< (point) end)))
+             (org-goto-item-between-region start forward)))))
 
 ;; (evil-declare-key 'normal org-mode-map
 ;;   "g=" nil)
@@ -492,8 +513,10 @@ It will operate between the region from START to END."
       (funcall orig-func link nil info)))
   (advice-add 'org-latex-link :around 'inc0n/org-latex-link)
   (add-to-list 'org-latex-listings-langs '(javascript "Javascript"))
+  (add-to-list 'org-latex-listings-langs '(asm "Assembler"))
   (setq org-latex-caption-above '(table src-block)
         ;; Our hack for using auto ref to generate our nice labels
+        ;; org-latex-image-default-scale
         org-latex-listings t
         org-latex-prefer-user-labels t))
 

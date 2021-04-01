@@ -9,15 +9,6 @@
 (require 'transient)
 ;; inc0n/define-transient-command
 
-(defun transient-post-suffix-quit ()
-  "My transient post suffix do.
-stay transient for all other suffix other than this suffix."
-  (interactive)
-  (when transient--prefix
-    (if (eq (oref transient--prefix transient-suffix) this-command)
-        (transient--do-exit)
-      (transient--do-stay))))
-
 ;; transient-define-prefix
 
 (fset 'inc0n/transient-suffix 'transient--do-stay)

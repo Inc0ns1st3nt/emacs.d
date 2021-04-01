@@ -4,13 +4,23 @@
 ;; selectrum, the incremental search package, setup
 ;;
 
-;;; Code
+;;; Code:
 
 ;; @see https://github.com/raxod502/selectrum
 (require-package 'selectrum)
+(require-package 'consult)
+;; (require-package 'icomplete-vertical)
 (local-require 'selectsel)
 
 (add-hook 'after-init-hook 'selectrum-mode)
+;; (add-hook 'after-init-hook 'icomplete-mode)
+;; (add-hook 'after-init-hook 'icomplete-vertical-mode)
+;; (add-hook 'after-init-hook 'fido-mode)
+(global-set-key (kbd "C-c C-k") 'which-key-show-top-level)
+
+;; (grep-apply-setting
+;;  'grep-find-command
+;;  '("rg -n -H --no-heading -e '' $(git rev-parse --show-toplevel || pwd)" . 27))
 
 ;; @see https://github.com/raxod502/prescient.el
 (when (require-package 'selectrum-prescient)
@@ -27,25 +37,35 @@
   (setq selectrum-count-style 'matches
 		selectrum-extend-current-candidate-highlight t))
 
-(global-set-key (kbd "C-s")
-				(defun inc0n/selectsel-swiper ()
-				  (interactive)
-				  (let ((prescient-filter-method '(regexp)))
-					(selectsel-swiper (util/thing-at-point/deselect)))))
-(global-set-key (kbd "C-x C-z")
-                (defun selectsel-quick-repeat ()
-                  "Quick navigation variant of `selectrum-repeat'."
-                  (interactive)
-                  (let* ((selectrum-minibuffer-map
-                          (let ((map (make-sparse-keymap)))
-                            (set-keymap-parent map selectrum-minibuffer-map)
-                            (define-key map "n" #'selectrum-next-candidate)
-                            (define-key map "p" #'selectrum-previous-candidate)
-                            (define-key map "q" #'abort-recursive-edit)
-                            map)))
-                    (let ((minibuffer-message-timeout 0.3))
-                      (minibuffer-message "quick navigate n/p/q"))
-                    (selectrum-repeat))))
+(defun inc0n/selectsel-swiper ()
+  "My version of swiper."
+  (interactive)
+  ;; (selectsel-swiper (util/thing-at-point/deselect))
+  (consult-line (util/thing-at-point/deselect))
+  (selectsel--yank-search (car consult--line-history)))
+
+(defun inc0n/selectsel-rg ()
+  "My version of ripgrep."
+  (interactive)
+  (consult-ripgrep default-directory (util/thing-at-point/deselect))
+  (selectsel--yank-search (car consult--grep-history)))
+
+(defun selectsel-quick-repeat ()
+  "Quick navigation variant of `selectrum-repeat'."
+  (interactive)
+  (let* ((selectrum-minibuffer-map
+          (let ((map (make-sparse-keymap)))
+            (set-keymap-parent map selectrum-minibuffer-map)
+            (define-key map "n" #'selectrum-next-candidate)
+            (define-key map "p" #'selectrum-previous-candidate)
+            (define-key map "q" #'abort-recursive-edit)
+            map)))
+    (let ((minibuffer-message-timeout 0.3))
+      (minibuffer-message "quick navigate n/p/q"))
+    (selectrum-repeat)))
+
+(global-set-key (kbd "C-s") 'inc0n/selectsel-swiper)
+(global-set-key (kbd "C-x C-z") 'selectsel-quick-repeat)
 
 ;;
 
@@ -56,16 +76,6 @@
 							 :initial-input (and (region-active-p)
 												 (util/selected-str)))))
 
-(defun selectrum-imenu ()
-  "`imenu' interfacing with `selectrum'"
-  (interactive)
-  (let* ((cands (selectsel--imenu-candidates))
-		 (cand (selectrum-read
-				"imenu items: " (mapcar #'car cands)
-				:initial-input (thing-at-point 'symbol)
-				:require-match t
-				:history 'counsel-imenu-history)))
-	(imenu (cl-find cand cands :test #'string= :key #'car))))
 
 (defun selectrum-imenu-comments ()
   "Imenu display comments."
@@ -92,7 +102,7 @@
 									  (buffer-substring-no-properties (1- start) end)))
 									(point-marker))
 					  do (goto-char end))))))
-	(selectrum-imenu)))
+	(selectsel-imenu)))
 
 (defun selectrum-org-agenda-headlines-candidates ()
   (org-map-entries
@@ -147,38 +157,11 @@
 			 ;; because `lsp-mode' is too damn slow
 			 #'counsel-etags-imenu-default-create-index-function
 		   imenu-create-index-function)))
-	(selectrum-imenu)))
+    ;; (selectsel-imenu)
+    (consult-imenu)))
 
 ;; selectrum evil mark
 ;; @see https://github.com/raxod502/selectrum/wiki/Useful-Commands#evil-marks
-
-;; (defun selectrum-switch-tabs ()
-;;   (interactive)
-;;   (let ((selectrum-minibuffer-map))
-;; 	(read-buffer-to-switch "Switch to buffer: ")))
-
-(defun ask-action-on (prompt actions-list &optional target)
-  "`ask-action-on' takes ACTIONS-LIST a list of (char PROMPT action), that could optionally act on TARGET with the corresponding action."
-  (let* ((action-prompt
-          (mapconcat (lambda (p)
-					   (cl-destructuring-bind (key prompt action) p
-                         (unless action
-                           (error "No action specified for %s" p))
-                         (unless (characterp key)
-                           (error "Key is not a character %s" p))
-						 (format "  [%c] %s" key prompt)))
-					 actions-list "\n"))
-         (key (read-char-from-minibuffer
-               (format " Actions for: %s\n\n%s\n" prompt action-prompt)))
-         (cand (assoc key actions-list)))
-	(if cand
-        (let ((action (caddr cand)))
-          (cond ((eq action 'quit))
-                (target (funcall action target))
-                (t
-                 ;; (funcall action)
-                 (ask-action-on prompt actions-list))))
-      (message "no action specified for %s" key))))
 
 ;; buffer style popup window
 

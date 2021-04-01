@@ -43,7 +43,6 @@
         diredp-next-line
         diredp-previous-line
         electric-pair-delete-pair
-        inc0n/erase-visible-buffer
         eval-buffer
         evil-a-WORD
         evil-append

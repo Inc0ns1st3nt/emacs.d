@@ -26,15 +26,18 @@
 ARG is passed in."
   (interactive)
   (let ((mixed-pitch-face 'variable-pitch-serif)
-        (mixed-pitch-fixed-pitch-faces nil))
+        ;; (mixed-pitch-fixed-pitch-faces nil)
+        )
     (mixed-pitch-mode (or arg 'toggle))))
 
-;; (setq text-scale-mode-step 1.05)
-(text-scale-set 1)
+(setq text-scale-mode-step 1.1)
+;; (text-scale-set 0)
 
 ;;; writeroom
 
 (autoload #'writeroom-mode "writeroom-mode")
+
+(defalias 'readroom-mode 'writeroom-mode)
 
 (with-eval-after-load 'writeroom-mode
   (add-to-list-multi 'writeroom--local-variables
@@ -61,7 +64,7 @@ ARG is passed in."
     (org-indent-mode -1)
     (display-line-numbers-mode -1)
     (mixed-pitch-serif-mode 1)
-    (text-scale-increase 1.5)))
+    (text-scale-increase 1.0)))
 
 (define-hook-setup 'writeroom-mode-disable-hook :zen
   (when (eq major-mode 'org-mode)
@@ -72,7 +75,7 @@ ARG is passed in."
                   (funcall (car val) (cdr val))
                 (set (car val) (cdr val)))))
           writeroom--saved-data)
-    (text-scale-decrease 1.5)))
+    (text-scale-decrease 1.0)))
 
 
 ;;; writing

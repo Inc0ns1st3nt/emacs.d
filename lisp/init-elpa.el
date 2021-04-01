@@ -26,7 +26,7 @@
   "Get the expanded PATH under .emacs.d."
   (expand-file-name path user-emacs-directory))
 
-(when (and (null noninteractive)         ; no popup in batch mode
+(when (and (not noninteractive)         ; no popup in batch mode
            (not (file-exists-p (file-truename package-user-dir)))
            (yes-or-no-p "Switch to faster package repositories in China temporarily?
 You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use this ELPA mirror."))
@@ -40,7 +40,7 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
 
 ;; On-demand installation of packages
 (defun require-package (package &optional min-version no-refresh)
-  "Ask elpa to install given PACKAGE for MIN-VERSION."
+  "Ask elpa to install given PACKAGE for MIN-VERSION, NO-REFRESH."
   (or (package-installed-p package min-version)
       (if (or (assoc package package-archive-contents)
               no-refresh)
@@ -110,6 +110,8 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
     zoutline
     company-c-headers
     company-statistics
+    ;; toggle latex fragment
+    org-fragtog
     ;;
     face-up ;; for racket mode
     racket-mode)

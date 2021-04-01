@@ -34,20 +34,7 @@
 ;; ;; }}
 
 ;; {{ git-gutter
-(local-require 'git-gutter)
-
-(with-eval-after-load 'git-gutter
-  (setq git-gutter:update-interval 2)
-  ;; nobody use bzr
-  ;; I could be forced to use subversion or hg which has higher priority
-  ;; Please note my $HOME directory is under git control
-  (setq git-gutter:handled-backends '(svn hg git))
-  (setq git-gutter:disabled-modes
-        '(asm-mode
-          org-mode
-          outline-mode
-          markdown-mode
-          image-mode)))
+;; (local-require 'git-gutter)
 
 (defun git-gutter-reset-to-head-parent()
   "Reset gutter to HEAD^.  Support Subversion and Git."
@@ -72,19 +59,33 @@ Show the diff between current working code and git head."
   (git-gutter:set-start-revision nil)
   (message "git-gutter reset"))
 
-(add-hook 'after-init-hook 'global-git-gutter-mode)
+(autoload 'global-git-gutter-mode "git-gutter")
+;; (add-hook 'after-init-hook 'global-git-gutter-mode)
 
-(unless (fboundp 'global-display-line-numbers-mode)
- ;; git-gutter's workaround for linum-mode bug.
- ;; should not be used in `display-line-number-mode'
- (git-gutter:linum-setup))
+(with-eval-after-load 'git-gutter
+  (setq git-gutter:update-interval 2)
+  ;; nobody use bzr
+  ;; I could be forced to use subversion or hg which has higher priority
+  ;; Please note my $HOME directory is under git control
+  (setq git-gutter:handled-backends '(svn hg git))
+  (setq git-gutter:disabled-modes
+        '(asm-mode
+          org-mode
+          outline-mode
+          markdown-mode
+          image-mode))
 
-(global-set-key (kbd "C-x C-g") 'git-gutter-mode)
-(global-set-key (kbd "C-x v =") 'git-gutter:popup-hunk)
-;; Stage current hunk
-(global-set-key (kbd "C-x v s") 'git-gutter:stage-hunk)
-;; Revert current hunk
-(global-set-key (kbd "C-x v r") 'git-gutter:revert-hunk)
+  (unless (fboundp 'global-display-line-numbers-mode)
+    ;; git-gutter's workaround for linum-mode bug.
+    ;; should not be used in `display-line-number-mode'
+    (git-gutter:linum-setup))
+
+  (global-set-key (kbd "C-x C-g") 'git-gutter-mode)
+  (global-set-key (kbd "C-x v =") 'git-gutter:popup-hunk)
+  ;; Stage current hunk
+  (global-set-key (kbd "C-x v s") 'git-gutter:stage-hunk)
+  ;; Revert current hunk
+  (global-set-key (kbd "C-x v r") 'git-gutter:revert-hunk))
 
 ;; }}
 
@@ -168,9 +169,11 @@ Show the diff between current working code and git head."
   "Git add file of current buffer."
   (interactive)
   (when buffer-file-name
-    (let ((filename (git-get-current-file-relative-path)))
-      (shell-command (concat "git add " filename))
-      (message "DONE! git add %s" filename))))
+    (let* ((filename (git-get-current-file-relative-path))
+           (status (shell-command (concat "git add " filename))))
+      (if (= status 0)
+          (message "DONE! git add %s" filename)
+        (message "Failed! %s in a git repo?" filename)))))
 
 ;; {{ goto next/previous hunk
 (defun inc0n/goto-next-hunk (arg)
@@ -269,10 +272,11 @@ If USER-SELECT-BRANCH is not nil, rebase on the tag or branch selected by user."
 (defun inc0n/goto-git-gutter ()
   (interactive)
   (if git-gutter:diffinfos
-      (let ((e (selectrum-read "git-gutters:"
-							   (mapcar #'inc0n/reshape-git-gutter
-									   git-gutter:diffinfos))))
-		(unless (numberp e) (setq e (cdr e)))
+      (let* ((cands (mapcar #'inc0n/reshape-git-gutter
+							git-gutter:diffinfos))
+             (e (completing-read "git-gutters:" cands)))
+        (setq e (cdr (assoc e cands)))
+		;; (unless (numberp e) (setq e (cdr e)))
 		(goto-line e))
     (message "NO git-gutters!")))
 

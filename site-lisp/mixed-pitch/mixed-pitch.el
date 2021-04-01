@@ -103,21 +103,29 @@
     mu4e-contact-face
     mu4e-compose-separator-face
     mu4e-compose-header-face
-    ;; org-block
-    ;; org-block-begin-line
-    ;; org-block-end-line
-    ;; org-document-info-keyword
+    org-block
+    org-block-begin-line
+    org-block-end-line
+    org-document-info-keyword
     org-code
     org-indent
     org-latex-and-related
     org-checkbox
     org-formula
-    ;; org-meta-line
-    ;; org-verbatim
+    org-meta-line
+    org-verbatim
     org-table)
   "This is a list holding names of faces that will not be variable pitch when function `mixed-pitch-mode' is enabled."
   :type '(repeat face)
   :package-version '(mixed-pitch . "1.1.1")
+  :group 'mixed-pitch)
+
+(defcustom mixed-pitch-font-size-diff 1
+  "If non-nil, function `mixed-pitch-mode' changes the cursor.
+When disabled, switch back to what it was before.
+
+See `cursor-type' for a list of acceptable types."
+  :type 'number
   :group 'mixed-pitch)
 
 (defcustom mixed-pitch-variable-pitch-cursor 'bar
@@ -175,7 +183,9 @@ inherited from `variable-pitch' and `default'."
             (add-to-list 'mixed-pitch-fixed-cookie
                          (if mixed-pitch-set-height
                              (face-remap-add-relative
-                              face :family fix-pitch :height fix-height :weight fix-weight)
+                              face :family fix-pitch
+                              ;; :height (and fix-height)
+                              :weight fix-weight)
                            (face-remap-add-relative face :family fix-pitch :weight fix-weight))))
           ;; Change the cursor if the user requested:
           (when mixed-pitch-variable-pitch-cursor (setq cursor-type mixed-pitch-variable-pitch-cursor)))

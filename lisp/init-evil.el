@@ -45,40 +45,38 @@
 (require-package 'evil-surround)
 ;; @see https://github.com/timcharper/evil-surround
 (add-hook 'after-init-hook 'global-evil-surround-mode)
-(add-hook 'prog-mode-hook
-          (defun evil-surround-prog-mode-hook-setup ()
-            "Set up surround shortcuts."
-            (util/ensure 'evil-surround)
-            (push (if (memq major-mode '(sh-mode))
-                      '(?$ . ("$(" . ")"))
-                    '(?$ . ("${" . "}")))
-                  evil-surround-pairs-alist)
+(define-hook-setup 'prog-mode-hook :evil-surround
+  "Set up surround shortcuts."
+  (util/ensure 'evil-surround)
+  (push (if (memq major-mode '(sh-mode))
+            '(?$ . ("$(" . ")"))
+          '(?$ . ("${" . "}")))
+        evil-surround-pairs-alist)
 
-            (when (memq major-mode '(org-mode))
-              (push '(?\[ . ("[[" . "]]")) evil-surround-pairs-alist)
-              (push '(?= . ("=" . "=")) evil-surround-pairs-alist))
+  (when (memq major-mode '(org-mode))
+    (push '(?\[ . ("[[" . "]]")) evil-surround-pairs-alist)
+    (push '(?= . ("=" . "=")) evil-surround-pairs-alist))
 
-            (push '(?\( . ("(" . ")")) evil-surround-pairs-alist)
-            (when (memq major-mode '(emacs-lisp-mode))
-              (push '(?` . ("`" . "'")) evil-surround-pairs-alist))
+  (push '(?\( . ("(" . ")")) evil-surround-pairs-alist)
+  (when (memq major-mode '(emacs-lisp-mode))
+    (push '(?` . ("`" . "'")) evil-surround-pairs-alist))
 
-            (when (derived-mode-p 'js-mode)
-	          (push '(?j . ("JSON.stringify(" . ")")) evil-surround-pairs-alist)
-              (push '(?> . ("(e) => " . "(e)")) evil-surround-pairs-alist))
+  (when (derived-mode-p 'js-mode)
+	(push '(?j . ("JSON.stringify(" . ")")) evil-surround-pairs-alist)
+    (push '(?> . ("(e) => " . "(e)")) evil-surround-pairs-alist))
 
-            ;; generic
-            (push '(?/ . ("/" . "/")) evil-surround-pairs-alist)))
+  ;; generic
+  (push '(?/ . ("/" . "/")) evil-surround-pairs-alist))
 ;; }}
 
 ;; ffip-diff-mode (read only) evil setup
-(add-hook 'ffip-diff-mode-hook
-          (defun ffip-diff-mode-hook-setup ()
-            (evil-declare-key 'normal 'local
-              "q" (lambda () (interactive) (quit-window t))
-              (kbd "RET") #'ffip-diff-find-file
-              ;; "C-c C-a" is binding to `diff-apply-hunk' in `diff-mode'
-              "a" #'ffip-diff-apply-hunk
-              "o" #'ffip-diff-find-file)))
+(define-hook-setup 'ffip-diff-mode-hook
+  (evil-declare-key 'normal 'local
+    "q" (lambda () (interactive) (quit-window t))
+    (kbd "RET") #'ffip-diff-find-file
+    ;; "C-c C-a" is binding to `diff-apply-hunk' in `diff-mode'
+    "a" #'ffip-diff-apply-hunk
+    "o" #'ffip-diff-find-file))
 
 ;; {{ define my own text objects, works on evil v1.0.9 using older method
 ;; @see http://stackoverflow.com/questions/18102004/emacs-evil-mode-how-to-create-a-new-text-object-to-select-words-with-any-non-sp
@@ -295,7 +293,7 @@ Check `util/delim-p' for the definition of delim."
   "<" 'org-shiftmetaleft
   ">" 'org-shiftmetaright
   ;; (kbd "RET") #'newline-and-indent
-  (kbd "TAB") #'org-cycle)
+  (kbd "TAB") 'org-cycle)
 
 (evil-declare-key 'normal markdown-mode-map
   "gh" #'outline-up-heading
@@ -313,8 +311,10 @@ Check `util/delim-p' for the definition of delim."
   "Y" #'evil-yank-line ;; "y$"
   "U" #'join-line
   ;;
-  (kbd "TAB") #'indent-for-tab-command
   (kbd "RET") #'newline-and-indent)
+
+(evil-declare-key '(normal visual) 'global
+  (kbd "TAB") 'indent-for-tab-command)
 
 ;; evil g leader key
 (evil-declare-key '(normal motion) 'global
@@ -332,20 +332,22 @@ Check `util/delim-p' for the definition of delim."
   "g " #'just-one-space
   "gc" #'comment-operator               ; same as doom-emacs
   "gy" #'comment-and-copy-line
-  "gr" [?Y ?p]                       ; copy-line
+  "gr" #'copy-and-paste    ; [?Y ?p]                       ; copy-line
   "go" #'endless/capitalize
   "gl" #'endless/downcase
   "gu" #'endless/upcase)
 
 (evil-declare-key 'visual 'global
-  "gr" [?y ?h ?p])
+  "gr" nil;; [?y ?h ?p]
+  )
 
 
 (evil-define-key 'insert 'global
   (kbd "TAB") #'tab-out-delimiter
   (kbd "C-x C-n") #'evil-complete-next-line
   (kbd "C-x C-p") #'evil-complete-previous-line
-  (kbd "C-]") #'aya-expand
+  (kbd "C-]") #'forward-word
+  ;; #'aya-expand
   (kbd "C-e") #'move-end-of-line
   (kbd "C-;") #'company-kill-ring  ;; replaces fly spell-auto-correct-previous-word
   (kbd "C-k") #'kill-sexp)
@@ -507,7 +509,7 @@ Argument BACKWARD non-nil will jump backwards initially, otherwise jump forwards
 
 (general-create-definer inc0n/space-leader-def
   :prefix "SPC"
-  :states '(normal visual)
+  :states '(normal motion visual)
   :keymaps 'override)
 
 ;; Please check "init-ediff.el" which contains `inc0n/space-leader-def' code too
@@ -559,7 +561,6 @@ Argument BACKWARD non-nil will jump backwards initially, otherwise jump forwards
   "ed" 'checkdoc-eval-defun
   "ee" 'eval-expression
   "ef" 'end-of-defun
-  ;; "em" 'inc0n/erase-visible-buffer
 
   "cn" 'cp-filename-of-current-buffer
   "fp" 'cp-fullpath-of-current-buffer
@@ -577,6 +578,7 @@ Argument BACKWARD non-nil will jump backwards initially, otherwise jump forwards
   "fc" 'flyspell-correct-word-before-point
   ;; "be" 'flyspell-goto-previous-error
   "fs" 'inc0n/transient-flyspell
+  "fe" 'inc0n/transient-flycheck
   ;; "ft" 'counsel-etags-find-tag-at-point
 
   "gg" 'inc0n/counsel-git-grep ; quickest grep should be easy to press
@@ -596,15 +598,11 @@ Argument BACKWARD non-nil will jump backwards initially, otherwise jump forwards
 
   "ih" 'inc0n/goto-git-gutter           ; use ivy-mode
   "ii" 'inc0n/imenu-or-list-tag-in-current-file
-  "ir" 'selectrum-repeat
 
   "jb" #'inc0n/evil-transient-jump
-  "jf" (lambda () (interactive) (inc0n/evil-transient-jump nil))
-  "jp" 'inc0n/print-json-path
   ;;
   ;; "jj" 'scroll-other-window
   "kb" 'kill-buffer-and-window ;; "k" is preserved to replace "C-g"
-  "kc" 'inc0n/select-from-kill-ring
 
   "ls" 'inc0n/transient-highlight-symbol
   "ln" 'highlight-symbol-next
@@ -623,13 +621,8 @@ Argument BACKWARD non-nil will jump backwards initially, otherwise jump forwards
   "on" 'org-agenda-show-agenda-and-todo
   "otl" 'org-toggle-link-display
   "ou" 'org-update-statistics-cookies
-  "o<" 'org-do-promote                  ; `C-c C-<'
-  "o>" 'org-do-demote                   ; `C-c C->'
 
   "nh" 'inc0n/goto-next-hunk
-
-  "ne" 'inc0n/transient-flycheck
-  "pe" 'inc0n/transient-flycheck
 
   "pd" 'pwd
   "ph" 'inc0n/goto-previous-hunk
@@ -644,41 +637,39 @@ Argument BACKWARD non-nil will jump backwards initially, otherwise jump forwards
   ;; "ss" 'wg-create-workgroup ; save windows layout
   ;; "sc" 'shell-command
   "sc" 'selectrum-imenu-comments
-  "sf" 'selectsel-recentf
+  ;; "sf" 'selectsel-recentf ; g-s instead
   ;; "sm" 'selectrum-evil-marks
-  "sk" 'inc0n/select-from-kill-ring
-  "ss" 'selectsel-rg
+  ;; "ss" 'selectsel-rg
+  "ss" 'inc0n/selectsel-rg
 
   ;; "ti" 'inc0n/toggle-indentation
   ;; @see https://github.com/pidu/git-timemachine
   ;; p: previous; n: next; w:hash; W:complete hash; g:nth version; q:quit
   "tm" 'inc0n/git-timemachine
   "tt" 'inc0n/toggle-day/night
-  "tw" 'typewriter-mode
   "ti" 'toggle-indent-tabs-mode
 
   "vf" 'vc-rename-file-and-buffer
   "vc" 'vc-copy-file-and-rename-buffer
   "vg" 'vc-annotate                     ; 'C-x v g' in original
   "vv" 'vc-msg-show
-  "vj" 'inc0n/validate-json-or-js-expression
 
   "ycr" 'inc0n/yas-reload-all
 
   "xv" 'vc-next-action                  ; 'C-x v v' in original
   "xe" 'eval-last-sexp
-  "xb" nil                       ; 'switch-to-buffer ; use gb instead!
-  "xf" nil                       ; 'find-file ; use gf instead
+  ;; "xb" 'switch-to-buffer ; use gb instead!
+  ;; "xf" 'find-file ; use gf instead
   "xh" 'mark-whole-buffer
   "xc" 'save-buffers-kill-emacs
   "xm" 'execute-extended-command
-  "xk" 'kill-buffer
+  ;; "xk" 'kill-buffer
   "xs" 'save-buffer
   ;; {{ window move
-  ;; "wh" 'evil-window-left
-  ;; "wl" 'evil-window-right
-  ;; "wk" 'evil-window-up
-  ;; "wj" 'evil-window-down
+  "wh" 'evil-window-left
+  "wl" 'evil-window-right
+  "wk" 'evil-window-up
+  "wj" 'evil-window-down
   ;; }}
   ;; {{ @see http://ergoemacs.org/emacs/emacs_pinky_2020.html
   ;; `keyfreq-show' proved sub-window operations happen most.
@@ -697,6 +688,13 @@ Argument BACKWARD non-nil will jump backwards initially, otherwise jump forwards
   ;;
   "SPC" 'just-one-space)
 ;; }}
+
+(defun copy-and-paste (beg end)
+  (interactive (if (region-active-p)
+				   (list (region-beginning) (region-end))
+			     (list (line-beginning-position) (1+ (line-end-position)))))
+  (let ((x (buffer-substring beg end)))
+    (insert x)))
 
 (defun comment-and-copy-line (n)
   (interactive "p")
@@ -718,15 +716,13 @@ Argument N the number of paragraph to operate on."
 		  (point))))
 
 (defun comment-operator (n)
-  "My implementation of a comment-operator.
+  "My implementation of a `comment-operator'.
 Argument N the number of lines to operate on."
   (interactive "P")
   (if (region-active-p)
-	  (comment-or-uncomment-region (region-beginning) (region-end))
-	(beginning-of-line)
-	(comment-or-uncomment-region
-	 (point)
-	 (progn (forward-line (or n 1)) (point)))))
+	  (comment-or-uncomment-region
+       (region-beginning) (region-end))
+    (comment-line n)))
 
 
 ;; {{ Use `;` as leader key, for searching something

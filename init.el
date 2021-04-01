@@ -49,7 +49,6 @@
 				  (expand-file-name pkg path)
 			    (file-truename path))
 			  t nil))))
-(defalias 'local-package 'local-require)
 
 (defun add-subdirs-to-load-path (parent-dir)
   "Add every non-hidden subdir of PARENT-DIR to `load-path'."
@@ -131,6 +130,9 @@
 
   (when (file-exists-p custom-file)
     (load custom-file)))
+
+(add-to-list 'load-path inc0n/site-lisp-dir)
+
 
 ;;; Local Variables:
 ;;; no-byte-compile: t

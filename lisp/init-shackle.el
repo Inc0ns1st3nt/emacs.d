@@ -43,7 +43,7 @@
 
 (defun inc0n/popper-select-popup-at-bottom (buffer &optional _alist)
   "Display and switch to popup-buffer BUFFER at the bottom of the screen."
-  (message "window: %s"inc0n/popper-last-window)
+  ;; (message "window: %s"inc0n/popper-last-window)
   (when (or (null inc0n/popper-last-window)
             (not (window-valid-p inc0n/popper-last-window)))
     (setq inc0n/popper-last-window

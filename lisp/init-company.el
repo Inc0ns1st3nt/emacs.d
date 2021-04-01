@@ -66,6 +66,7 @@
   ;; company-ctags is much faster out of box. No further optimiation needed
   (unless (featurep 'company-ctags)
     (local-require 'company-ctags)
+    ;; (autoload 'company-ctags-auto-setup "company-ctags")
 	(company-ctags-auto-setup))
 
   (setq company-backends (delete 'company-capf company-backends))

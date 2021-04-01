@@ -89,13 +89,15 @@
   (setq simple-modeline-box-height 3)
   (simple-modeline--update-modeline))
 
+(autoload 'simple-modeline-get-segments "simple-modeline")
+
 (defun simple-modeline-seutp ()
   "Simple-modeline seutp."
-  (local-require 'simple-modeline)
-  (setq-default simple-modeline-segments
-                (simple-modeline-set-segments
-                 '((winum popper evil-modal modified buffer-name position)
-                   (input-method vc major-mode eol encoding))))
+  ;; (local-require 'simple-modeline)
+  (let ((segments (simple-modeline-get-segments
+                   '((winum popper evil-modal modified buffer-name position)
+                     (input-method vc major-mode eol encoding)))))
+    (setq-default simple-modeline-segments segments))
   (simple-modeline-mode 1))
 
 (add-hook 'after-init-hook 'column-number-mode)

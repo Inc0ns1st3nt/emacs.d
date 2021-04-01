@@ -13,7 +13,8 @@
 ;; (define-auto-insert "\\.tex$" "latex-notes-template.tex")
 
 (defun inc0n/yas-insert-template (name)
-  (when (= (point-min) (point-max))
+  (when (= (point-min)
+           (point-max))
 	(flet ((dummy-prompt
 			(prompt choices &optional display-fn)
 			(declare (ignore prompt))
@@ -28,14 +29,7 @@
   (setq TeX-parse-self t)			 ; Enable parse on load.
   (setq TeX-auto-save t)			 ; Enable parse on save.
   (setq TeX-PDF-mode t)				 ; PDF mode (rather than DVI-mode)
-  (setq TeX-electric-math '("$" . "$"))
-  (general-define-key
-   :keymaps 'latex-mode-map
-   "$" 'self-insert-command
-   :prefix "SPC lp"
-   "b" 'preview-buffer
-   "r" 'preview-region
-   "s" 'preview-section))
+  (setq TeX-electric-math '("$" . "$")))
 
 (with-eval-after-load 'preview
   (setq preview-scale-function 1.4)
@@ -50,13 +44,23 @@
 
 ;; (custom/reset-var 'preview-default-preamble)
 
-(add-hook 'TeX-mode-hook 'flyspell-mode); Enable Flyspell mode for TeX modes such as AUCTeX. Highlights all misspelled words.
-(add-hook 'LaTeX-mode-hook 'LaTeX-math-mode)
-(add-hook 'LaTeX-mode-hook (defun latex-mode-setup ()
-                             ;; (inc0n/yas-insert-template "template")
-                             ;; (setq-local electric-pair-pairs
-                             (setq-local word-wrap t)))
-(add-hook 'LaTeX-mode-hook 'electric-pair-mode)
+;; Enable Flyspell mode for TeX modes such as AUCTeX. Highlights all misspelled words.
+(add-hook 'TeX-mode-hook 'flyspell-mode)
+
+(define-hook-setup 'LaTeX-mode-hook
+  (LaTeX-math-mode 1)
+  (electric-pair-mode 1)
+  (general-define-key
+   :keymaps 'local
+   "$" 'self-insert-command
+   :prefix "SPC lp"
+   "b" 'preview-buffer
+   "r" 'preview-region
+   "s" 'preview-section)
+  ;; (inc0n/yas-insert-template "template")
+  ;; (setq-local electric-pair-pairs
+
+  (setq-local word-wrap t))
 
 (provide 'init-latex)
 ;;; init-latex.el ends here
