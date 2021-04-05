@@ -92,11 +92,6 @@ Only applies to `text-mode'."
                    (looking-back (format f rg space))))
       (replace-match rp nil nil nil 1))))
 
-(defun endless/call-subword-cmd (fn)
-  "Argument FN function."
-  ;; (util/ensure 'subword)
-  (call-interactively fn))
-
 (defun endless/capitalize ()
   "Capitalise region or word.
 Also converts commas to full stops, and kills
@@ -109,7 +104,7 @@ extraneous space at beginning of line."
     (when (looking-at "^\\s-\\b")
       ;; get rid of it!
       (delete-char 1))
-    (endless/call-subword-cmd 'subword-capitalize)))
+    (call-interactively 'subword-capitalize)))
 
 (defun endless/downcase ()
   "Down-case region or word.
@@ -118,14 +113,14 @@ Also converts full stops to commas."
   (endless/convert-punctuation "\\." ",")
   (if (use-region-p)
       (call-interactively 'downcase-region)
-    (endless/call-subword-cmd 'subword-downcase)))
+    (call-interactively 'subword-downcase)))
 
 (defun endless/upcase ()
   "Upcase region or word."
   (interactive)
   (if (use-region-p)
       (call-interactively 'upcase-region)
-    (endless/call-subword-cmd 'subword-upcase)))
+    (call-interactively 'subword-upcase)))
 
 ;; these bindings are fine
 (global-set-key (kbd "M-c") 'endless/capitalize)

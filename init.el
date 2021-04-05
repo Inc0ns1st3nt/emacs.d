@@ -48,7 +48,8 @@
 	    (load (if (file-exists-p path)
 				  (expand-file-name pkg path)
 			    (file-truename path))
-			  t nil))))
+			  t nil))
+      (message "cannot find package %s" pkg)))
 
 (defun add-subdirs-to-load-path (parent-dir)
   "Add every non-hidden subdir of PARENT-DIR to `load-path'."
@@ -85,14 +86,14 @@
 
   (require 'init-markdown)
   (require 'init-javascript)
-  (require 'init-css)
+  ;; (require 'init-css)
+  (require 'init-web-mode)
   (require 'init-python)
   (require 'init-lisp)
   (require 'init-cc-mode)
   (require 'init-git)
-  (require 'init-lua-mode)
+  ;; (require 'init-lua-mode)
   (require 'init-term-mode)
-  (require 'init-web-mode)
   (require 'init-haskell)
   (require 'init-latex)
   (require 'init-pdf)
@@ -128,11 +129,12 @@
   ;; NO ELPA package is dependent on "site-lisp/".
   (add-subdirs-to-load-path inc0n/site-lisp-dir)
 
-  (when (file-exists-p custom-file)
-    (load custom-file)))
+  ;; let's not load custom file actually
+  ;; (when (file-exists-p custom-file)
+  ;;   (load custom-file))
+  )
 
 (add-to-list 'load-path inc0n/site-lisp-dir)
-
 
 ;;; Local Variables:
 ;;; no-byte-compile: t

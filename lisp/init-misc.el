@@ -12,20 +12,28 @@
 ;; I use find-file-in-project instead of projectile. So I don't have this issue at all.
 ;; Set `auto-window-vscroll' to nil to avoid triggering `format-mode-line'.
 (setq auto-window-vscroll nil)
+;; (setq scroll-step 0
+;;       scroll-conservatively 0)
 
-;; midnight mode purges buffers which haven't been displayed in configured period
-;; (require-package 'midnight)
-(setq midnight-period (* 3600 24)) ;; 24 hours
-(add-hook 'after-init-hook 'midnight-mode)
-
-;; @see http://www.emacswiki.org/emacs/SavePlace
-;; (add-hook 'after-init-hook 'save-place-mode)
-(util/add-to-timed-init-hook 1 'save-place-mode)
-(util/add-to-timed-init-hook 1 'amx-mode)
+;; (require 'smooth-scroll)
 
 (setq confirm-kill-emacs 'y-or-n-p)
 
+;; this mode purges buffers which haven't been displayed in configured period
+(use-package midnight
+  :defer t
+  :init
+  (setq midnight-period (* 3600 24)) ;; 24 hours
+  (add-hook 'after-init-hook 'midnight-mode))
+
+;; @see http://www.emacswiki.org/emacs/SavePlace
+(use-package save-place-mode
+  :defer 1 :init (save-place-mode))
+
+(use-package amx-mode :defer t)
+
 (defun inc0n/unbound-symbol (arg)
+  "Unbound for ARG be it function or symbol."
   (interactive (list (thing-at-point 'symbol)))
   (cond ((stringp arg)
 		 (inc0n/unbound-symbol (intern arg)))
@@ -37,9 +45,6 @@
 		   (message "makunbounded %s" arg)))
 		(t (message "unexpected %s" arg))))
 
-;; prevent kill ring
-;; (define-key minibuffer-local-map (kbd "<C-backspace>") 'backward-delete-word)
-
 (general-define-key
  "C-c C-u" 'inc0n/unbound-symbol
  "C-x C-o" 'ffap
@@ -47,25 +52,21 @@
  "C-h C-f" 'find-function
  "C-h K" 'find-function-on-key
  "C-k" 'kill-sexp
- [C-backspace] 'backward-delete-word
- ;;
- "TAB" 'tab-out-delimiter) ;; 'indent-for-tab-command
+ [C-backspace] 'backward-delete-word)
 
 (defun backward-delete-word ()
   "Delete word backwards without pushing it to `kill-ring'."
   (interactive)
   (delete-region (point)
-				 (progn (forward-word -1)
+			     (progn (forward-word -1)
 						(point))))
 
-(defun tab-out-delimiter ()
-  "Move cursor out of a consecutive block of delimiters."
-  (interactive)
-  (if (not
-	   (memq (char-syntax (following-char)) '(?\) ?\")))
-	  (indent-for-tab-command)
-	(just-one-space 0) ;; delete any space before delimiter
-	(forward-char 1)))
+(advice-add 'indent-for-tab-command :before
+            (defun tab-out-delimiter (&optional arg)
+              "Move cursor out of any delimiters."
+              (when (memq (char-syntax (following-char)) '(?\) ?\"))
+	            (just-one-space 0) ;; delete any space before delimiter
+	            (forward-char 1))))
 
 (defun completing-read-fonts ()
   "`completion-read' style font selection."
@@ -95,19 +96,36 @@
 ;; (set-face-attribute 'default nil :weight 'normal :width 'semi-condensed :slant 'normal :height 140)
 
 
-(require-package 'auto-yasnippet)
+(use-package csv-mode :mode "\\.[Cc][Ss][Vv]\\'")
+(use-package rust-mode :mode "\\.rs\\'")
+(use-package verilog-mode :mode "\\.[ds]?vh?\\'")
+(use-package lua-mode
+  :mode "\\.lua\\'"
+  :interpreter "lua"
+  :init
+  ;; @see http://lua-users.org/wiki/LuaStyleGuide
+  ;; indent 2 spaces by default
+  (setq-default lua-indent-level 2)
+  (add-hook 'lua-mode-hook
+            (defun lua-mode-hook-setup ()
+              "Set up lua script."
+              (unless (buffer-file-temp-p)
+                (setq-local imenu-generic-expression
+                            '(("Variable" "^ *\\([a-zA-Z0-9_.]+\\) *= *{ *[^ ]*$" 1)
+                              ("Function" "function +\\([^ (]+\\).*$" 1)
+                              ("Module" "^ *module +\\([^ ]+\\) *$" 1)
+                              ("Variable" "^ *local +\\([^ ]+\\).*$" 1)))))))
+
 ;; Use C-q instead tab to complete snippet
 ;; - aya-create at first, input ~ to mark the thing next
 ;; - aya-expand to expand snippet
 ;; - aya-open-line to finish
-(global-set-key (kbd "C-q") 'aya-open-line)
+(use-package auto-yasnippet
+  :bind ("C-q" . aya-open-line))
 
-
-(require-package 'ace-link)
-(with-eval-after-load 'ace-link
-  (ace-link-setup-default))
-(global-set-key (kbd "M-z") 'ace-link) ;; zap-to-char
-
+(use-package ace-link
+  :bind ("M-z" . ace-link)
+  :init (ace-link-setup-default))
 
 ;; {{ isearch
 ;; Use regex to search by default
@@ -118,13 +136,11 @@
 
 ;; paren mode
 (add-hook 'after-init-hook 'show-paren-mode)
-(show-paren-mode 1)
 
 ;; {{ misc
 (blink-cursor-mode 0)
 (setq-default buffers-menu-max-size 30
               case-fold-search t
-              compilation-scroll-output t
               ediff-split-window-function #'split-window-horizontally
               ediff-window-setup-function #'ediff-setup-windows-plain
               grep-highlight-matches t
@@ -191,7 +207,7 @@
 (defun lookup-doc-in-man ()
   "Read man by querying keyword at point."
   (interactive)
-  (man (concat "-k " (util/use-selected-string-or-ask))))
+  (man (concat "-k " (util/use-selected-string-or-ask "man"))))
 
 ;; @see http://blog.binchen.org/posts/effective-code-navigation-for-web-development.html
 ;; don't let the cursor go into minibuffer prompt
@@ -250,7 +266,7 @@ With exception to the current line."
                   (delete-trailing-whitespace win-beg win-end))))))
 
 (defun buffer-too-big-p ()
-  ;; 5000 lines
+  "5000 lines."
   (> (buffer-size) (* 5000 80)))
 
 ;; (with-eval-after-load 'flymake
@@ -406,14 +422,6 @@ With exception to the current line."
 		'("Webster's Revised Unabridged Dictionary (1913)")))
 ;; }}
 
-;; ANSI-escape coloring in compilation-mode
-;; {{ http://stackoverflow.com/questions/13397737/ansi-coloring-in-compilation-mode
-(when (require 'ansi-color nil t)
-  (add-hook 'compilation-filter-hook
-            (defun compilation-filter-hook-setup ()
-              (ansi-color-apply-on-region compilation-filter-start (point-max)))))
-;; }}
-
 ;; @see http://bling.github.io/blog/2016/01/18/why-are-you-changing-gc-cons-threshold/
 (add-hook 'minibuffer-setup-hook
           (defun inc0n/minibuffer-setup-hook ()
@@ -479,10 +487,10 @@ With exception to the current line."
   (interactive "r")
   (save-excursion
     (goto-char beg)
-    (let ((total-housr 0))
+    (let ((total-hours 0))
       (while (search-forward-regexp "\\([0-9][0-9.]*\\)h" end t)
         (cl-incf total-hours
-                 (string-to-number (match-string 1 line))))
+                 (string-to-number (match-string 1))))
       (message "total-hours=%s" total-hours))))
 
 ;; {{ emmet (auto-complete html tags)
@@ -495,12 +503,11 @@ With exception to the current line."
 (add-hook 'rjsx-mode-hook  'emmet-mode)
 ;; }}
 
-(add-hook 'sgml-mode-hook
-          (defun sgml-mode-hook-setup ()
-            "`sgml-mode' or `html-mode' setup."
-            ;; let web-mode handle indentation by itself since it does not
-            ;; derive from `sgml-mode'
-            (setq-local indent-region-function #'sgml-pretty-print)))
+(define-hook-setup 'sgml-mode-hook
+  "`sgml-mode' or `html-mode' setup."
+  ;; let web-mode handle indentation by itself since it does not
+  ;; derive from `sgml-mode'
+  (setq-local indent-region-function #'sgml-pretty-print))
 
 ;; {{ xterm
 (add-hook 'after-make-frame-functions
@@ -517,7 +524,7 @@ With exception to the current line."
   "Indicate whether the line at point is a cited line."
   (save-match-data
     (string-match (concat "^" message-cite-prefix-regexp)
-                  (buffer-substring (line-beginning-position) (line-end-position)))))
+                  (util/line-str))))
 
 (defun inc0n/message-says-attachment-p ()
   "Return t if the message suggests there can be an attachment."
@@ -558,11 +565,10 @@ With exception to the current line."
 VCS-TYPE is ignored."
             (util/set-clip (plist-get commit-info :id))))
 
-(add-hook 'vc-msg-show-code-hook
-          (defun vc-msg-show-code-setup ()
-            "Use `ffip-diff-mode' instead of `diff-mode'."
-            (util/ensure 'find-file-in-project)
-            (ffip-diff-mode)))
+(define-hook-setup 'vc-msg-show-code-hook
+  "Use `ffip-diff-mode' instead of `diff-mode'."
+  (util/ensure 'find-file-in-project)
+  (ffip-diff-mode))
 ;; }}
 
 (with-eval-after-load 'grep
@@ -599,8 +605,9 @@ VCS-TYPE is ignored."
 
 ;; {{ https://www.emacswiki.org/emacs/EmacsSession better than "desktop.el" or "savehist".
 ;; Any global variable matching `session-globals-regexp' is saved *automatically*.
-(require-package 'session)
-(with-eval-after-load 'session
+(use-package session
+  :defer t
+  :config
   (setq session-save-file (inc0n/emacs-d ".session"))
   (setq session-globals-max-size 512)
   (setq session-globals-max-string (* 4 1024)) ; can store 4Mb string
@@ -610,32 +617,45 @@ VCS-TYPE is ignored."
                                   file-name-history
                                   search-ring
                                   regexp-search-ring))
-  (setq session-save-file-coding-system 'utf-8))
-(add-hook 'after-init-hook #'session-initialize)
-;; }}
+  (setq session-save-file-coding-system 'utf-8)
+  :init
+  (add-hook 'after-init-hook #'session-initialize))
 
-;; {{
-(require-package 'adoc-mode) ; asciidoc files
-(add-auto-mode 'adoc-mode "\\.adoc\\'")
+;; asciidoc files
+(use-package adoc-mode
+  :mode "\\.adoc\\'"
+  :config
+  (defun adoc-imenu-index ()
+    (let ((patterns '((nil "^=\\([= ]*[^=\n\r]+\\)" 1))))
+      (save-excursion
+        (imenu--generic-function patterns))))
+  (define-hook-setup 'adoc-mode-hook
+    "Don't wrap lines because there is table in `adoc-mode'."
+    (setq truncate-lines t)
+    (setq imenu-create-index-function 'adoc-imenu-index)))
 
-(defun adoc-imenu-index ()
-  (let ((patterns '((nil "^=\\([= ]*[^=\n\r]+\\)" 1))))
-    (save-excursion
-      (imenu--generic-function patterns))))
-
-(add-hook 'adoc-mode-hook
-          (defun adoc-mode-hook-setup ()
-            "Don't wrap lines because there is table in `adoc-mode'."
-            (setq truncate-lines t)
-            (setq imenu-create-index-function 'adoc-imenu-index)))
-;; }}
 
 (with-eval-after-load 'compile
-  (defun inc0n/compile-hack (orig-func &rest args)
-    (if (member major-mode '(octave-mode))
-        (octave-send-buffer)
-      (apply orig-func args)))
-  (advice-add 'compile :around #'inc0n/compile-hack)
+  ;; (defun inc0n/compile-hack (orig-func &rest args)
+  ;;   (if (member major-mode '(octave-mode))
+  ;;       (octave-send-buffer)
+  ;;     (apply orig-func args)))
+  ;; (advice-add 'compile :around #'inc0n/compile-hack)
+
+  (setq compilation-scroll-output t)
+
+  (general-define-key 
+  :keymaps 'compilation-mode-map
+    "g" nil ; restore 'g' and 'h' keys
+    "h" nil
+    "r" 'recompile) ; rebind recompile to 'r'
+
+  ;; ANSI-escape coloring in compilation-mode
+  ;; @see http://stackoverflow.com/questions/13397737/ansi-coloring-in-compilation-mode
+  (when (require 'ansi-color)
+    (define-hook-setup 'compilation-filter-hook
+      ;; (let ((inbihit-read-only t)))
+      (ansi-color-apply-on-region compilation-filter-start (point-max))))
 
   (add-to-list 'compilation-error-regexp-alist-alist
                (list 'mocha "at [^()]+ (\\([^:]+\\):\\([^:]+\\):\\([^:]+\\))" 1 2 3))
@@ -664,8 +684,9 @@ If the shell is already opened in some buffer, switch to that buffer."
     (shell)))
 
 ;; {{ emms
-(require-package 'emms)
-(with-eval-after-load 'emms
+(use-package emms
+  :defer t
+  :config
   (emms-all)
   (setq emms-source-file-default-directory "~/Music"
         emms-info-asynchronously t
@@ -676,12 +697,11 @@ If the shell is already opened in some buffer, switch to that buffer."
 
 (add-hook 'after-init-hook 'transient-mark-mode) ;; wanted
 
-;; {{ auto-revert
-(add-hook 'after-init-hook 'global-auto-revert-mode)
-(with-eval-after-load 'autorevert
-  (setq auto-revert-verbose t
-		global-auto-revert-non-file-buffers nil))
-;; }}
+(use-package autorevert
+  :defer t
+  :config (setq auto-revert-verbose t
+		        global-auto-revert-non-file-buffers nil)
+  :init (add-hook 'after-init-hook 'global-auto-revert-mode))
 
 (defun inc0n/insert-date (prefix)
   "Insert the current date.  With single PREFIX, use ISO format.
@@ -714,7 +734,7 @@ non-nil prefix ARG uses simple time stamp."
   (insert (format "ASCII characters up to number %d.\n" 254))
   (dotimes (i 255)
 	(insert (format "%4d %c\n" i i)))
-  (beginning-of-buffer)
+  (goto-char (point-min))
   (read-only-mode 1))
 
 ;; unique lines
@@ -722,7 +742,7 @@ non-nil prefix ARG uses simple time stamp."
   "Delete duplicate lines in region between BEG ad END."
   (interactive "r")
   (save-excursion
-    (goto-char bed)
+    (goto-char beg)
     (while (re-search-forward "^\\(.*\\)\n\\(\\(.*\n\\)*\\)\\1\n" end t)
       (replace-match "\\1\n\\2"))))
 
@@ -795,28 +815,26 @@ version control automatically."
     (setq epa-pinentry-mode 'loopback)))
 ;; }}
 
-;; {{ pomodoro
-(require-package 'pomodoro)
-(with-eval-after-load 'pomodoro
-  (setq pomodoro-play-sounds nil		; *.wav is not installed
+(use-package pomodoro
+  :defer t
+  :config
+  (push '(pomodoro-mode-line-string pomodoro-mode-line-string) mode-line-format)
+  :init
+  (setq pomodoro-play-sounds nil        ; *.wav is not installed
 		pomodoro-break-time 2
 		pomodoro-long-break-time 5
-		pomodoro-work-time 15)
-  (push '(pomodoro-mode-line-string pomodoro-mode-line-string) mode-line-format))
+		pomodoro-work-time 15))
 
-;; (unless (featurep 'omodoro)
-;;   (require 'pomodoro))
-;; }}
-
-;; {{ epub setup
-(require-package 'nov)
-(add-auto-mode 'nov-mode "\\.epub\\'")
-(with-eval-after-load 'nov
+;; epub setup
+(use-package nov
+  :mode "\\.epub\\'"
+  :config
   (setq nov-text-width t)
-  (add-to-list 'evil-emacs-state-modes 'nov-mode)
-  ;;
+  (evil-set-initial-state 'nov-mode 'motion)
   (general-define-key
    :keymaps 'nov-mode-map
+   "g" 'nil                             ; use evil g leader key
+   "R" 'nov-render-document             ; rebind it to R
    "j" 'next-line
    "k" 'previous-line
    "w" 'mybigword-pronounce-word
@@ -827,58 +845,62 @@ version control automatically."
 		 (forward-word)
 		 (forward-char -1)
 		 (sdcv-search-input (thing-at-point 'word))))
-  (add-hook 'nov-mode-hook
-            (defun nov-mode-hook-setup ()
-              (face-remap-add-relative 'variable-pitch
-                                       :family "Libreation Serif"
-                                       :width 'semi-expanded
-                                       :height 1.0)
-              (setq-local line-spacing 0.2
-                          next-screen-context-lines 4)
-              (setq-local visual-fill-column-center-text t
-                          ;; visual-fill-column-extra-text-width '(0 . 0)
-                          nov-text-width 80)
-              ;; nov-render-html
-              (visual-line-mode 1)
-              (visual-fill-column-mode 1)
-              (setq-local simple-modeline-segments
-                          `((simple-modeline-segment-winum
-                             simple-modeline-segment-evil-modal
-                             simple-modeline-segment-modified
-                             simple-modeline-segment-nov-info)
-                            (simple-modeline-segment-major-mode))))))
-;; }}
+  (define-hook-setup 'nov-pre-html-render-hook
+    ;; column-width: 200px;
+    ;; height: 180px;
+    (message "%s" (buffer-string))
+    1)
+  (define-hook-setup 'nov-mode-hook
+    ;; (face-remap-add-relative 'variable-pitch
+    ;;                          :family "Libreation Serif"
+    ;;                          :width 'semi-expanded)
+    (face-remap-add-relative 'variable-pitch :family "Merriweather")
+    (face-remap-add-relative 'fixed-pitch-serif :family "Merriweather")
+    (face-remap-add-relative 'variable-pitch-serif :family "Merriweather")
+    (setq-local line-spacing 0.2
+                next-screen-context-lines 4)
+    (setq-local visual-fill-column-center-text t
+                ;; visual-fill-column-extra-text-width '(0 . 0)
+                nov-text-width 80)
+    ;; nov-render-html
+    (visual-line-mode 1)
+    (visual-fill-column-mode 1)
+    (setq-local simple-modeline-segments
+                `((simple-modeline-segment-winum
+                   simple-modeline-segment-evil-modal
+                   simple-modeline-segment-modified
+                   simple-modeline-segment-nov-info)
+                  (simple-modeline-segment-major-mode)))))
 
-;; {{ octave
-(add-hook 'octave-mode-hook
-          (defun octave-mode-hook-setup ()
-            "Set up of `octave-mode'."
-            (abbrev-mode 1)
-            (auto-fill-mode 1)
-            (font-lock-mode 1)
-            (setq-local comment-start "%"
-			            comment-add 0)))
-;; }}
+(use-package octave-mode
+  :mode "\\.m$"
+  :init
+  (define-hook-setup 'octave-mode-hook
+    "Set up of `octave-mode'."
+    (abbrev-mode 1)
+    (auto-fill-mode 1)
+    (font-lock-mode 1)
+    (setq-local comment-start "%"
+			    comment-add 0)))
 
-;; {{ wgrep setup
-(require-package 'wgrep)
-(with-eval-after-load 'wgrep
-  (define-key grep-mode-map
-    (kbd "C-c C-c") 'wgrep-finish-edit)
+(use-package wgrep
+  :defer t
+  :config
+  (define-key grep-mode-map (kbd "C-c C-c") 'wgrep-finish-edit)
   ;; save the change after wgrep finishes the job
   (setq wgrep-auto-save-buffer t)
   (setq wgrep-too-many-file-length 2024))
-;; }}
 
 ;; {{ edit-server
-(when (require-package 'edit-server)
-  (with-eval-after-load 'edit-server
-    (setq edit-server-new-frame t)
-    (add-hook 'edit-server-start-hook #'edit-server-start-hook-setup))
+(use-package edit-server
+  :defer t
+  :config
+  (setq edit-server-new-frame t)
+  (add-hook 'edit-server-start-hook #'edit-server-start-hook-setup)
   ;; (when (require-package 'edit-server-htmlize)
   ;;   (add-hook 'edit-server-start-hook #'edit-server-maybe-dehtmlize-buffer)
   ;;   (add-hook 'edit-server-done-hook #'edit-server-maybe-htmlize-buffer))
-  (add-hook 'after-init-hook 'edit-server-start))
+  :init (add-hook 'after-init-hook 'edit-server-start))
 
 (defun edit-server-start-hook-setup ()
   "Some web sites actually pass html to edit server."
@@ -910,20 +932,20 @@ version control automatically."
     (server-start)))
 (util/add-to-timed-init-hook 1 'run-server)
 
-;; {{ which-key
-(require-package 'which-key)
-(setq which-key-allow-imprecise-window-fit t ; performance
-      which-key-idle-delay 0.7
-      which-key-separator ":"
-	  which-key-add-column-padding 0
-      which-key-allow-evil-operators t
-      which-key-show-operator-state-maps t
-      which-key-max-description-length 25
-      which-key-side-window-max-height 0.25
-      which-key-frame-max-height 25
-      which-key-min-display-lines 2)
-(add-hook 'after-init-hook 'which-key-mode)
-;; }}
+(use-package which-key
+  :defer t
+  :init
+  (setq which-key-allow-imprecise-window-fit t ; performance
+        which-key-idle-delay 0.7
+        which-key-separator ":"
+	    which-key-add-column-padding 0
+        which-key-allow-evil-operators t
+        which-key-show-operator-state-maps t
+        which-key-max-description-length 25
+        which-key-side-window-max-height 0.25
+        which-key-frame-max-height 25
+        which-key-min-display-lines 2)
+  (add-hook 'after-init-hook 'which-key-mode))
 
 ;; {{ eldoc
 (with-eval-after-load 'eldoc
@@ -945,8 +967,7 @@ version control automatically."
                           '("::" ":::" "->" "=>" "==" "===" "!="
 							"++" "<-" "/=" ">=" "<=" ".."
 							"..." "&&" "||" "//")))
-(add-hook 'after-init-hook
-          (lambda () (global-ligature-mode -1)))
+(add-hook 'after-init-hook (lambda () (global-ligature-mode -1)))
 ;; }}
 
 ;; {{
@@ -961,8 +982,8 @@ version control automatically."
 ;; }}
 
 
-(require-package 'rainbow-delimiters)
-(setq rainbow-delimiters-max-face-count 1)
+(use-package rainbow-delimiters
+  :init (setq rainbow-delimiters-max-face-count 1))
 
 
 ;; {{ `browse-url' setup
@@ -996,8 +1017,9 @@ version control automatically."
         golden-ratio-auto-scale t
         golden-ratio-exclude-modes '(ediff-mode xref--xref-buffer-mode)))
 
-(require-package 'focus)
-(with-eval-after-load 'focus
+(use-package focus
+  :defer t
+  :init
   (setq focus-current-thing 'paragraph)
   (setq focus-mode-to-thing '((org-mode . defun)
                               (prog-mode . defun)
@@ -1012,6 +1034,7 @@ By locating package.json around DIR."
     (cons 'npm root)))
 
 (cl-defmethod project-roots ((project (head npm)))
+  "Method of getting project-roots for npm PROJECT."
   (list (cdr project)))
 
 (with-eval-after-load 'project
@@ -1024,7 +1047,6 @@ By locating package.json around DIR."
   (unless (file-directory-p (inc0n/emacs-d "var"))
 	(make-directory (inc0n/emacs-d "var")))
   (setq amx-save-file (inc0n/emacs.d/cache "amx-items"))
-  (setq ido-save-directory-list-file (inc0n/emacs.d/cache "ido.last"))
   (setq company-statistics-file (inc0n/emacs.d/cache "company-statistics-cache.el"))
 
   (setq eshell-aliases-file (inc0n/emacs.d/cache "eshell/alias")
@@ -1074,8 +1096,12 @@ Optional argument IGNORED is ignored."
     (interactive (company-begin-backend 'company-kill-ring))
     (prefix (company-grab-word))
     (candidates (let ((regex (concat "^" (regexp-quote arg))))
-                  (cl-remove-if-not (lambda (x) (string-match-p regex x))
-                                    kill-ring)))
+                  (cl-remove-if
+                   (lambda (s)
+                     (or (< (length s) 5)
+                         (string-match-p "\\`[\n[:blank:]]+\\'" s)
+                         (not (string-match-p regex s))))
+                   (delete-dups kill-ring))))
     ;; (location (cons (dired-no select
     ;;                  (file-name-directory (directory-file-name arg))) 1))
     ;; (post-completion (company-files--post-completion arg))

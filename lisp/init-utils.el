@@ -77,6 +77,8 @@
 ;; }}
 
 (defun util/make-file (file-path &optional init-content)
+  "Create the file at FILE-PATH if not exist.
+And insert INIT-CONTENT if non-nil."
   (unless (file-exists-p file-path)
     (with-temp-buffer
       (when (stringp init-content)
@@ -94,6 +96,8 @@
   (dolist (elm elements)
     (add-to-list list-var elm append))
   (symbol-value list-var))
+
+(defalias 'add-to-list/s 'add-to-list-multi)
 
 (defun font-belongs-to (pos fonts)
   "Current font at POS belongs to FONTS."
@@ -147,10 +151,11 @@ If N is nil, use `completing-read' to browse `kill-ring'."
              (or (< (length s) 5)
                  (string-match-p "\\`[\n[:blank:]]+\\'" s)))
            (delete-dups kill-ring)))
-		 (cand (completing-read "Browse `kill-ring':" candidates)))
-    (util/insert-str plain-str)
-    (util/set-clip cand)
-    (message "%s => clipboard" cand)))
+         (cand (if (null n)
+	               (completing-read "Browse `kill-ring':" candidates)
+                 (nth n candidates))))
+    (util/insert-str cand)
+    (util/set-clip cand)))
 
 (defun util/insert-str (str)
   "Insert STR into current buffer."
@@ -193,13 +198,15 @@ If N is nil, use `completing-read' to browse `kill-ring'."
   "Get string of selected region."
   (buffer-substring-no-properties (region-beginning) (region-end)))
 
-(defun util/use-selected-string-or-ask (&optional hint default-string)
+(defun util/use-selected-string-or-ask (hint &optional default-string)
   "Use selected region or ask for input.
-If HINT is empty, use symbol at point.
+If HINT is empty, throw an error.
 Optional argument DEFAULT-STRING default string to return from `read-string'."
   (cond ((or (not (stringp hint))
              (string-empty-p hint))
-         (util/thing-at-point))
+         (error "Empty prompt, %s" hint))
+        ((region-active-p)
+         (util/selected-str))
         ((stringp default-string)
          (read-string (concat hint " (" default-string "): ")
                       default-string
@@ -243,13 +250,16 @@ If region is active get region string and deactivate."
 (defun delete-this-buffer-and-file ()
   "Delete the current file, and kill the buffer."
   (interactive)
-  (if (buffer-file-name)
-      (when (y-or-n-p (format "Really delete file and buffer '%s'? "
-                              (file-name-nondirectory buffer-file-name)))
-        (delete-file (buffer-file-name))
-        (kill-this-buffer))
-    (message "No file is currently being edited")))
-(defalias 'delete-this-file-and-buffer 'delete-this-buffer-and-file)
+  (let ((file-name (buffer-file-name)))
+    (if file-name
+        (when (y-or-n-p (format "Really delete file and buffer '%s'? "
+                                (file-name-nondirectory file-name)))
+          ;; (if (vc-backend file-name)
+          ;;     (vc-delete-file file-name))
+          (delete-file file-name)
+          (kill-this-buffer))
+      (message "No file is currently being edited"))))
+(defalias 'delete-file-and-buffer 'delete-this-buffer-and-file)
 
 (defun rename-this-file-and-buffer ()
   "Renames both current buffer and file it's visiting to NEW-NAME."
@@ -258,9 +268,6 @@ If region is active get region string and deactivate."
         (filename (buffer-file-name)))
     (if (and filename (file-exists-p filename))
         (let ((new-name (read-file-name "New name: " filename)))
-		  ;; (if (get-buffer (file-name-nondirectory new-name))
-		  ;; 	(message "A buffer named '%s' already exists!"
-		  ;; 			 (file-name-nondirectory new-name)))
 		  (rename-file filename new-name 1) ;; will ask for confirmation
 		  (when (file-directory-p new-name)
             (rename-buffer (buffer-name) t))

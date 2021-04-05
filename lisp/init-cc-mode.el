@@ -1,5 +1,7 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
+;;; Code:
+
 ;; avoid default "gnu" style, use more popular one
 (setq c-default-style '((java-mode . "java")
                         (awk-mode . "awk")
@@ -48,14 +50,13 @@
   (setq c-electric-pound-behavior '(alignleft)))
 
 ;; don't use c-mode-common-hook or cc-mode-hook because many major-modes use this hook
-(add-hook 'c-mode-common-hook
-          (defun c-mode-common-hook-setup ()
-            (unless (buffer-file-temp-p)
-              (inc0n/common-cc-mode-setup)
-              (unless (or (derived-mode-p 'java-mode)
-                          (derived-mode-p 'groovy-mode))
-                (inc0n/c-mode-setup))
-              (eldoc-mode 1))))
+(define-hook-setup 'c-mode-common-hook
+  (unless (buffer-file-temp-p)
+    (inc0n/common-cc-mode-setup)
+    (unless (or (derived-mode-p 'java-mode)
+                (derived-mode-p 'groovy-mode))
+      (inc0n/c-mode-setup))
+    (eldoc-mode 1)))
 
 (provide 'init-cc-mode)
 ;;; init-cc-mode ends here

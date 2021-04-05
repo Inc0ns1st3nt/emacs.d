@@ -6,14 +6,13 @@
 
 ;;; Code:
 
-(add-hook 'web-mode-hook
-          (defun web-mode-hook-setup ()
-            (unless (buffer-file-temp-p)
-              (setq inc0n/flyspell-check-doublon nil)
-              (remove-hook 'yas-after-exit-snippet-hook
-                           #'web-mode-yasnippet-exit-hook t)
-              (remove-hook 'yas/after-exit-snippet-hook
-                           #'web-mode-yasnippet-exit-hook t))))
+(define-hook-setup 'web-mode-hook
+  (unless (buffer-file-temp-p)
+    (setq inc0n/flyspell-check-doublon nil)
+    (remove-hook 'yas-after-exit-snippet-hook
+                 #'web-mode-yasnippet-exit-hook t)
+    (remove-hook 'yas/after-exit-snippet-hook
+                 #'web-mode-yasnippet-exit-hook t)))
 
 (with-eval-after-load 'web-mode
   ;; make org-mode export fail, I use evil and evil-matchit
@@ -28,5 +27,36 @@
           ("^[ \t]*<\\(@[a-z.]+\\)[^>]*>? *$" 1 " contentId=\"\\([a-zA-Z0-9_]+\\)\"" "=" ">")
           ;; angular imenu
           (" \\(ng-[a-z]*\\)=\"\\([^\"]+\\)" 1 2 "="))))
+
+;;; Css
+
+(defvar css-imenu-expression
+    '((nil "^ *\\([a-zA-Z0-9&,.: _-]+\\) *{ *$" 1)
+      ("Variable" "^ *\\$\\([a-zA-Z0-9_]+\\) *:" 1)
+      ;; post-css mixin
+      ("Function" "^ *@define-mixin +\\([^ ]+\\)" 1)))
+
+(use-package css-mode
+  :mode "\\.css\\'"
+  :config
+  (setq css-indent-offset 2)
+  :init
+  ;; node plugins can compile css into javascript
+  ;; flymake-css is obsolete
+  (define-hook-setup 'css-mode-hook
+    (unless (buffer-file-temp-p)
+      (rainbow-mode 1)
+      (counsel-css-imenu-setup)
+      (setq imenu-generic-expression css-imenu-expression))))
+
+(use-package scss-mode
+  :mode "\\.scss\\'"
+  :config
+  ;; compile *.scss to *.css on the pot could break the project build
+  (setq scss-compile-at-save nil)
+  :init
+  (define-hook-setup 'scss-mode-hook
+    (unless (buffer-file-temp-p)
+      (setq imenu-generic-expression css-imenu-expression))))
 
 (provide 'init-web-mode)

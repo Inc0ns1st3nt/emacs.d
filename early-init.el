@@ -46,8 +46,7 @@
 ;; (add-to-list 'default-frame-alist '(alpha . (85 . 50)))
 
 (defun show-scratch-buffer-message ()
-  (let ((fortune-prog (or (executable-find "fortune-zh")
-                          (executable-find "fortune"))))
+  (let ((fortune-prog (executable-find "fortune")))
     (if fortune-prog
         (format
          ";; %s\n\n"
@@ -55,7 +54,8 @@
           "\n" "\n;; "                  ; comment each line
           (replace-regexp-in-string
            "\\(\n$\\|\\|\\[m *\\|\\[[0-9][0-9]m *\\)" "" ; remove trailing linebreak
-           (shell-command-to-string fortune-prog))))
+           (shell-command-to-string
+            (concat fortune-prog "~/arch/fortunes/data")))))
       ;; (concat ";; Happy hacking "
       ;;         (or user-login-name "")
       ;;         " - Emacs loves you!\n\n")

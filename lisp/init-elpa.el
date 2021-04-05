@@ -112,6 +112,7 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
     company-statistics
     ;; toggle latex fragment
     org-fragtog
+    use-package
     ;;
     face-up ;; for racket mode
     racket-mode)
@@ -124,6 +125,7 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
 ;; Fire up package.el and ensure the following packages are installed.
 ;;------------------------------------------------------------------------------
 
+(require-package 'use-package)
 (require-package 'async)
 
 (require-package 'amx)
@@ -151,7 +153,6 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
 
 (require-package 'yaml-mode)
 (require-package 'vimrc-mode)
-(require-package 'csv-mode)
 (require-package 'rust-mode)
 
 (require-package 'command-log-mode)

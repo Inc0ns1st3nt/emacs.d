@@ -5,18 +5,16 @@
 
 ;;; Code:
 
-(require-package 'pdf-tools)
-
-(with-eval-after-load 'pdf-tools
-  (when (display-graphic-p)
-    (pdf-loader-install)))
+(use-package pdf-tools
+  :defer t
+  :if (display-graphic-p)
+  :config (pdf-loader-install))
 
 (with-eval-after-load 'pdf-view
   (general-define-key
    :keymaps 'pdf-view-mode-map
    "k" #'pdf-view-previous-line-or-previous-page
    "j" #'pdf-view-next-line-or-next-page))
-;; }}
 
 (with-eval-after-load 'doc-view
   (general-define-key

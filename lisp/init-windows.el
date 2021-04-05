@@ -3,7 +3,33 @@
 ;;; Code:
 
 (require-package 'ace-window)
-(require-package 'winum)
+;; (require-package 'winum)
+
+;; move focus between sub-windows
+(use-package winum
+  :defer t
+  :config
+  (setq winum-format " %s ")
+  (setq winum-mode-line-position 0
+        winum-auto-setup-mode-line nil)
+  (set-face-attribute 'winum-face nil
+                      :foreground "DeepPink"
+                      :underline "DeepPink"
+                      :weight 'bold)
+  :init
+  (setq winum-keymap
+	    (let ((map (make-sparse-keymap)))
+          (define-key map (kbd "M-0") 'winum-select-window-0)
+          (define-key map (kbd "M-1") 'winum-select-window-1)
+          (define-key map (kbd "M-2") 'winum-select-window-2)
+          (define-key map (kbd "M-3") 'winum-select-window-3)
+          (define-key map (kbd "M-4") 'winum-select-window-4)
+          (define-key map (kbd "M-5") 'winum-select-window-5)
+          (define-key map (kbd "M-6") 'winum-select-window-6)
+          (define-key map (kbd "M-7") 'winum-select-window-7)
+          (define-key map (kbd "M-8") 'winum-select-window-8)
+          map))
+  (add-hook 'after-init-hook 'winum-mode))
 
 ;; Navigate window layouts with "C-c <left>" and "C-c <right>"
 (add-hook 'after-init-hook #'winner-mode)
@@ -25,12 +51,12 @@
 ;;          t))
 ;;     (message "turn on winner-mode first")))
 
-(global-set-key (kbd "C-x 4 u") 'winner-undo)
-(global-set-key (kbd "C-x 2") 'split-window-vertically)
-(global-set-key (kbd "C-x 3") 'split-window-horizontally)
+(global-set-key [?\C-x ?4 u] 'winner-undo)
+(global-set-key [?\C-x ?2] 'split-window-vertically)
+(global-set-key [?\C-x ?3] 'split-window-horizontally)
  ;; https://github.com/abo-abo/ace-window
  ;; `M-x ace-window ENTER m` to swap window
-(global-set-key (kbd "C-x o") 'ace-window)
+(global-set-key [?\C-x ?o] 'ace-window)
 
 ;; https://emacs.stackexchange.com/questions/46664/switch-between-horizontal-and-vertical-splitting
 
@@ -61,31 +87,6 @@
             (set-window-buffer this-win this-win-buffer)
             (set-window-buffer new-next-win next-win-buffer))))
     (message "can only rotate two windows at a time")))
-
-;; {{ move focus between sub-windows
-(setq winum-keymap
-	  (let ((map (make-sparse-keymap)))
-        (define-key map (kbd "M-0") 'winum-select-window-0)
-        (define-key map (kbd "M-1") 'winum-select-window-1)
-        (define-key map (kbd "M-2") 'winum-select-window-2)
-        (define-key map (kbd "M-3") 'winum-select-window-3)
-        (define-key map (kbd "M-4") 'winum-select-window-4)
-        (define-key map (kbd "M-5") 'winum-select-window-5)
-        (define-key map (kbd "M-6") 'winum-select-window-6)
-        (define-key map (kbd "M-7") 'winum-select-window-7)
-        (define-key map (kbd "M-8") 'winum-select-window-8)
-        map))
-
-(with-eval-after-load 'winum
-  (setq winum-format " %s ")
-  (setq winum-mode-line-position 0
-        winum-auto-setup-mode-line nil)
-  (set-face-attribute 'winum-face nil
-                      :foreground "DeepPink"
-                      :underline "DeepPink"
-                      :weight 'bold))
-(add-hook 'after-init-hook 'winum-mode)
-;; }}
 
 (provide 'init-windows)
 ;;; init-windows.el ends here

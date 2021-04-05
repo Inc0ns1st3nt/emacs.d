@@ -13,65 +13,72 @@
 
 ;; {{ replace undo-tree with undo-fu
 ;; @see https://github.com/emacs-evil/evil/issues/1074
-;; (require-package 'undo-tree)
-;; (global-undo-tree-mode nil)
-(require 'undo-fu)
-;; copied from doom-emacs
-(define-minor-mode undo-fu-mode
-  "Enables `undo-fu' for the current session."
-  :keymap (let ((map (make-sparse-keymap)))
-            (define-key map [remap undo] #'undo-fu-only-undo)
-            (define-key map [remap redo] #'undo-fu-only-redo-all)
-            (define-key map (kbd "C-_")     #'undo-fu-only-undo)
-            (define-key map (kbd "M-_")     #'undo-fu-only-redo)
-            (define-key map (kbd "C-M-_")   #'undo-fu-only-redo-all)
-            (define-key map (kbd "C-x r u") #'undo-fu-session-save)
-            (define-key map (kbd "C-x r U") #'undo-fu-session-recover)
-            map)
-  :init-value nil
-  :global t)
-(undo-fu-mode 1)
-;; (evil-set-undo-system 'undo-tree)
-(evil-set-undo-system 'undo-fu)
-(setq evil-undo-system 'undo-fu)
-;; }}
+(use-package undo-tree
+  :config
+  (setq undo-tree-history-directory-alist
+        '(("." . "/home/linkedptr/.emacs.d/undo-history/")))
+  ;; (setq undo-tree-auto-save-history t)
+  (advice-add 'undo-tree-make-history-save-file-name :around
+              (defun inc0n/undo-tree-history-compress (orig-func &rest args)
+                "Compress the undo-tree history.
+ORIG-FUNC and ARGS are the advice of undo-tree-make-history-save-file-name."
+                (let ((save-file-name (apply orig-func args)))
+                  (concat save-file-name ".gz"))))
+  :init
+  (global-undo-tree-mode 1)
+  (evil-set-undo-system 'undo-tree)
+  (setq evil-undo-system 'undo-tree))
 
-;; Store more undo history to prevent loss of data
-(setq undo-limit 8000000
-      undo-strong-limit 8000000
-      undo-outer-limit 8000000)
 
-;; {{ evil surround
-(require-package 'evil-surround)
+(use-package undo-fu
+  :disabled ;; using in favor of undo-tree
+  :init
+  ;; copied from doom-emacs
+  (define-minor-mode global-undo-fu-mode
+    "Enables `undo-fu' for the current session."
+    :keymap (let ((map (make-sparse-keymap)))
+              (define-key map [remap undo] #'undo-fu-only-undo)
+              (define-key map [remap redo] #'undo-fu-only-redo-all)
+              (define-key map [?\C-_]     #'undo-fu-only-undo)
+              (define-key map [?\M-_]     #'undo-fu-only-redo)
+              (define-key map [?\C-\M-_] #'undo-fu-only-redo-all)
+              (define-key map [?\C-x ?r ?u] #'undo-fu-session-save)
+              (define-key map [?\C-x ?r ?U] #'undo-fu-session-recover)
+              map)
+    :init-value nil
+    :global t)
+  (global-undo-fu-mode 1)
+  (evil-set-undo-system 'undo-fu)
+  ;; Store more undo history to prevent loss of data
+  (setq undo-limit 8000000
+        undo-strong-limit 8000000
+        undo-outer-limit 8000000))
+
 ;; @see https://github.com/timcharper/evil-surround
-(add-hook 'after-init-hook 'global-evil-surround-mode)
-(define-hook-setup 'prog-mode-hook :evil-surround
-  "Set up surround shortcuts."
-  (util/ensure 'evil-surround)
-  (push (if (memq major-mode '(sh-mode))
-            '(?$ . ("$(" . ")"))
-          '(?$ . ("${" . "}")))
-        evil-surround-pairs-alist)
+(use-package evil-surround
+  :defer t
+  :init (add-hook 'after-init-hook 'global-evil-surround-mode)
+  :config
+  (define-hook-setup 'prog-mode-hook :evil-surround
+    "Set up surround shortcuts."
+    (util/ensure 'evil-surround)
+    (push (if (memq major-mode '(sh-mode))
+              '(?$ . ("$(" . ")"))
+            '(?$ . ("${" . "}")))
+          evil-surround-pairs-alist)
 
-  (when (memq major-mode '(org-mode))
-    (push '(?\[ . ("[[" . "]]")) evil-surround-pairs-alist)
-    (push '(?= . ("=" . "=")) evil-surround-pairs-alist))
+    (push '(?\( . ("(" . ")")) evil-surround-pairs-alist)
+    (when (memq major-mode '(emacs-lisp-mode))
+      (push '(?` . ("`" . "'")) evil-surround-pairs-alist))
 
-  (push '(?\( . ("(" . ")")) evil-surround-pairs-alist)
-  (when (memq major-mode '(emacs-lisp-mode))
-    (push '(?` . ("`" . "'")) evil-surround-pairs-alist))
-
-  (when (derived-mode-p 'js-mode)
-	(push '(?j . ("JSON.stringify(" . ")")) evil-surround-pairs-alist)
-    (push '(?> . ("(e) => " . "(e)")) evil-surround-pairs-alist))
-
-  ;; generic
-  (push '(?/ . ("/" . "/")) evil-surround-pairs-alist))
+    (when (memq major-mode '(js-mode js2-mode))
+	  (push '(?j . ("JSON.stringify(" . ")")) evil-surround-pairs-alist)
+      (push '(?> . ("(e) => " . "(e)")) evil-surround-pairs-alist))))
 ;; }}
 
 ;; ffip-diff-mode (read only) evil setup
 (define-hook-setup 'ffip-diff-mode-hook
-  (evil-declare-key 'normal 'local
+  (evil-define-key 'normal 'local
     "q" (lambda () (interactive) (quit-window t))
     (kbd "RET") #'ffip-diff-find-file
     ;; "C-c C-a" is binding to `diff-apply-hunk' in `diff-mode'
@@ -210,18 +217,20 @@ If the character before and after CH is space or tab, CH is NOT slash"
 (define-key evil-outer-text-objects-map "f" 'inc0n/evil-path-outer-text-object)
 ;; }}
 
-;; {{ https://github.com/syl20bnr/evil-escape
-(require-package 'evil-escape)
-;; evil-escape will be disabled when input method is on
-(setq-default evil-escape-delay 0.2)
-(with-eval-after-load 'evil-escape
+;; @see https://github.com/syl20bnr/evil-escape
+(use-package evil-escape
+  ;; evil-escape will be disabled when input method is on
+  :defer t
+  :config
+  (setq evil-escape-excluded-major-modes '(dired-mode))
+  :init
+  ;; evil-escape uses pre-command-hook, which may slow down emacs??
+  ;; (add-hook 'after-init-hook 'evil-escape-mode)
   (setq-default evil-escape-key-sequence "fd")
-  (setq evil-escape-excluded-major-modes '(dired-mode)))
-;; evil-escape uses pre-command-hook, which may slow down emacs??
-;; (add-hook 'after-init-hook 'evil-escape-mode)
-;; }}
+  (setq-default evil-escape-delay 0.2))
 
 (defun handle-error (fn handler)
+  "Handle error from FN and call HANDLER instead."
   (lambda ()
 	(interactive)
 	(condition-case nil
@@ -230,6 +239,7 @@ If the character before and after CH is space or tab, CH is NOT slash"
 				  (funcall handler))))))
 
 (defun util/delim-p (pos)
+  "Check if character at POS is a parenthesis."
   (let* ((c (char-after pos))
          (syntax (char-syntax c)))
     (if (= syntax ?\")
@@ -257,7 +267,7 @@ Check `util/delim-p' for the definition of delim."
 
 ;; (popup-tip (documentation 'paredit-copy-as-kill))
 
-(evil-declare-key '(normal visual) paredit-mode-map
+(evil-define-key '(normal visual) paredit-mode-map
   "C" (delim-or-normal #'paredit-copy-as-kill #'evil-change-line)
   "R" (delim-or-normal #'paredit-raise-sexp   #'evil-replace-state)
   "X" #'kill-sexp
@@ -272,14 +282,14 @@ Check `util/delim-p' for the definition of delim."
   "+" #'paredit-join-sexps
   "-" #'paredit-split-sexp)
 
-(evil-declare-key '(insert normal) paredit-mode-map
-  (kbd "C-<") #'paredit-forward-barf-sexp
-  (kbd "C->") #'paredit-forward-slurp-sexp)
+(evil-define-key '(insert normal) paredit-mode-map
+  [?\C-<] #'paredit-forward-barf-sexp
+  [?\C->] #'paredit-forward-slurp-sexp)
 
 ;; As a general rule, mode specific evil leader keys started
 ;; with upper cased character or 'g' or special character except "=" and "-"
-(evil-declare-key 'normal org-mode-map
-  (kbd "C-M-u") 'outline-up-heading
+(evil-define-key 'normal org-mode-map
+  [?\C-\M-u] 'outline-up-heading
   "gh" 'org-up-element
   "gj" 'org-next-visible-element
   "gk" 'org-previous-visible-element
@@ -292,32 +302,40 @@ Check `util/delim-p' for the definition of delim."
   "^" 'org-beginning-of-line     ; ditto
   "<" 'org-shiftmetaleft
   ">" 'org-shiftmetaright
+  [?\C->] 'org-do-demote
+  [?\C-<] 'org-do-promote
   ;; (kbd "RET") #'newline-and-indent
-  (kbd "TAB") 'org-cycle)
+  [tab] 'org-cycle)
 
-(evil-declare-key 'normal markdown-mode-map
+(evil-define-key 'normal markdown-mode-map
   "gh" #'outline-up-heading
-  (kbd "TAB") #'markdown-cycle)
+  [tab] #'markdown-cycle)
 
 ;; I prefer Emacs way after pressing ":" in evil-mode
-(evil-declare-key nil evil-ex-completion-map
-  (kbd "C-a") #'move-beginning-of-line
-  (kbd "C-b") #'backward-char
-  (kbd "M-p") #'previous-complete-history-element
-  (kbd "M-n") #'next-complete-history-element)
+(evil-define-key nil evil-ex-completion-map
+  [?\C-a] #'move-beginning-of-line
+  [?\C-b] #'backward-char
+  [?\M-p] #'previous-complete-history-element
+  [?\M-n] #'next-complete-history-element)
 
-(evil-declare-key 'normal 'global
-  (kbd "C-e") 'evil-scroll-up
-  "Y" #'evil-yank-line ;; "y$"
+;; (evil-define-key '(normal visual) 'global
+;;   [tab] 'indent-for-tab-command)
+
+(evil-define-key 'normal 'global
+  [?\C-e] 'evil-scroll-up
+  "Y" #'evil-yank-line                  ; "y$"
   "U" #'join-line
   ;;
-  (kbd "RET") #'newline-and-indent)
-
-(evil-declare-key '(normal visual) 'global
-  (kbd "TAB") 'indent-for-tab-command)
+  [return] #'newline-and-indent
+  "n" 'evil-search-next
+  ;; evil re-assign "M-." to `evil-repeat-pop-next' which I don't use actually.
+  ;; Restore "M-." to original binding command
+  [?\M-.] 'xref-find-definitions
+  ;; hard bind N in normal state
+  "N" 'evil-search-previous)
 
 ;; evil g leader key
-(evil-declare-key '(normal motion) 'global
+(evil-define-key '(normal motion) 'global
   ;;
   "ga" #'selectsel-quick-repeat
   "gs" #'selectsel-recentf
@@ -327,7 +345,6 @@ Check `util/delim-p' for the definition of delim."
   [?g ?\C-b] (lambda () (interactive)   ; to previous buffer
                (switch-to-buffer nil))
   [?g ?\C-k] #'kill-buffer
-  ;; "gp" #'
   ;;
   "g " #'just-one-space
   "gc" #'comment-operator               ; same as doom-emacs
@@ -337,20 +354,20 @@ Check `util/delim-p' for the definition of delim."
   "gl" #'endless/downcase
   "gu" #'endless/upcase)
 
-(evil-declare-key 'visual 'global
-  "gr" nil;; [?y ?h ?p]
-  )
-
+(evil-define-key 'motion 'global
+  "]" nil                               ; disable ] prefix
+  "n" nil                               ; disable evil-search-next
+  "N" 'evil-search-next                 ; rebinds
+  "P" 'evil-search-previous)
 
 (evil-define-key 'insert 'global
-  (kbd "TAB") #'tab-out-delimiter
-  (kbd "C-x C-n") #'evil-complete-next-line
-  (kbd "C-x C-p") #'evil-complete-previous-line
-  (kbd "C-]") #'forward-word
+  [?\C-x ?\C-n] #'evil-complete-next-line
+  [?\C-x ?\C-p] #'evil-complete-previous-line
+  [?\C-\]] #'forward-word
   ;; #'aya-expand
-  (kbd "C-e") #'move-end-of-line
-  (kbd "C-;") #'company-kill-ring  ;; replaces fly spell-auto-correct-previous-word
-  (kbd "C-k") #'kill-sexp)
+  [?\C-e]  #'move-end-of-line
+  [?\C-\;] #'company-kill-ring ; replaces fly spell-auto-correct-previous-word
+  [?\C-k]  #'kill-sexp)
 
 (with-eval-after-load 'expand-region
   ;; press "v" to expand region
@@ -359,9 +376,8 @@ Check `util/delim-p' for the definition of delim."
 
 ;; I learn this trick from ReneFroger, need latest expand-region
 ;; @see https://github.com/redguardtoo/evil-matchit/issues/38
-(define-key evil-visual-state-map (kbd "v") #'er/expand-region)
+(define-key evil-visual-state-map "v" #'er/expand-region)
 (define-key evil-visual-state-map (kbd "C-]") #'counsel-etags-find-tag-at-point)
-;; (global-set-key (kbd "C-r") #'undo-tree-redo)
 
 (defun inc0n/search-defun-from-pos (search pos)
   (evil-search search t t pos)
@@ -493,8 +509,8 @@ Argument BACKWARD non-nil will jump backwards initially, otherwise jump forwards
 	(message "evil-jump: [f]orward [b]ackward [q]uit")
 	(set-transient-map
 	 (let ((map (make-sparse-keymap)))
-	   (define-key map [?f] #'evil-jump-forward)
-	   (define-key map [?b] #'evil-jump-backward)
+	   (define-key map "f" #'evil-jump-forward)
+	   (define-key map "b" #'evil-jump-backward)
 	   map)
 	 t)))
 
@@ -581,7 +597,7 @@ Argument BACKWARD non-nil will jump backwards initially, otherwise jump forwards
   "fe" 'inc0n/transient-flycheck
   ;; "ft" 'counsel-etags-find-tag-at-point
 
-  "gg" 'inc0n/counsel-git-grep ; quickest grep should be easy to press
+  "gg" 'consult-git-grep       ; quickest grep should be easy to press
   "gd" 'ffip-show-diff-by-description   ;find-file-in-project 5.3.0+
   "gt" 'inc0n/evil-goto-definition      ; "gt" is occupied by evil
   ;; git
@@ -599,15 +615,12 @@ Argument BACKWARD non-nil will jump backwards initially, otherwise jump forwards
   "ih" 'inc0n/goto-git-gutter           ; use ivy-mode
   "ii" 'inc0n/imenu-or-list-tag-in-current-file
 
-  "jb" #'inc0n/evil-transient-jump
+  "jb" 'inc0n/evil-transient-jump
   ;;
   ;; "jj" 'scroll-other-window
   "kb" 'kill-buffer-and-window ;; "k" is preserved to replace "C-g"
 
   "ls" 'inc0n/transient-highlight-symbol
-  "ln" 'highlight-symbol-next
-  "lp" 'highlight-symbol-prev
-  "lq" 'highlight-symbol-query-replace
   ;; "ln" 'highlight-symbol-nav-mode ; use M-n/M-p to navigation between symbols
 
   "mm" 'lookup-doc-in-man
@@ -629,18 +642,16 @@ Argument BACKWARD non-nil will jump backwards initially, otherwise jump forwards
   "pp" 'paste-from-clipboard
 
   "rb" 'evilmr-replace-in-buffer
-  "re" 'counsel-etags-recent-tag
   "rn" 'evilmr-replace-in-defun
+  "re" 'counsel-etags-recent-tag
   "rjs" 'run-js
 
   "sr" 'scratch
   ;; "ss" 'wg-create-workgroup ; save windows layout
   ;; "sc" 'shell-command
   "sc" 'selectrum-imenu-comments
-  ;; "sf" 'selectsel-recentf ; g-s instead
   ;; "sm" 'selectrum-evil-marks
-  ;; "ss" 'selectsel-rg
-  "ss" 'inc0n/selectsel-rg
+  "ss" 'inc0n/selectsel-rg              ; 'selectsel-rg
 
   ;; "ti" 'inc0n/toggle-indentation
   ;; @see https://github.com/pidu/git-timemachine
@@ -658,19 +669,10 @@ Argument BACKWARD non-nil will jump backwards initially, otherwise jump forwards
 
   "xv" 'vc-next-action                  ; 'C-x v v' in original
   "xe" 'eval-last-sexp
-  ;; "xb" 'switch-to-buffer ; use gb instead!
-  ;; "xf" 'find-file ; use gf instead
   "xh" 'mark-whole-buffer
   "xc" 'save-buffers-kill-emacs
   "xm" 'execute-extended-command
-  ;; "xk" 'kill-buffer
   "xs" 'save-buffer
-  ;; {{ window move
-  "wh" 'evil-window-left
-  "wl" 'evil-window-right
-  "wk" 'evil-window-up
-  "wj" 'evil-window-down
-  ;; }}
   ;; {{ @see http://ergoemacs.org/emacs/emacs_pinky_2020.html
   ;; `keyfreq-show' proved sub-window operations happen most.
   "x0" 'delete-window
@@ -680,6 +682,12 @@ Argument BACKWARD non-nil will jump backwards initially, otherwise jump forwards
   ;; }}
   "uu" 'inc0n/transient-winner
 
+  ;; {{ window move
+  "wh" 'evil-window-left
+  "wl" 'evil-window-right
+  "wk" 'evil-window-up
+  "wj" 'evil-window-down
+  ;; }}
   "wf" 'popup-which-function
   "wo" 'ace-window
   "ws" 'ace-swap-window
@@ -692,7 +700,10 @@ Argument BACKWARD non-nil will jump backwards initially, otherwise jump forwards
 (defun copy-and-paste (beg end)
   (interactive (if (region-active-p)
 				   (list (region-beginning) (region-end))
-			     (list (line-beginning-position) (1+ (line-end-position)))))
+			     (let ((beg (line-beginning-position))
+                       (end (1+ (line-end-position))))
+                   (goto-char end)
+                   (list beg end))))
   (let ((x (buffer-substring beg end)))
     (insert x)))
 
@@ -752,22 +763,22 @@ Argument N the number of lines to operate on."
   "gq" 'w3m-stackoverflow-search)
 ;; }}
 
-(add-to-list 'evil-emacs-state-modes 'xref--xref-buffer-mode)
+(evil-set-initial-state 'xref--xref-buffer-mode 'motion)
 
+(use-package evil-matchit
+  :config
+  (setq evilmi-shortcut "m"
+	    evilmi-may-jump-by-percentage nil)
+  :init
+  (add-hook 'after-init-hook 'global-evil-matchit-mode))
 
-;; {{ `evil-matchit'
-(require-package 'evil-matchit)
-(setq evilmi-shortcut "m"
-	  evilmi-may-jump-by-percentage nil)
-(add-hook 'after-init-hook 'global-evil-matchit-mode)
-;; }}
-
-;; {{ evil-exchange
-(require-package 'evil-exchange)
-;; press `evil-exchange-key' twice to exchange, gX to cancel
-(setq evil-exchange-key (kbd "zx"))
-(util/add-to-timed-init-hook 1 'evil-exchange-install)
-;; }}
+;; evil-exchange
+(use-package evil-exchange
+  :defer 1
+  :config
+  (evil-exchange-install)
+  ;; press `evil-exchange-key' twice to exchange, gX to cancel
+  (setq evil-exchange-key (kbd "zx")))
 
 ;; {{ @see https://github.com/syl20bnr/spacemacs/blob/master/doc/DOCUMENTATION.org#replacing-text-with-iedit
 ;; same keybindings as spacemacs:
@@ -778,10 +789,10 @@ Argument N the number of lines to operate on."
 ;;  - Please note ";;" or `avy-goto-char-timer' is also useful
 ;; }}
 
-;; {{ Evil’s f/F/t/T command can search PinYin ,
-(require-package 'evil-find-char-pinyin)
-(util/add-to-timed-init-hook 2 'evil-find-char-pinyin-mode)
-;; }}
+;; Evil’s f/F/t/T command can search PinYin
+(use-package evil-find-char-pinyin
+  :defer 2
+  :config (evil-find-char-pinyin-mode))
 
 ;; {{ evil-args
 (require-package 'evil-args)
@@ -790,20 +801,14 @@ Argument N the number of lines to operate on."
 (define-key evil-outer-text-objects-map "a" 'evil-outer-arg)
 
 ;; bind evil-forward/backward-args
-(define-key evil-normal-state-map "L" 'evil-forward-arg)
-(define-key evil-normal-state-map "H" 'evil-backward-arg)
-(define-key evil-motion-state-map "L" 'evil-forward-arg)
-(define-key evil-motion-state-map "H" 'evil-backward-arg)
-
-;; bind evil-jump-out-args
-(define-key evil-motion-state-map "K" 'evil-jump-out-args)
-(define-key evil-normal-state-map "K" 'evil-jump-out-args)
+(evil-define-key '(normal motion) 'global
+  "L" 'evil-forward-arg
+  "H" 'evil-backward-arg
+  ;; Move the cursor out of the nearest enclosing matching pairs.
+  "K" 'evil-jump-out-args)
 ;; }}
 
 (with-eval-after-load 'evil
-  ;; evil re-assign "M-." to `evil-repeat-pop-next' which I don't use actually.
-  ;; Restore "M-." to original binding command
-  (define-key evil-normal-state-map (kbd "M-.") 'xref-find-definitions)
   ;; @see https://bitbucket.org/lyro/evil/issue/360/possible-evil-search-symbol-forward
   ;; evil 1.0.8 search word instead of symbol
   (setq evil-symbol-word-search t)
@@ -824,6 +829,7 @@ Argument N the number of lines to operate on."
 
   ;; Move the cursor one character backward when exiting insert mode
   (setq evil-move-cursor-back t)
+  (setq evil-ex-search-direction 'forward)
 
   ;; @see https://bitbucket.org/lyro/evil/issue/342/evil-default-cursor-setting-should-default
   ;; Cursor is always black because of evil.
