@@ -1,5 +1,7 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
+;;; Code:
+
 (defvar inc0n/ediff-panel-name nil)
 
 (defun inc0n/server-save-buffers-kill-terminal-hack (&optional arg)

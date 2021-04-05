@@ -107,10 +107,9 @@ Please note RUN-TOGETHER makes aspell less capable.  So it should be used in `pr
          ;; sort words
          (aspell-words (sort (cdr lines) 'string<)))
     (with-temp-file dict
-      (insert (format "%s %d\n%s"
-                        "personal_ws-1.1 en"
-                        (length aspell-words)
-                        (mapconcat 'identity aspell-words "\n"))))))
+      (insert (format "personal_ws-1.1 en %d\n%s"
+                      (length aspell-words)
+                      (mapconcat 'identity aspell-words "\n"))))))
 
 (with-eval-after-load 'wucuo
   ;; {{ wucuo is used to check camel cased code and plain text.  Code is usually written

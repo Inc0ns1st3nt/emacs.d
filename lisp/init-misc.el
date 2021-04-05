@@ -15,10 +15,6 @@
 ;; (setq scroll-step 0
 ;;       scroll-conservatively 0)
 
-;; (require 'smooth-scroll)
-
-(setq confirm-kill-emacs 'y-or-n-p)
-
 ;; this mode purges buffers which haven't been displayed in configured period
 (use-package midnight
   :defer t
@@ -28,9 +24,12 @@
 
 ;; @see http://www.emacswiki.org/emacs/SavePlace
 (use-package save-place-mode
-  :defer 1 :init (save-place-mode))
+  :defer 1
+  :init (save-place-mode))
 
-(use-package amx-mode :defer t)
+(use-package amx-mode
+  :defer t
+  :init (add-hook 'after-init-hook 'amx-mode))
 
 (defun inc0n/unbound-symbol (arg)
   "Unbound for ARG be it function or symbol."
@@ -106,15 +105,14 @@
   ;; @see http://lua-users.org/wiki/LuaStyleGuide
   ;; indent 2 spaces by default
   (setq-default lua-indent-level 2)
-  (add-hook 'lua-mode-hook
-            (defun lua-mode-hook-setup ()
-              "Set up lua script."
-              (unless (buffer-file-temp-p)
-                (setq-local imenu-generic-expression
-                            '(("Variable" "^ *\\([a-zA-Z0-9_.]+\\) *= *{ *[^ ]*$" 1)
-                              ("Function" "function +\\([^ (]+\\).*$" 1)
-                              ("Module" "^ *module +\\([^ ]+\\) *$" 1)
-                              ("Variable" "^ *local +\\([^ ]+\\).*$" 1)))))))
+  (define-hook-setup 'lua-mode-hook
+    "Set up lua script."
+    (unless (buffer-file-temp-p)
+      (setq-local imenu-generic-expression
+                  '(("Variable" "^ *\\([a-zA-Z0-9_.]+\\) *= *{ *[^ ]*$" 1)
+                    ("Function" "function +\\([^ (]+\\).*$" 1)
+                    ("Module" "^ *module +\\([^ ]+\\) *$" 1)
+                    ("Variable" "^ *local +\\([^ ]+\\).*$" 1))))))
 
 ;; Use C-q instead tab to complete snippet
 ;; - aya-create at first, input ~ to mark the thing next
@@ -159,6 +157,8 @@
               visible-bell nil
 			  line-spacing 2)
 
+(setq confirm-kill-emacs 'y-or-n-p)
+
 (setq calc-symbolic-mode t
       calc-angle-mode 'rad)
 
@@ -170,14 +170,14 @@
 
 ;; NO automatic new line when scrolling down at buffer bottom
 (setq next-line-add-newlines nil)
-;;}}
+;; }}
 
 (defun toggle-indent-tabs-mode ()
   (interactive)
   (setq indent-tabs-mode (not indent-tabs-mode))
   (message "indent-tabs-mode is turned %s" (if indent-tabs-mode "off" "on")))
 
-;
+
 (require-package 'find-file-in-project)
 (with-eval-after-load 'find-file-in-project
   (defun inc0n/search-git-reflog-code ()
@@ -827,24 +827,19 @@ version control automatically."
 
 ;; epub setup
 (use-package nov
+  :commands (nov-mode)
   :mode "\\.epub\\'"
   :config
   (setq nov-text-width t)
   (evil-set-initial-state 'nov-mode 'motion)
-  (general-define-key
-   :keymaps 'nov-mode-map
-   "g" 'nil                             ; use evil g leader key
-   "R" 'nov-render-document             ; rebind it to R
-   "j" 'next-line
-   "k" 'previous-line
-   "w" 'mybigword-pronounce-word
-   ";" 'avy-goto-char-2
-   "d" (lambda ()
-		 (interactive)
-		 ;; go to end of word to workaround `nov-mode' bug
-		 (forward-word)
-		 (forward-char -1)
-		 (sdcv-search-input (thing-at-point 'word))))
+  (evil-define-key 'motion nov-mode-map
+    "q" 'quit-window                         ; override quit window
+    "R" 'nov-render-document            ; rebind from g to R
+    "gw" 'mybigword-pronounce-word
+    ";" 'avy-goto-char-timer
+    "d" (lambda () (interactive)
+		  (sdcv-search-input (thing-at-point 'word))))
+  ;; (general-define-key :keymaps)
   (define-hook-setup 'nov-pre-html-render-hook
     ;; column-width: 200px;
     ;; height: 180px;

@@ -55,7 +55,7 @@
           (replace-regexp-in-string
            "\\(\n$\\|\\|\\[m *\\|\\[[0-9][0-9]m *\\)" "" ; remove trailing linebreak
            (shell-command-to-string
-            (concat fortune-prog "~/arch/fortunes/data")))))
+            (concat fortune-prog " ~/arch/fortunes/data")))))
       ;; (concat ";; Happy hacking "
       ;;         (or user-login-name "")
       ;;         " - Emacs loves you!\n\n")

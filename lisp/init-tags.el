@@ -20,19 +20,18 @@
     )
   "The `major-mode's to try to find TAGS.")
 
-(add-hook 'after-save-hook
-          (defun generic-tag-after-save-update ()
-            "The TAGS update function."
-            (if (and generic-tag-enable tags-file-name)
-                (message "tags %s updated %s"
-                         tags-file-name
-                         (when-let* ((pair (assoc major-mode generic-tag-major-modes))
-                                     (ext (cdr pair)))
-                           (shell-command-to-string
-                            (format (concat "PWD=%s " tag-shell-format-string)
-                                    (file-name-directory tags-file-name)
-                                    ext))))
-              (setq tags-file-name nil))))
+(define-hook-setup 'after-save-hook :generic-tag-update
+  "The TAGS update function."
+  (if (and generic-tag-enable tags-file-name)
+      (message "tags %s updated %s"
+               tags-file-name
+               (when-let* ((pair (assoc major-mode generic-tag-major-modes))
+                           (ext (cdr pair)))
+                 (shell-command-to-string
+                  (format (concat "PWD=%s " tag-shell-format-string)
+                          (file-name-directory tags-file-name)
+                          ext))))
+    (setq tags-file-name nil)))
 
 (defvar tag-shell-format-string
   "ctags -e -f TAGS -R *%s"
@@ -57,16 +56,15 @@
 ;;           ;; Set the local value of tags-file-name.
 ;;           (setq-local tags-file-name tag)
 ;;           (message "%s found tag: %s" major-mode tag))))
-(add-hook 'prog-mode-hook
-          (defun generic-prog-mode-tag-setup ()
-            "My generic tag file setup for `prog-mode'."
-            (when (and (assoc major-mode generic-tag-major-modes)
-                       buffer-file-name)
-              ;; (generic-tags-mode 1)
-              ;; gtags setup
-              (when-let ((root-dir (gtags-visit-project-rootdir)))
-                (when (gtags-setup-in-project-rootdir root-dir)
-                  (gtags-mode 1))))))
+(define-hook-setup 'prog-mode-hook :tag
+  "My generic tag file setup for `prog-mode'."
+  (when (and (assoc major-mode generic-tag-major-modes)
+             buffer-file-name)
+    ;; (generic-tags-mode 1)
+    ;; gtags setup
+    (when-let ((root-dir (gtags-visit-project-rootdir)))
+      (when (gtags-setup-in-project-rootdir root-dir)
+        (gtags-mode 1)))))
 
 ;;; gtags init
 

@@ -318,8 +318,8 @@ Check `util/delim-p' for the definition of delim."
   [?\M-p] #'previous-complete-history-element
   [?\M-n] #'next-complete-history-element)
 
-;; (evil-define-key '(normal visual) 'global
-;;   [tab] 'indent-for-tab-command)
+(evil-define-key '(normal visual) 'global
+  [tab] 'indent-for-tab-command)
 
 (evil-define-key 'normal 'global
   [?\C-e] 'evil-scroll-up
@@ -355,6 +355,7 @@ Check `util/delim-p' for the definition of delim."
   "gu" #'endless/upcase)
 
 (evil-define-key 'motion 'global
+  "q" 'quit-window
   "]" nil                               ; disable ] prefix
   "n" nil                               ; disable evil-search-next
   "N" 'evil-search-next                 ; rebinds
@@ -755,7 +756,7 @@ Argument N the number of lines to operate on."
   "db" 'sdcv-search-input               ; details
   "dt" 'sdcv-search-input+              ; summary
   "dd" 'inc0n/lookup-dict-org
-  "mm" 'lookup-doc-in-man
+  "m" 'lookup-doc-in-man
   "ge" 'inc0n/eww-search
   "gs" 'w3m-search
   "gg" 'w3m-google-search

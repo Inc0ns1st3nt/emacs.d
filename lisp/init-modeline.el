@@ -23,7 +23,7 @@
   ;; '%02' to set to 2 chars at least; prevents flickering
   "(%02l,%01c) "
   ;; insert vs overwrite mode
-  '(:eval (if (and (boundp 'evil-mode) evil-mode)
+  '(:eval (if (bound-and-true-p 'evil-mode)
     		  (propertize "§ " 'help-echo "evil indicator"
                           'face
                           (list :foreground
@@ -38,8 +38,7 @@
   '(:eval (propertize "%m" 'help-echo buffer-file-coding-system))
   " "
   ;; input-method
-  '(:eval (when (and (boundp 'evil-input-method)
-					 evil-input-method)
+  '(:eval (when (bound-and-true-p 'evil-input-method)
 			(concat
 			 (propertize evil-input-method
                          'help-echo "Input method for Buffer is enabled")
@@ -61,12 +60,12 @@
   ;; "%-" ;; fill with '-'
   ))
 
-;; doom-modeline
-;; (require 'doom-modeline)
+;; simple-modeline
 
 (defun simple-modeline-segment-popper ()
   "Simple-modeline-segment popper."
-  (if (popper-popup-p (current-buffer))
+  (if (and (fboundp 'popper-popup-p)
+           (popper-popup-p (current-buffer)))
       (propertize " POP" 'face 'bold)
     ""))
 
@@ -74,7 +73,8 @@
   "Simple-modeline-segment nov epub."
   (concat " "
           (propertize
-           (cdr (assoc 'creator nov-metadata))
+           (or (cdr (assoc 'creator nov-metadata))
+               "unknown")
            'face 'simple-modeline-unimportant)
           " "
           (cdr (assoc 'title nov-metadata))

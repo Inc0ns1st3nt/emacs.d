@@ -7,6 +7,7 @@
 ;;; Code:
 
 (require-package 'auctex)
+;; (local-require 'calctex)
 
 ;; (setq auto-insert-query nil)
 ;; (setq auto-insert-directory (inc0n/emacs-d "auto-insert"))
@@ -36,18 +37,15 @@
   (setq preview-auto-cache-preamble t
 		preview-preserve-counters t)
   ;; (add-to-list 'preview-default-option-list "showbox")
-  (setq preview-default-preamble
-		(append preview-default-preamble
-				'(;; "\n\\PreviewEnvironment{tabular}"
-				  ;;"\\PreviewEnvironment{enumerate}"
-				  "\\PreviewEnvironment{tikzpicture}"))))
+  (add-to-list 'preview-default-preamble "\\PreviewEnvironment{tikzpicture}")
+  ;; (add-to-list 'preview-default-preamble "\\PreviewEnvironment{enumerate}")
+  ;; "\n\\PreviewEnvironment{tabular}"
+  )
 
 ;; (custom/reset-var 'preview-default-preamble)
 
-;; Enable Flyspell mode for TeX modes such as AUCTeX. Highlights all misspelled words.
-(add-hook 'TeX-mode-hook 'flyspell-mode)
-
 (define-hook-setup 'LaTeX-mode-hook
+  (flyspell-mode 1)
   (LaTeX-math-mode 1)
   (electric-pair-mode 1)
   (general-define-key
@@ -58,8 +56,6 @@
    "r" 'preview-region
    "s" 'preview-section)
   ;; (inc0n/yas-insert-template "template")
-  ;; (setq-local electric-pair-pairs
-
   (setq-local word-wrap t))
 
 (provide 'init-latex)

@@ -177,17 +177,6 @@ ARG is ignored."
                (not (org-entry-get nil "ACTIVATED")))
       (org-entry-put nil "ACTIVATED" (format-time-string "[%Y-%m-%d]"))))
 
-  ;; {{ export org-mode in Chinese into PDF
-  ;; @see http://freizl.github.io/posts/tech/2012-04-06-export-orgmode-file-in-Chinese.html
-  ;; and you need install texlive-xetex on different platforms
-  ;; To install texlive-xetex:
-  ;;    `sudo USE="cjk" emerge texlive-xetex` on Gentoo Linux
-  (setq org-latex-pdf-process
-        '("xelatex -interaction nonstopmode -output-directory %o %f"
-          "xelatex -interaction nonstopmode -output-directory %o %f"
-          "xelatex -interaction nonstopmode -output-directory %o %f")) ;; org v8
-  ;; }}
-
   (setq org-list-demote-modify-bullet '(("+" . "-") ("-" . "+") ("*" . "+") ("1." . "a."))
         org-list-allow-alphabetical t  ; have a. A. a) A) list bullets
         )
@@ -196,11 +185,12 @@ ARG is ignored."
         org-export-with-sub-superscripts '{} ; don't treat lone _ / ^ as sub/superscripts, require _{} / ^{}
         )
 
-  ;; misc
+  ;; org-startup-options
   (setq org-startup-with-latex-preview t
         org-startup-indented t
-        org-indent-mode-turns-on-hiding-stars nil
+        org-startup-folded 'content
 		org-hide-leading-stars nil
+        org-pretty-entities t
         org-log-done 'note
         org-edit-src-content-indentation 2
         org-edit-timestamp-down-means-later t
@@ -232,8 +222,9 @@ ARG is ignored."
         ;; }}
         org-agenda-tags-column 80)
 
-  (define-hook-setup org-insert-heading-hook
-    (evil-insert-state 1))
+  ;; Not needed see inc0n/org-insert
+  ;; (define-hook-setup org-insert-heading-hook
+  ;;   (evil-insert-state 1))
 
   (general-define-key
    :keymaps 'org-mode-map
@@ -305,8 +296,11 @@ ARG is ignored."
 		  ;;  "* NEXT %?\n%U\n%a\nSCHEDULED: %(format-time-string \"%<<%Y-%m-%d %a .+1d/3d>>\")\n:PROPERTIES:\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:END:\n")
 		  ("p" "Project" entry (file "projects.org")
 		   ,(concat "* PROJECT [%<%Y-%m-%d %a>] %?"))))
-  (setq org-pretty-entities t ;; render entity
-        org-fontify-quote-and-verse-blocks t
+  ;; latex fragments
+  (add-to-list 'org-src-block-faces '("latex" (:inherit default :extend t)))
+  (setq org-highlight-latex-and-related '(native script entities))
+
+  (setq org-fontify-quote-and-verse-blocks t
         org-src-fontify-natively t
         org-src-preserve-indentation t
         org-link-descriptive t
@@ -314,6 +308,8 @@ ARG is ignored."
   ;; org latex preview scale
   (setq org-format-latex-options
         (plist-put org-format-latex-options :scale 1.8))
+  ;; (setq org-format-latex-options
+  ;;       (plist-put org-format-latex-options :background "Transparent"))
   ;; org-babel for gnuplot
   ;; @see https://www.orgmode.org/worg/org-contrib/babel/languages/ob-doc-gnuplot.html
   (org-babel-do-load-languages
@@ -333,20 +329,26 @@ ARG is ignored."
    '(outline-8 ((t (:weight semi-bold))))
    '(outline-9 ((t (:weight semi-bold))))))
 
+(with-eval-after-load 'org-indent
+  (setq org-indent-indentation-per-level 1 ; normal indent
+        org-indent-mode-turns-on-hiding-stars nil))
+
 (defun inc0n/org-insert (&optional arg)
     "Insert item or heading depending on context.
 Insert before if ARG is non-nil"
     (interactive "P")
     (if (and (null arg)
              (org-in-item-p))
-        (org-insert-item)
-      (org-insert-heading-after-current)))
+        (progn (org-end-of-item)
+               (org-insert-item))
+      (org-insert-heading-after-current))
+    (evil-insert-state 1))
 
 ;;; org-appear
-(add-hook 'org-mode-hook
-          (defun org-appear-setup ()
-            ;; (setq org-appear-elements (delq 'verbatim org-appear-elements))
-            (org-appear-mode 1)))
+(define-hook-setup 'org-mode-hook :org-appear
+  ;; (setq org-appear-elements (delq 'verbatim org-appear-elements))
+  (org-appear-mode 1))
+
 (with-eval-after-load 'org-appear
   (setq org-appear-autoemphasis t
         org-appear-autosubmarkers t
@@ -376,16 +378,17 @@ should be continued."
 
 (define-hook-setup org-agenda-mode-hook
   (evil-mode 1)
-  (evil-normal-state))
+  (evil-motion-state))
 
 (with-eval-after-load 'org-superstar
   ;; (setq org-superstar-headline-bullets-list '(?◉ ?◈ ?✸ ?▣)
-  ;;   	org-superstar-item-bullet-alist '((?* . ?•) (?+ . ?➤) (?- . ?-)))
   ;;    org-superstar-item-bullet-alist '((?* . ?▶) (?+ . ?⬘) (?- . ?⬙))
   (setq-default org-superstar-prettify-item-bullets t
-                ;; org-superstar-headline-bullets-list '(?⬘)
-                org-superstar-leading-bullet "."
-                org-superstar-headline-bullets-list '("Ⅰ" "Ⅱ" "Ⅲ" "Ⅳ" "Ⅴ" "Ⅵ" "Ⅶ" "Ⅷ" "Ⅸ" "Ⅹ"))
+                org-superstar-headline-bullets-list '(?Ⅰ ?Ⅱ ?Ⅲ ?Ⅳ ?Ⅴ ?Ⅵ ?Ⅶ ?Ⅷ ?Ⅸ ?Ⅹ)
+                org-superstar-headline-bullets-list '(?⬘)
+                ;; org-superstar-item-bullet-alist '((?* . ?•) (?+ . ?➤) (?- . ?–))
+                org-superstar-item-bullet-alist '((?* . ?•) (?+ . ?➤) (?- . ?ⅰ))
+                org-superstar-leading-bullet ".")
   (setq org-superstar-cycle-headline-bullets nil
 		org-superstar-special-todo-items nil)
   (set-face-attribute 'org-superstar-leading nil :foreground "dark gray")
@@ -397,6 +400,7 @@ should be continued."
 
 (define-hook-setup org-ctrl-c-ctrl-c-final-hook :capture
   (org-capture)
+  ;; force return t
   t)
 
 (define-hook-setup org-tab-first-hook :indent
@@ -518,7 +522,27 @@ It will operate between the region from START to END."
         ;; Our hack for using auto ref to generate our nice labels
         ;; org-latex-image-default-scale
         org-latex-listings t
-        org-latex-prefer-user-labels t))
+        org-latex-prefer-user-labels t)
+
+  ;; Export org-mode in Chinese into PDF
+  ;; @see http://freizl.github.io/posts/tech/2012-04-06-export-orgmode-file-in-Chinese.html
+  ;; and you need install texlive-xetex on different platforms
+  ;; To install texlive-xetex:
+  ;;    `sudo USE="cjk" emerge texlive-xetex` on Gentoo Linux
+  (setq org-latex-pdf-process
+        '("xelatex -interaction nonstopmode -output-directory %o %f"
+          "xelatex -interaction nonstopmode -output-directory %o %f"
+          ;; org v8
+          "xelatex -interaction nonstopmode -output-directory %o %f"))
+  ;; By default Org uses ~pdflatex~ \times 3 + ~bibtex~. This simply
+  ;; won't do in our modern world. ~latexmk~ + ~biber~ (which is used
+  ;; automatically with ~latexmk~) is a simply superior combination.
+  (setq org-latex-pdf-process
+        '("latexmk -%latex -shell-escape -interaction=nonstopmode -f -pdf -output-directory=%o %f"))
+
+  (add-to-list/s 'org-latex-packages-alist
+                 '("margin=1.2in" "geometry" nil)
+                 "\\usepackage{amsmath, amssymb}"))
 
 ;; org-emphasis-alist
 (provide 'init-org)

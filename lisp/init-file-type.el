@@ -63,15 +63,6 @@
 ;; vimrc
 (add-auto-mode 'vimrc-mode "\\.?vim\\(rc\\)?$")
 
-(add-auto-mode 'csv-mode "\\.[Cc][Ss][Vv]\\'")
-
-(add-auto-mode 'rust-mode "\\.rs\\'")
-
-;; {{ verilog
-(autoload 'verilog-mode "verilog-mode" "Verilog mode" t )
-(add-auto-mode 'verilog-mode "\\.[ds]?vh?\\'")
-;; }}
-
 (add-auto-mode 'texile-mode "\\.textile\\'")
 
 (add-auto-mode 'tcl-mode "Portfile\\'")
@@ -92,10 +83,6 @@
 ;; }}
 
 (add-auto-mode 'snippet-mode "\\.yasnippet\\'")
-
-(add-auto-mode 'markdown-mode "\\.\\(m[k]d\\|markdown\\)\\'")
-
-(add-auto-mode 'octave-mode "\\.m$")
 
 ;; racket
 (add-auto-mode 'racket-mode "\\.rkt$")

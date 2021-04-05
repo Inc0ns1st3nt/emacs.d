@@ -5,19 +5,19 @@
 
 ;;; Code:
 
-(require-package 'shackle)
-(require-package 'popper)
-
-(with-eval-after-load 'shackle
-  ;; @see https://github.com/wasamasa/shackle
+;; @see https://github.com/wasamasa/shackle
+(use-package shackle
+  :defer t
+  :config
   (setq shackle-select-reused-windows nil ; default nil
         shackle-default-alignment 'below  ; default below
         shackle-default-size 0.4)
   ;; :same if non-nil open in current window
   ;; :select if non-nil select upon open
   ;; :inhibit-window-quit if non-nil prevent window quiting on q
+
+  ;; CONDITION(:regexp) :select :inhibit-window-quit :size+:align|:other :same|:popup
   (setq shackle-rules
-        ;; CONDITION(:regexp) :select :inhibit-window-quit :size+:align|:other :same|:popup
         `((compilation-mode :select nil)
           ("*undo-tree*" :size 0.25 :align right)
           ("*eshell*" :select t :other t)
@@ -55,6 +55,23 @@
     (prog1 (window--display-buffer buffer window 'window)
       (select-window window))))
 
+(use-package popper
+  :defer 1
+  :init
+  (message "popper initialized")
+  (popper-mode 1)
+  (bind-key [C-iso-lefttab] 'popper-cycle) ;; ctrl-shift-tab
+  (bind-key "C-S-l" 'popper-toggle-latest))
+
+(global-set-key (kbd "C-S-o")
+                (lambda () (interactive)
+                  (if inc0n/popper-last-window
+                      (select-window
+                       (if (eq (selected-window) inc0n/popper-last-window)
+                           (frame-root-window)
+                         inc0n/popper-last-window))
+                    (message "no popper window opened!"))))
+
 (with-eval-after-load 'popper
   (setq popper-mode-line '(:eval (propertize " POP" 'face 'bold))
         popper-mode-line-position 2
@@ -85,18 +102,5 @@
 
 ;; (autoload #'popper-group-by-project "project"
 ;;   "Setups the gtags project root-dir." nil)
-
-(util/add-to-timed-init-hook 1 'popper-mode)
-
-(global-set-key [C-iso-lefttab] 'popper-cycle) ;; ctrl-shift-tab
-(global-set-key (kbd "C-S-l") 'popper-toggle-latest)
-(global-set-key (kbd "C-S-o") (lambda () (interactive)
-                                (if inc0n/popper-last-window
-                                    (select-window
-                                     (if (eq (selected-window) inc0n/popper-last-window)
-                                         (frame-root-window)
-                                       inc0n/popper-last-window))
-                                  (message "no popper window opened!"))))
-
 
 (provide 'init-shackle)

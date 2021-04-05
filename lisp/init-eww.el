@@ -13,45 +13,45 @@
 ;; ewww download rss stream
 
 (with-eval-after-load 'evil
-  (add-to-list 'evil-emacs-state-modes 'eww-mode)
-  (add-to-list 'evil-emacs-state-modes 'eww-buffer-mode))
+  (evil-set-initial-state 'eww-mode 'emacs)
+  (evil-set-initial-state 'eww-buffer-mode 'emacs))
 
 
-(add-hook 'eww-after-render-hook
-          (defun eww-after-render-hook-setup ()
-            "My eww hook setup."
-            (let* ((title (plist-get eww-data :title))
-                   (title (if (string-empty-p title)
-                              "untitled"
-                            (if (> (length title) 45)
-                                (concat (substring title 0 45) "...")
-                              title))))
-              (rename-buffer (format "*eww: %s*" title)
-                             t))))
-(add-hook 'eww-mode-hook
-          (defun eww-mode-hook-setup ()
-            (setq-local truncate-lines t)
-            (setq-local shr-width 90)
-            (setq-local fill-column 90
-                        visual-fill-column-center-text nil)
-            (visual-line-mode 1)
-            (visual-fill-column-mode 1)))
+(define-hook-setup 'eww-after-render-hook
+  "My eww hook setup."
+  (let* ((title (plist-get eww-data :title))
+         (title (if (string-empty-p title)
+                    "untitled"
+                  (if (> (length title) 45)
+                      (concat (substring title 0 45) "...")
+                    title))))
+    (rename-buffer (format "*eww: %s*" title)
+                   t)))
+
+(define-hook-setup 'eww-mode-hook
+  (setq-local truncate-lines t)
+  (setq-local shr-width 90)
+  (setq-local fill-column 90
+              visual-fill-column-center-text nil)
+  (visual-line-mode 1)
+  (visual-fill-column-mode 1))
 
 (defun eww-edit-url-and-goto ()
   (interactive)
   (eww (read-from-minibuffer "URL: " (plist-get eww-data :url))))
 
-(setq eww-search-engine-alist
-      '(("stackoverflow" "https://www.stackoverflow.com/search?q=%s" utf-8)
-        ("duckduckgo"    "https://lite.duckduckgo.com/lite?q=%s")
-        ("financial"     "https://financial-dictionary.thefreedictionary.com/%s" utf-8)
-        ("dictionary"    "https://dictionary.reference.com/search?q=%s" utf-8)))
+(defvar eww-search-engine-alist
+  '(("stackoverflow" "https://www.stackoverflow.com/search?q=%s" utf-8)
+    ("duckduckgo"    "https://lite.duckduckgo.com/lite?q=%s")
+    ("financial"     "https://financial-dictionary.thefreedictionary.com/%s" utf-8)
+    ("dictionary"    "https://dictionary.reference.com/search?q=%s" utf-8))
+  "My eww search engine alist similar to w3m.")
 
 (defun inc0n/eww-search (&optional arg)
   "My eww that can search with search engines.
 Non-nil ARG will allow search engine selection."
   (interactive "P")
-  (util/ensure 'eww)
+  (require 'eww)
   (let ((engine (if arg
                     (completing-read "Engine: " (mapcar 'car eww-search-engine-alist))
                   eww-search-default-engine)))

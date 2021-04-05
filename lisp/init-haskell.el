@@ -27,19 +27,19 @@
                             "ghc-core-mode"
                             "org-mode")))))
 
-(add-hook 'haskell-mode-hook
-          (defun haskell-mode-hook-setup ()
-            "My `haskell-mode' setup."
-            ;; Haskell smarter completion
-            ;; @see http://haskell.github.io/haskell-mode/manual/latest/Completion-support.html#Completion-support
-            (add-to-list 'company-backends '(company-capf company-dabbrev-code))
-            ;; (rainbow-delimiters-mode 1)
-            ;; Haskell module auto insert template
-            (haskell-auto-insert-module-template)
-            ;; Haskell interactive mode
-            (interactive-haskell-mode t)
-            ;; Haskell declaration scanning like 'beginning-of-defun' 'end-of-defun'
-            (haskell-decl-scan-mode t)))
+(define-hook-setup 'haskell-mode-hook
+  "My `haskell-mode' setup."
+  ;; Haskell smarter completion
+  ;; @see http://haskell.github.io/haskell-mode/manual/latest/Completion-support.html#Completion-support
+  (add-to-list 'company-backends '(company-capf company-dabbrev-code))
+  ;; (rainbow-delimiters-mode 1)
+
+  ;; Haskell module auto insert template
+  (haskell-auto-insert-module-template)
+  ;; Haskell interactive mode
+  (interactive-haskell-mode t)
+  ;; Haskell declaration scanning like 'beginning-of-defun' 'end-of-defun'
+  (haskell-decl-scan-mode t))
 
 ;; disable input method since it i would have to reset it back to pyim
 ;; manually after use

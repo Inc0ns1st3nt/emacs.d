@@ -7,12 +7,20 @@
 ;;; Code:
 
 ;; @see https://github.com/raxod502/selectrum
-(require-package 'selectrum)
-(require-package 'consult)
-;; (require-package 'icomplete-vertical)
+(use-package selectrum
+  :init (add-hook 'after-init-hook 'selectrum-mode)
+  :config
+  (setq amx-backend 'selectrum)
+  (setq-default selectrum-should-sort-p nil)
+  (setq selectrum-count-style 'matches
+		selectrum-extend-current-candidate-highlight t))
+
 (local-require 'selectsel)
 
-(add-hook 'after-init-hook 'selectrum-mode)
+(require-package 'consult)
+;; (require-package 'icomplete-vertical)
+
+
 ;; (add-hook 'after-init-hook 'icomplete-mode)
 ;; (add-hook 'after-init-hook 'icomplete-vertical-mode)
 ;; (add-hook 'after-init-hook 'fido-mode)
@@ -30,12 +38,6 @@
 			  (prescient-persist-mode 1)))
   (with-eval-after-load 'selectrum-prescient
 	(setq prescient-filter-method '(literal fuzzy regexp))))
-
-(with-eval-after-load 'selectrum
-  (setq amx-backend 'selectrum)
-  (setq-default selectrum-should-sort-p nil)
-  (setq selectrum-count-style 'matches
-		selectrum-extend-current-candidate-highlight t))
 
 (defun inc0n/selectsel-swiper ()
   "My version of swiper."
