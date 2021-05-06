@@ -116,7 +116,6 @@
   (require 'init-shackle)
   (require 'init-dired)
   (require 'init-writting)
-  ;; (require 'init-hydra)  ; hotkey is required everywhere
   (require 'init-clipboard)
   (require 'init-evil)
   (require 'init-transient)

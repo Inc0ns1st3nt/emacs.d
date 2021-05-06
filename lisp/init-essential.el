@@ -84,7 +84,6 @@ If USE-INDIRECT-BUFFER is not nil, use `indirect-buffer' to hold the widen conte
 ;; (define-key input-decode-map [?\C-\[] [C-\[]) ;; let C-[ be C-[ instead of ESC
 (define-key input-decode-map [?\C-i] [C-i])   ;; let C-i be C-i instead of TAB
 
-
 ;; {{ Write backup files to its own directory
 ;; @see https://www.gnu.org/software/emacs/manual/html_node/tramp/Auto_002dsave-and-Backup.html
 (defvar inc0n/binary-file-name-regexp

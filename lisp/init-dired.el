@@ -141,15 +141,6 @@ If no files marked, always operate on current line in dired-mode."
   (setq dired-listing-switches "-laGh1v")
   (setq dired-recursive-deletes 'always)
 
-  (advice-add 'dired-copy-filename-as-kill :after
-              (defun inc0n/dired-copy-filename-as-kill-hack ()
-                "Copy the file name or file path from dired into clipboard.
-Press \"w\" to copy file name.
-Press \"C-u 0 w\" to copy full path."
-                (let ((str (current-kill 0)))
-	              (copy-to-clipboard str)
-	              (message "%s => clipboard" str))))
-
   ;; avy, jump between texts, like easymotion in vim
   ;; @see http://emacsredux.com/blog/2015/07/19/ace-jump-mode-is-dead-long-live-avy/ for more tips
   ;; (diredfl-global-mode 1)

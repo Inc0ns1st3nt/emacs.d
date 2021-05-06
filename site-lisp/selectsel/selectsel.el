@@ -65,9 +65,9 @@
 Argument REGEX-STR the regex str to find in buffer."
   (when regex-str
     (re-search-forward regex-str (line-end-position) t)
-    (if (and (boundp 'evil-mode)
-		     evil-mode)
-	    (evil-search regex-str t t (line-beginning-position))
+    (if (bound-and-true-p evil-mode)
+	    (save-excursion
+          (evil-search regex-str t t (line-beginning-position)))
 	  (isearch-mode t)
 	  (isearch-yank-string regex-str))))
 
@@ -128,16 +128,15 @@ Obeys narrowing.  Can have INITIAL-INPUT"
 				(interactive)
 				(selectsel--replace-search cands)))
 			map))
-         (selectrum-preprocess-candidates-function #'identity)
+         ;; (selectrum-preprocess-candidates-function #'identity)
+         (selectrum-move-default-candidate nil)
 		 (chosen-line
           (selectrum--read "Selectrum Swiper: "
 						   cands
 						   :default-candidate (nth (1- current-line-number) cands)
 						   :initial-input initial-input
 						   :history 'selectsel-swiper-history
-						   :may-modify-candidates t
-						   :require-match t
-						   :no-move-default-candidate t))
+						   :require-match t))
          (chosen-line-number-str
 		  (get-text-property 0 'selectrum-candidate-display-prefix chosen-line)))
 	(when chosen-line-number-str
@@ -188,7 +187,7 @@ Obeys narrowing.  Can have INITIAL-INPUT"
                   alist)))
       (get-candidates items))))
 
-(defun selectsel-imenu ()
+(defun selectrum-imenu ()
   "`imenu' interfacing with `selectrum'."
   (interactive)
   (let* ((cands (selectsel--imenu-candidates))
@@ -197,6 +196,7 @@ Obeys narrowing.  Can have INITIAL-INPUT"
                                 t))
          (marker (get-text-property 0 'imenu-marker cand)))
 	(imenu marker)))
+(defalias 'selectsel-imenu 'selectrum-imenu)
 
 ;; selectrum-rg
 
@@ -387,16 +387,14 @@ Argument CANDS list of files to process."
 (defun selectsel--package-candidates (package-alist)
   "Process PACKAGE-ALIST into `completing-read' object."
   (cl-loop for (pkg-name pkg-desc) in package-alist
-           collect (propertize
-                    (concat
-                     (propertize
-                      (mapconcat 'number-to-string
-                                 (package-desc-version pkg-desc)
-                                 ".")
-                      'face 'package-name)
-                     " "
-                     (symbol-name pkg-name))
-                    'pkg pkg-name)))
+           collect (concat
+                    (propertize
+                     (mapconcat 'number-to-string
+                                (package-desc-version pkg-desc)
+                                ".")
+                     'face 'package-name)
+                    " "
+                    (symbol-name pkg-name))))
 
 (defun selectsel-list-packages (&optional arg)
   (interactive "P")
@@ -408,7 +406,8 @@ Argument CANDS list of files to process."
                        package-archive-contents
                      package-alist))
                   nil t)))
-    (describe-package (get-text-property 0 'pkg package))))
+    (describe-package
+     (intern (cadr (split-string package " "))))))
 
 ;;;; ChangeLog:
 

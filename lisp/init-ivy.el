@@ -45,24 +45,6 @@
   "Extra options for git recent files.
 For example, could be \"---author=MyName\"")
 
-(defun inc0n/git-recent-files ()
-  "Get files in my recent git commits."
-  (let* ((default-directory (inc0n/git-root-dir))
-         ;; two weeks is a sprint, minus weekend and days for sprint review and test
-         (cmd (format "git --no-pager log %s --name-status --since=\"10 days ago\" --pretty=format:"
-                      inc0n/git-recent-files-extra-options))
-         (lines (util/shell-command-to-lines cmd)))
-    (when lines
-      (dolist (l lines)
-        (let ((items (split-string l "[ \t]+" l)))
-          ;; get file if exist only
-          (reduce (lambda (acc file)
-                    (let ((file (string-trim file)))
-                      (if (file-exists-p file)
-                          (acons file (file-truename file) acc)
-                        acc)))
-                  (cdr items)))))))
-
 ;; grep by author is bad idea. Too slow
 
 (defun inc0n/build-bookmark-candidate (bookmark)

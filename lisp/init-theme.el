@@ -9,6 +9,9 @@
 (require-package 'atom-one-dark-theme)
 (require-package 'doom-themes)
 
+;; (use-package nano
+;;   :load-path "site-lisp/nano-emacs/")
+
 ;; (load-theme-only 'doom-moonlight)
 ;; doom-moonlight, heading face color too bright in org-mode
 ;; besides that, absolutely great.
@@ -19,19 +22,20 @@
 
 ;; timers
 (defvar theme/day-time '(8 . 00))
-(defvar theme/night-time '(16 . 00))
+(defvar theme/night-time '(18 . 00))
 
 (defvar theme/day-timer nil)
 (defvar theme/night-timer nil)
 
 (defun inc0n/faces-setup ()
   "My faces setup."
-  (set-face-attribute 'fixed-pitch-serif nil
-                      :height 130
+  (set-face-attribute 'fixed-pitch-serif nil ;; :height 0
                       :font "Liberation Sans")
-  (set-face-attribute 'font-lock-doc-face nil :slant 'italic)
+  (set-face-attribute 'font-lock-doc-face nil
+                      :slant 'italic)
   (when (facep 'org-done)
-    (set-face-attribute 'org-done nil :underline t :bold t)))
+    (set-face-attribute 'org-done nil
+                        :underline t :bold t)))
 
 (defun load-theme-only (theme)
   "Unload all other theme before loading `THEME'."

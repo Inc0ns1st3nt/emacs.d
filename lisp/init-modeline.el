@@ -23,7 +23,7 @@
   ;; '%02' to set to 2 chars at least; prevents flickering
   "(%02l,%01c) "
   ;; insert vs overwrite mode
-  '(:eval (if (bound-and-true-p 'evil-mode)
+  '(:eval (if (bound-and-true-p evil-mode)
     		  (propertize "§ " 'help-echo "evil indicator"
                           'face
                           (list :foreground
@@ -38,7 +38,7 @@
   '(:eval (propertize "%m" 'help-echo buffer-file-coding-system))
   " "
   ;; input-method
-  '(:eval (when (bound-and-true-p 'evil-input-method)
+  '(:eval (when (bound-and-true-p evil-input-method)
 			(concat
 			 (propertize evil-input-method
                          'help-echo "Input method for Buffer is enabled")
@@ -84,6 +84,33 @@
                    (1+ nov-documents-index)
                    (length nov-documents))
            'face 'simple-modeline-status-info)))
+
+
+(defvar simple-modeline-evil-modal-alist
+  '((insert . " 恶")
+    (normal . " 常")
+    (visual . " 选")
+    (operator . " 动")
+    (motion . " 水")
+    (emacs  . " 本")
+    (replace . " 换")))
+
+(defun simple-modeline-segment-evil-modal ()
+  "Displays a color-coded evil state modal indicator in the mode-line."
+  (propertize
+   ;; (if ((selected-window)))
+   (if-let ((modal
+             (assoc evil-state simple-modeline-evil-modal-alist)))
+       (cdr modal)
+     (symbol-name evil-state))
+   'face `(:inherit
+           ,(pcase evil-state
+              ('insert 'simple-modeline-status-modified)
+              ('normal 'simple-modeline-unimportant)
+              ('emacs  'simple-modeline-status-error)
+              (_ 'simple-modeline-important))
+           :height 1.2)
+   'display '(raise -0.1)))
 
 (with-eval-after-load 'simple-modeline
   (setq simple-modeline-box-height 3)

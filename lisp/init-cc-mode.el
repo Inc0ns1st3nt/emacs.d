@@ -36,6 +36,9 @@
   ;; emacs-c-opening-corresponding-header-file
   (local-set-key (kbd "C-x C-o") 'ff-find-other-file)
 
+  (add-to-list 'company-backends 'company-cmake)
+  (add-to-list 'company-backends 'company-c-headers)
+
   (setq cc-search-directories
         '("." "/usr/include" "/usr/local/include/*" "../*/include" "$WXWIN/include"))
 
@@ -53,10 +56,10 @@
 (define-hook-setup 'c-mode-common-hook
   (unless (buffer-file-temp-p)
     (inc0n/common-cc-mode-setup)
-    (unless (or (derived-mode-p 'java-mode)
-                (derived-mode-p 'groovy-mode))
-      (inc0n/c-mode-setup))
     (eldoc-mode 1)))
+
+(add-hook 'c-mode-hook 'inc0n/c-mode-setup)
+(add-hook 'c++-mode-hook 'inc0n/c-mode-setup)
 
 (provide 'init-cc-mode)
 ;;; init-cc-mode ends here

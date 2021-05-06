@@ -3,7 +3,6 @@
 ;;; Code:
 
 (require-package 'ace-window)
-;; (require-package 'winum)
 
 ;; move focus between sub-windows
 (use-package winum
@@ -16,50 +15,35 @@
                       :foreground "DeepPink"
                       :underline "DeepPink"
                       :weight 'bold)
+  (dotimes (i 10)
+    (define-key winum-keymap (kbd (format "C-%d" i)) 'winum-select-nth-window))
   :init
-  (setq winum-keymap
-	    (let ((map (make-sparse-keymap)))
-          (define-key map (kbd "M-0") 'winum-select-window-0)
-          (define-key map (kbd "M-1") 'winum-select-window-1)
-          (define-key map (kbd "M-2") 'winum-select-window-2)
-          (define-key map (kbd "M-3") 'winum-select-window-3)
-          (define-key map (kbd "M-4") 'winum-select-window-4)
-          (define-key map (kbd "M-5") 'winum-select-window-5)
-          (define-key map (kbd "M-6") 'winum-select-window-6)
-          (define-key map (kbd "M-7") 'winum-select-window-7)
-          (define-key map (kbd "M-8") 'winum-select-window-8)
-          map))
+  (setq winum-keymap (make-sparse-keymap))
   (add-hook 'after-init-hook 'winum-mode))
 
+(defun winum-select-nth-window (&optional arg)
+  "Select window with numbering command-keys method.
+ARG will negate the numbering."
+  (interactive "P")
+  (let* ((command-keys (key-description (this-command-keys)))
+         (last-key (aref command-keys (1- (length command-keys))))
+         (num (- last-key ?0)))
+    (winum-select-window-by-number (if arg (- num) num))))
+
+;; @see https://emacs-china.org/t/emacs-builtin-mode/11937/63
 ;; Navigate window layouts with "C-c <left>" and "C-c <right>"
 (add-hook 'after-init-hook #'winner-mode)
 
-;; @see https://emacs-china.org/t/emacs-builtin-mode/11937/63
-;; press u undo and r to redo
-;; (defun inc0n/transient-winner-undo ()
-;;   "Transient version of `winner-undo'."
-;;   (interactive)
-;;   (if winner-mode
-;;       (let ((echo-keystrokes nil))
-;;         (winner-undo)
-;;         (message "Winner: [u]ndo [r]edo [q]uit")
-;;         (set-transient-map
-;;          (let ((map (make-sparse-keymap)))
-;;            (define-key map [?u] #'winner-undo)
-;;            (define-key map [?r] #'winner-redo)
-;;            map)
-;;          t))
-;;     (message "turn on winner-mode first")))
-
 (global-set-key [?\C-x ?4 u] 'winner-undo)
-(global-set-key [?\C-x ?2] 'split-window-vertically)
-(global-set-key [?\C-x ?3] 'split-window-horizontally)
+(global-set-key [?\C-x ?2]
+                (lambda () (interactive) (split-window-vertically) (other-window 1)))
+(global-set-key [?\C-x ?3]
+                (lambda () (interactive) (split-window-horizontally) (other-window 1)))
  ;; https://github.com/abo-abo/ace-window
  ;; `M-x ace-window ENTER m` to swap window
 (global-set-key [?\C-x ?o] 'ace-window)
 
 ;; https://emacs.stackexchange.com/questions/46664/switch-between-horizontal-and-vertical-splitting
-
 (defun rotate-two-split-window ()
   "Toggle two window layout vertically or horizontally."
   (interactive)

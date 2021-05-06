@@ -9,20 +9,22 @@
   (let ((chinese "AR PL UKai CN"))
     (dolist (charset '(kana han symbol cjk-misc bopomofo))
       (set-fontset-font (frame-parameter nil 'font) charset
-                        (font-spec :family chinese)))))
+                        (font-spec :family chinese :size 23)))))
 
 (chinese/fix-font)
 ;; (add-hook 'after-init-hook 'chinese/fix-font)
+
+(setq default-input-method "pyim")
 
 ;; {{ make IME compatible with evil-mode
 (defun evil-toggle-input-method ()
   "When input method is on, goto `evil-insert-state'."
   (interactive)
   ;; load IME when needed, less memory footprint
-  (util/ensure 'pyim)
+  ;; (require 'pyim)
 
   ;; some guys don't use evil-mode at all
-  (if (not (and (boundp 'evil-mode) evil-mode))
+  (if (not (bound-and-true-p evil-mode))
       (toggle-input-method)
 	;; evil-mode must be in insert mode to change IM
 	(unless (evil-insert-state-p)
@@ -31,12 +33,14 @@
     (cond (current-input-method
 		   ;; evil-escape and pyim may conflict
 		   ;; @see https://github.com/redguardtoo/emacs.d/issues/629
-		   (evil-escape-mode -1)
+		   (unless (bound-and-true-p evil-escape-inhibit)
+             (evil-escape-mode -1))
 		   (when (not (memq evil-previous-state '(normal)))
 			 (evil-change-to-previous-state))
 		   (message "IME on!"))
 		  (t
-		   (evil-escape-mode 1)
+           (unless (bound-and-true-p evil-escape-inhibit)
+             (evil-escape-mode 1))
 		   ;; (evil-normal-state)
 		   (message "IME off!")))))
 
@@ -51,8 +55,6 @@
   ;; use western punctuation
   ;; (setq pyim-punctuation-dict nil)
   (setq pyim-page-length 8)
-
-  (setq default-input-method "pyim")
 
   (setq pyim-fuzzy-pinyin-alist
         '(("en" "eng")

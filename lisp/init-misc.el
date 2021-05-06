@@ -15,128 +15,13 @@
 ;; (setq scroll-step 0
 ;;       scroll-conservatively 0)
 
-;; this mode purges buffers which haven't been displayed in configured period
-(use-package midnight
-  :defer t
-  :init
-  (setq midnight-period (* 3600 24)) ;; 24 hours
-  (add-hook 'after-init-hook 'midnight-mode))
-
-;; @see http://www.emacswiki.org/emacs/SavePlace
-(use-package save-place-mode
-  :defer 1
-  :init (save-place-mode))
-
-(use-package amx-mode
-  :defer t
-  :init (add-hook 'after-init-hook 'amx-mode))
-
-(defun inc0n/unbound-symbol (arg)
-  "Unbound for ARG be it function or symbol."
-  (interactive (list (thing-at-point 'symbol)))
-  (cond ((stringp arg)
-		 (inc0n/unbound-symbol (intern arg)))
-		((symbolp arg)
-		 (if (functionp arg)
-			 (progn (fmakunbound arg)
-					(message "fmakunbounded %s" arg))
-		   (makunbound arg)
-		   (message "makunbounded %s" arg)))
-		(t (message "unexpected %s" arg))))
-
-(general-define-key
- "C-c C-u" 'inc0n/unbound-symbol
- "C-x C-o" 'ffap
- ;;
- "C-h C-f" 'find-function
- "C-h K" 'find-function-on-key
- "C-k" 'kill-sexp
- [C-backspace] 'backward-delete-word)
-
-(defun backward-delete-word ()
-  "Delete word backwards without pushing it to `kill-ring'."
-  (interactive)
-  (delete-region (point)
-			     (progn (forward-word -1)
-						(point))))
-
-(advice-add 'indent-for-tab-command :before
-            (defun tab-out-delimiter (&optional arg)
-              "Move cursor out of any delimiters."
-              (when (memq (char-syntax (following-char)) '(?\) ?\"))
-	            (just-one-space 0) ;; delete any space before delimiter
-	            (forward-char 1))))
-
-(defun completing-read-fonts ()
-  "`completion-read' style font selection."
-  (interactive)
-  (let ((font (completing-read
-               "Selector font: "
-               '("DejaVu Sans Mono"
-                 ;; "Bitstream Vera Sans Mono"
-                 "Source Code Pro"
-                 "Fira Code"
-                 "Hack"
-                 "Liberation Mono"
-                 "Inconsolata"
-                 "Consolas Ligaturized"
-                 "Roboto Mono"
-                 "Jetbrains Mono"
-                 "monego"
-                 "Courier Prime"
-                 "Anonymous Pro"
-                 "Amiri Typewriter"
-                 "Alegreya"
-                 "AR PL New Kai"))))
-    (set-face-attribute 'default nil :font font :weight 'normal :slant 'normal :height 140)
-    (chinese/fix-font)
-    (message "Font: %s" font)))
-;; (setq-default line-spacing 2)
-;; (set-face-attribute 'default nil :weight 'normal :width 'semi-condensed :slant 'normal :height 140)
-
-
-(use-package csv-mode :mode "\\.[Cc][Ss][Vv]\\'")
-(use-package rust-mode :mode "\\.rs\\'")
-(use-package verilog-mode :mode "\\.[ds]?vh?\\'")
-(use-package lua-mode
-  :mode "\\.lua\\'"
-  :interpreter "lua"
-  :init
-  ;; @see http://lua-users.org/wiki/LuaStyleGuide
-  ;; indent 2 spaces by default
-  (setq-default lua-indent-level 2)
-  (define-hook-setup 'lua-mode-hook
-    "Set up lua script."
-    (unless (buffer-file-temp-p)
-      (setq-local imenu-generic-expression
-                  '(("Variable" "^ *\\([a-zA-Z0-9_.]+\\) *= *{ *[^ ]*$" 1)
-                    ("Function" "function +\\([^ (]+\\).*$" 1)
-                    ("Module" "^ *module +\\([^ ]+\\) *$" 1)
-                    ("Variable" "^ *local +\\([^ ]+\\).*$" 1))))))
-
-;; Use C-q instead tab to complete snippet
-;; - aya-create at first, input ~ to mark the thing next
-;; - aya-expand to expand snippet
-;; - aya-open-line to finish
-(use-package auto-yasnippet
-  :bind ("C-q" . aya-open-line))
-
-(use-package ace-link
-  :bind ("M-z" . ace-link)
-  :init (ace-link-setup-default))
-
-;; {{ isearch
-;; Use regex to search by default
-(global-set-key (kbd "C-M-s") 'isearch-forward-regexp)
-(global-set-key (kbd "C-M-r") 'isearch-backward-regexp)
-(define-key isearch-mode-map (kbd "C-o") 'isearch-occur)
-;; }}
-
-;; paren mode
-(add-hook 'after-init-hook 'show-paren-mode)
-
 ;; {{ misc
-(blink-cursor-mode 0)
+(mouse-wheel-mode -1)
+(blink-cursor-mode -1)
+
+(setq system-time-locale "C")
+(setq imenu-max-item-length 60)
+
 (setq-default buffers-menu-max-size 30
               case-fold-search t
               ediff-split-window-function #'split-window-horizontally
@@ -171,6 +56,152 @@
 ;; NO automatic new line when scrolling down at buffer bottom
 (setq next-line-add-newlines nil)
 ;; }}
+
+(general-define-key
+ "C-h d" 'describe-function ; apropos-documentation
+ "C-h f" 'find-function
+ "C-h C-f" 'find-function
+ "C-h C-v" 'describe-variable
+ "C-h K"   'find-function-on-key ; Info-goto-emacs-key-command-node
+
+ "C-x C-i" 'eval-print-last-sexp
+ "C-x C-f" 'find-file-at-point
+
+ "C-c C-b" 'switch-to-prev-buffer
+ "C-c C-e" 'yank
+ "C-c C-s" 'selectsel-recentf
+ "C-c C-u" 'inc0n/unbound-symbol
+ "C-c C-n" 'avy-goto-line-below
+ "C-c C-p" 'avy-goto-lige-above
+ "C-c C-p" 'copy-and-paste
+ "C-c C-SPC" 'just-one-space
+
+ "C-k" 'kill-sexp
+ [C-backspace] 'backward-delete-word)
+
+;; this mode purges buffers which haven't been displayed in configured period
+(use-package midnight
+  :defer t
+  :init
+  (setq midnight-period (* 3600 24)) ;; 24 hours
+  (add-hook 'after-init-hook 'midnight-mode))
+
+;; @see http://www.emacswiki.org/emacs/SavePlace
+(use-package save-place-mode
+  :defer 1
+  :init (save-place-mode))
+
+(use-package amx-mode
+  :defer t
+  :init (add-hook 'after-init-hook 'amx-mode))
+
+(use-package sr-speedbar
+  :defer t
+  :init
+  (setq speedbar-use-images nil)
+  (setq sr-speedbar-right-side t
+        sr-speedbar-skip-other-window-p t)
+  (bind-key "C-c C-s" 'sr-speedbar-toggle))
+
+(defun inc0n/unbound-symbol (arg)
+  "Unbound for ARG be it function or symbol."
+  (interactive (list (thing-at-point 'symbol)))
+  (cond ((stringp arg)
+		 (inc0n/unbound-symbol (intern arg)))
+		((symbolp arg)
+		 (if (functionp arg)
+			 (progn (fmakunbound arg)
+					(message "fmakunbounded %s" arg))
+		   (makunbound arg)
+		   (message "makunbounded %s" arg)))
+		(t (message "unexpected %s" arg))))
+
+(defun backward-delete-word ()
+  "Delete word backwards without pushing it to `kill-ring'."
+  (interactive)
+  (delete-region (point)
+			     (progn (forward-word -1)
+						(point))))
+
+(advice-add 'indent-for-tab-command :around
+            (defun tab-out-delimiter (orig-func &rest args)
+              "Move cursor out of any delimiters."
+              (if (memq (char-syntax (following-char)) '(?\) ?\"))
+	              (progn
+                    (just-one-space 0) ;; delete any space before delimiter
+	                (forward-char 1))
+                (apply orig-func args))))
+
+(defun completing-read-fonts ()
+  "`completion-read' style font selection."
+  (interactive)
+  (let ((font (completing-read
+               "Selector font: "
+               '("DejaVu Sans Mono"
+                 ;; "Bitstream Vera Sans Mono"
+                 "Source Code Pro"
+                 "Fira Code"
+                 "Hack"
+                 "Liberation Mono"
+                 "Inconsolata"
+                 "Consolas Ligaturized"
+                 "Roboto Mono"
+                 "Jetbrains Mono"
+                 "monego"
+                 "Courier Prime"
+                 "Anonymous Pro"
+                 "Amiri Typewriter"
+                 "Alegreya"
+                 "Cascadia code"
+                 "AR PL New Kai"))))
+    (set-face-attribute 'default nil :font font :weight 'normal :slant 'normal :height 140)
+    (chinese/fix-font)
+    (message "Font: %s" font)))
+;; (setq-default line-spacing 2)
+;; (set-face-attribute 'default nil :weight 'normal :width 'semi-condensed :slant 'normal :height 140)
+
+
+(use-package csv-mode :mode "\\.[Cc][Ss][Vv]\\'")
+(use-package rust-mode :mode "\\.rs\\'")
+(use-package verilog-mode :mode "\\.[ds]?vh?\\'")
+(use-package lua-mode
+  :mode "\\.lua\\'"
+  :interpreter "lua"
+  :init
+  ;; @see http://lua-users.org/wiki/LuaStyleGuide
+  ;; indent 2 spaces by default
+  (setq-default lua-indent-level 2)
+  (define-hook-setup 'lua-mode-hook
+    "Set up lua script."
+    (unless (buffer-file-temp-p)
+      (setq-local imenu-generic-expression
+                  '(("Variable" "^ *\\([a-zA-Z0-9_.]+\\) *= *{ *[^ ]*$" 1)
+                    ("Function" "function +\\([^ (]+\\).*$" 1)
+                    ("Module" "^ *module +\\([^ ]+\\) *$" 1)
+                    ("Variable" "^ *local +\\([^ ]+\\).*$" 1))))))
+
+;; Use C-q instead tab to complete snippet
+;; - aya-create at first, input ~ to mark the thing next
+;; - aya-expand to expand snippet
+;; - aya-open-line to finish
+(use-package auto-yasnippet
+  :defer t
+  :bind ("C-q" . aya-open-line))
+
+(use-package ace-link
+  :defer t
+  :bind ("M-z" . ace-link)
+  :config (ace-link-setup-default))
+
+;; {{ isearch
+;; Use regex to search by default
+(global-set-key (kbd "C-M-s") 'isearch-forward-regexp)
+(global-set-key (kbd "C-M-r") 'isearch-backward-regexp)
+(define-key isearch-mode-map [?\C-o] 'isearch-occur)
+;; }}
+
+;; paren mode
+(add-hook 'after-init-hook 'show-paren-mode)
 
 (defun toggle-indent-tabs-mode ()
   (interactive)
@@ -319,7 +350,8 @@ With exception to the current line."
 ;; (setq display-time-format "%a %b %e")
 (setq display-time-24hr-format t ; the date in modeline is English too, magic!
       display-time-day-and-date t)
-;; (util/add-to-timed-init-hook 1 'display-time-mode) ;; show date in modeline
+ ;; show date in modeline
+;; (add-hook 'after-init-hook 'display-time-mode)
 ;; }}
 
 ;; {{ show email sent by `git send-email' in gnus
@@ -329,15 +361,16 @@ With exception to the current line."
           '("^@@ -[0-9]+,[0-9]+ \\+[0-9]+,[0-9]+ @@"))))
 ;; }}
 
-(setq system-time-locale "C")
+;; {{
+(use-package recentf
+  :defer 2
+  :config
+  (setq recentf-keep '(file-remote-p file-readable-p file-writable-p)
+        recentf-max-saved-items 512)
+  (recentf-mode 1))
 
-(setq imenu-max-item-length 128)
-
-;; {{ recentf-mode
 (with-eval-after-load 'recentf
-  (setq recentf-keep '(file-remote-p file-readable-p))
-  (setq recentf-max-saved-items 512
-		recentf-exclude '("/tmp/"
+  (setq recentf-exclude '("/tmp/"
                           "/ssh:"
                           "/sudo:"
                           "recentf$"
@@ -361,7 +394,6 @@ With exception to the current line."
                           "\\.sub$"
                           "\\.srt$"
                           "\\.ass$")))
-(util/add-to-timed-init-hook 1 #'recentf-mode)
 ;; }}
 
 
@@ -385,24 +417,7 @@ With exception to the current line."
       (format "%s:" (file-name-nondirectory (buffer-file-name)))
     ""))
 
-(defun inc0n/which-function ()
-  "Return current function name."
-  ;; @see http://stackoverflow.com/questions/13426564/how-to-force-a-rescan-in-imenu-by-a-function
-  (util/ensure 'imenu)
-  (let ((imenu-auto-rescan t)
-        (imenu-create-index-function
-         (if (inc0n/use-tags-as-imenu-function-p)
-             #'counsel-etags-imenu-default-create-index-function
-           imenu-create-index-function))
-        (imenu-auto-rescan-maxout (buffer-size)))
-	;; (delete (assoc "*Rescan*" items) items)
-    (imenu--make-index-alist t))
-  (which-function))
-
-(defun popup-which-function ()
-  "Popup which function message."
-  (interactive)
-  (popup-tip (inc0n/which-function)))
+;; @see http://stackoverflow.com/questions/13426564/how-to-force-a-rescan-in-imenu-by-a-function
 ;; }}
 
 ;; (require-package 'ace-pinyin)
@@ -644,7 +659,7 @@ VCS-TYPE is ignored."
 
   (setq compilation-scroll-output t)
 
-  (general-define-key 
+  (general-define-key
   :keymaps 'compilation-mode-map
     "g" nil ; restore 'g' and 'h' keys
     "h" nil
@@ -737,15 +752,6 @@ non-nil prefix ARG uses simple time stamp."
   (goto-char (point-min))
   (read-only-mode 1))
 
-;; unique lines
-(defun uniq-lines (beg end)
-  "Delete duplicate lines in region between BEG ad END."
-  (interactive "r")
-  (save-excursion
-    (goto-char beg)
-    (while (re-search-forward "^\\(.*\\)\n\\(\\(.*\n\\)*\\)\\1\n" end t)
-      (replace-match "\\1\n\\2"))))
-
 ;; from http://emacsredux.com/blog/2013/05/04/rename-file-and-buffer/
 (defun vc-rename-file-and-buffer ()
   "Rename the current buffer and file it is visiting."
@@ -833,10 +839,12 @@ version control automatically."
   (setq nov-text-width t)
   (evil-set-initial-state 'nov-mode 'motion)
   (evil-define-key 'motion nov-mode-map
-    "q" 'quit-window                         ; override quit window
+    "q" 'ignore                         ; override quit window
     "R" 'nov-render-document            ; rebind from g to R
+    "g" nil
     "gw" 'mybigword-pronounce-word
     ";" 'avy-goto-char-timer
+    "n" 'nov-next-document
     "d" (lambda () (interactive)
 		  (sdcv-search-input (thing-at-point 'word))))
   ;; (general-define-key :keymaps)
@@ -881,7 +889,7 @@ version control automatically."
 (use-package wgrep
   :defer t
   :config
-  (define-key grep-mode-map (kbd "C-c C-c") 'wgrep-finish-edit)
+  (define-key grep-mode-map [?\C-c ?\C-c] 'wgrep-finish-edit)
   ;; save the change after wgrep finishes the job
   (setq wgrep-auto-save-buffer t)
   (setq wgrep-too-many-file-length 2024))
@@ -918,14 +926,15 @@ version control automatically."
     (edit-server-edit-mode)))
 ;; }}
 
-(autoload #'server-running-p "server" "runs the emacs server." nil)
-(defun run-server ()
-  "Run a singleton Emacs server."
-  (if (server-running-p)
-      (message "server already started")
-    (message "server started")
-    (server-start)))
-(util/add-to-timed-init-hook 1 'run-server)
+(use-package server
+  :defer 1
+  :config (run-server)
+  :init (defun run-server ()
+          "Run a singleton Emacs server."
+          (if (server-running-p)
+              (message "server already started")
+            (message "server started")
+            (server-start))))
 
 (use-package which-key
   :defer t
@@ -942,44 +951,42 @@ version control automatically."
         which-key-min-display-lines 2)
   (add-hook 'after-init-hook 'which-key-mode))
 
-;; {{ eldoc
-(with-eval-after-load 'eldoc
+(use-package eldoc
+  :config
   ;; multi-line message should not display too soon
   (setq eldoc-idle-delay 0.5
 		eldoc-echo-area-use-multiline-p t))
-;; }}
 
-;; {{ ligature
-;; (local-require 'ligature)
-(autoload 'global-ligature-mode "ligature")
-;; (setq ligature-composition-table nil)
-(with-eval-after-load 'ligature
-  (add-to-list-multi 'ligature-ignored-major-modes '(c-mode c++-mode))
+(use-package ligature
+  :defer t
+  :commands (global-ligature-mode)
+  :config
+  ;; (setq ligature-composition-table nil)
+  (add-to-list/s 'ligature-ignored-major-modes '(c-mode c++-mode))
   (ligature-set-ligatures 'text-mode
                           '("::" "->" "=>" "==" "===" "!="
 							"++" "<-" "/=" ">=" "<=" "..." "&&" "||" "//"))
   (ligature-set-ligatures 'prog-mode
                           '("::" ":::" "->" "=>" "==" "===" "!="
 							"++" "<-" "/=" ">=" "<=" ".."
-							"..." "&&" "||" "//")))
-(add-hook 'after-init-hook (lambda () (global-ligature-mode -1)))
-;; }}
+							"..." "&&" "||" "//"))
+  :init
+  (add-hook 'after-init-hook 'global-ligature-mode))
 
-;; {{
 ;; (local-require 'highlight-symbol)
-(autoload 'highlight-symbol "highlight-symol")
-(with-eval-after-load 'highlight-symbol
-  (setq highlight-symbol-colors
-		(delete "SpringGreen1"
-				(delete "yellow" highlight-symbol-colors))
-        highlight-symbol-just-one t
-		highlight-symbol-idle-delay 1.0))
-;; }}
+(use-package highlight-symbol
+  :defer t
+  :commands (highlight-symbol highlight-symbol--get-symbol)
+  :config (setq highlight-symbol-colors
+		        (delete "SpringGreen1"
+				        (delete "yellow" highlight-symbol-colors))
+                highlight-symbol-just-one t
+		        highlight-symbol-idle-delay 1.0))
 
 
 (use-package rainbow-delimiters
-  :init (setq rainbow-delimiters-max-face-count 1))
-
+  :defer t
+  :config (setq rainbow-delimiters-max-face-count 1))
 
 ;; {{ `browse-url' setup
 ;; default browser would be w3m or eww
@@ -1003,14 +1010,15 @@ version control automatically."
 ;; }}
 
 ;; (local-require 'golden-ratio)
-(autoload 'golden-ratio-mode "golden-ratio")
-(add-hook 'after-init-hook 'golden-ratio-mode)
-
-(with-eval-after-load 'golden-ratio
+(use-package golden-ratio
+  :defer t
+  :commands (golden-ratio-mode)
+  :config
   (setq golden-ratio-max-width 120
         golden-ratio-adjust-factor 1.0
         golden-ratio-auto-scale t
-        golden-ratio-exclude-modes '(ediff-mode xref--xref-buffer-mode)))
+        golden-ratio-exclude-modes '(ediff-mode xref--xref-buffer-mode))
+  :init (add-hook 'after-init-hook 'golden-ratio-mode))
 
 (use-package focus
   :defer t
@@ -1103,16 +1111,9 @@ Optional argument IGNORED is ignored."
     (sorted t)
     (no-cache t)))
 
-(defun system-move-file-to-trash (file)
-  "Use `trash' to move FILE to the system trash."
-  ;; (async-shell-command )
-  (call-process (executable-find "trash")
-		        nil 0 nil
-		        file))
-
 ;; (define-key minibuffer-local-map (kbd "M-ESC") nil)
 (define-key minibuffer-local-map [escape] 'keyboard-escape-quit)
-(global-set-key (kbd "C-;") 'company-kill-ring) ;; replaces fly spell-auto-correct-previous-word
+(global-set-key [?\C-\;] 'company-kill-ring) ;; replaces fly spell-auto-correct-previous-word
 
 (provide 'init-misc)
 ;;; init-misc.el ends here

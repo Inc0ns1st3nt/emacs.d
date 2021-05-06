@@ -18,11 +18,6 @@
           rev
           (make-string level ?^)))
 
-(defun util/add-to-timed-init-hook (secs fn)
-  (add-hook 'after-init-hook
-			(lambda ()
-			  (run-with-idle-timer secs nil fn))))
-
 (defun util/async-shell-command (command)
   "Util function for running a shell COMMAND asynchronously."
   (let ((process (start-process "Shell"
@@ -54,12 +49,10 @@
 
 (defun inc0n/use-tags-as-imenu-function-p ()
   "Can use tags file to build imenu function."
-  ;; (util/ensure 'counsel-etags)
   (and (locate-dominating-file default-directory "TAGS")
        ;; ctags needs extra setup to extract typescript tags
        ;; (file-exists-p counsel-etags-ctags-options-file)
-       (memq major-mode '(typescript-mode
-                          js-mode))))
+       (memq major-mode '(typescript-mode js-mode))))
 
 ;; {{ copied from http://ergoemacs.org/emacs/elisp_read_file_content.html
 ;; (defun util/read-file-content (file)
@@ -85,19 +78,18 @@ And insert INIT-CONTENT if non-nil."
 		(insert init-content))
       (write-file (file-truename file-path)))))
 
-;; Handier way to add modes to auto-mode-alist
 (defun add-auto-mode (mode &rest patterns)
   "Add entries to `auto-mode-alist' to use `MODE' for all given file `PATTERNS'."
   (dolist (pattern patterns)
     (add-to-list 'auto-mode-alist (cons pattern mode))))
 
-(defun add-to-list-multi (list-var elements &optional append)
+(defun add-to-list/s (list-var elements &optional append)
   "Add multiple ELEMENTS to the `LIST-VAR'."
   (dolist (elm elements)
     (add-to-list list-var elm append))
   (symbol-value list-var))
 
-(defalias 'add-to-list/s 'add-to-list-multi)
+(defalias 'add-to-list-multi 'add-to-list/s)
 
 (defun font-belongs-to (pos fonts)
   "Current font at POS belongs to FONTS."
@@ -159,10 +151,9 @@ If N is nil, use `completing-read' to browse `kill-ring'."
 
 (defun util/insert-str (str)
   "Insert STR into current buffer."
-  ;; evil-mode?
   (when (and (functionp 'evil-normal-state-p)
              (evil-normal-state-p)
-             evil-move-cursor-back
+             (bound-and-true-p evil-move-cursor-back)
              (not (eolp))
              (not (eobp)))
     (forward-char))
@@ -179,12 +170,14 @@ If N is nil, use `completing-read' to browse `kill-ring'."
 
 (defun util/line-str (&optional n)
   "Get string of N lines from the current line."
-  (buffer-substring-no-properties (line-beginning-position)
-                                  (save-excursion
-									(forward-line n)
-									(point))))
+  (buffer-substring-no-properties
+   (line-beginning-position)
+   (save-excursion
+	 (forward-line n)
+	 (point))))
 
 (defun util/in-one-line-p (b e)
+  "Check if B and E positions are in the same line."
   (save-excursion
     (goto-char b)
     (and (<= (line-beginning-position) e)
@@ -222,14 +215,15 @@ Else use `thing-at-point' to get current string 'symbol."
   ;; 	  "")
   (substring-no-properties
    (cond
-	((and (not (= (point-max) (point)))
+	((use-region-p)
+	 ;; (let* ((beg (region-beginning))
+	 ;;    	(end (region-end))
+	 ;;    	(eol (save-excursion (goto-char beg) (line-end-position))))
+	 ;;   (buffer-substring-no-properties beg end))
+     (buffer-substring-no-properties (region-beginning) (region-end)))
+    ((and (not (= (point-max) (point)))
 		  (char-equal ?\  (char-after)))
 	 "")
-	((use-region-p)
-	 (let* ((beg (region-beginning))
-			(end (region-end))
-			(eol (save-excursion (goto-char beg) (line-end-position))))
-	   (buffer-substring-no-properties beg (min end eol))))
 	((thing-at-point 'url))
 	((let ((s (thing-at-point 'symbol)))
 	   (and (stringp s)
@@ -259,7 +253,7 @@ If region is active get region string and deactivate."
           (delete-file file-name)
           (kill-this-buffer))
       (message "No file is currently being edited"))))
-(defalias 'delete-file-and-buffer 'delete-this-buffer-and-file)
+;; (defalias 'delete-file-and-buffer 'delete-this-buffer-and-file)
 
 (defun rename-this-file-and-buffer ()
   "Renames both current buffer and file it's visiting to NEW-NAME."
@@ -276,8 +270,6 @@ If region is active get region string and deactivate."
       (message "Buffer '%s' is not visiting a file!" name))))
 (defalias 'rename-this-buffer-and-file 'rename-this-file-and-buffer)
 
-(defvar load-user-customized-major-mode-hook t)
-
 ;; (defun file-too-big-p (file)
 ;;   (> (nth 7 (file-attributes file))
 ;;      (* 5000 64)))
@@ -292,7 +284,7 @@ If region is active get region string and deactivate."
          (or (null f) ;; file does not exist at all
 		     ;; org-babel edit inline code block need calling hook
 		     ;; file is create from temp directory
-		     (string-match (concat "^" temporary-file-directory) f)
+		     ;; (string-match (concat "^" temporary-file-directory) f)
 		     ;; file is a html file exported from org-mode
 		     (and (string-match "\.html$" f)
 			      (file-exists-p

@@ -15,27 +15,25 @@
 
 (with-eval-after-load 'mixed-pitch
   (defface variable-pitch-serif
-    '((t (:family "serif")))
+    '((t (:family "Merriweather")))
     "A variable-pitch face with serifs."
     :group 'basic-faces)
   (face-remap-add-relative 'variable-pitch :family "Merriweather")
+  ;; (face-remap-add-relative 'fixed-pitch-serif :family "Merriweather")
   (setq mixed-pitch-set-height t))
 
 (defun mixed-pitch-serif-mode (&optional arg)
   "Change the default face of the current buffer to a serifed variable pitch.
 ARG is passed in."
   (interactive)
-  (let ((mixed-pitch-face 'variable-pitch-serif)
-        ;; (mixed-pitch-fixed-pitch-faces nil)
-        )
+  (let (;; (mixed-pitch-fixed-pitch-faces nil)
+        (mixed-pitch-face 'variable-pitch-serif))
     (mixed-pitch-mode (or arg 'toggle))))
 
 (setq text-scale-mode-step 1.1)
 ;; (text-scale-set 0)
 
 ;;; writeroom
-
-(autoload #'writeroom-mode "writeroom-mode")
 
 (defalias 'readroom-mode 'writeroom-mode)
 
@@ -45,26 +43,27 @@ ARG is passed in."
                        org-indent-mode
                        org-adapt-indentation
                        display-line-numbers-mode))
-  (setq writeroom-width 0.8
+  (setq writeroom-width 0.7
         ;; writetoom-
         writeroom-window-maximized nil
         writeroom-fullscreen-effect 'maximized
-        writeroom-extra-line-spacing 7))
+        writeroom-extra-line-spacing nil
+        writeroom-mode-line t))
 
 (define-hook-setup 'writeroom-mode-enable-hook :zen
   "Reformat the current Org buffer appearance for prose."
   (when (eq major-mode 'org-mode)
     ;; (setq-local visual-fill-column-center-text t)
+    (setq-local visual-fill-column-width (max visual-fill-column-width 65))
     (message "%s" visual-fill-column-width)
-    ;; (setq-local visual-fill-column-width 60)
     ;; (setq-local visual-fill-column-extra-text-width '(0 . 0))
     ;; (when (fboundp 'org-pretty-table-mode)
     ;;   (org-pretty-table-mode 1))
     (setq-local org-adapt-indentation t)
+    ;; (text-scale-increase 1.0)
     (org-indent-mode -1)
     (display-line-numbers-mode -1)
-    (mixed-pitch-serif-mode 1)
-    (text-scale-increase 1.0)))
+    (mixed-pitch-serif-mode 1)))
 
 (define-hook-setup 'writeroom-mode-disable-hook :zen
   (when (eq major-mode 'org-mode)
@@ -75,7 +74,8 @@ ARG is passed in."
                   (funcall (car val) (cdr val))
                 (set (car val) (cdr val)))))
           writeroom--saved-data)
-    (text-scale-decrease 1.0)))
+    ;; (text-scale-decrease 1.0)
+    ))
 
 
 ;;; writing

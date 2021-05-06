@@ -6,10 +6,8 @@
 ;;; Code:
 
 (require-package 'transient)
-(require 'transient)
-;; inc0n/define-transient-command
-
-;; transient-define-prefix
+(autoload 'transient-define-prefix "transient" "transient")
+;; (require 'transient)
 
 (fset 'inc0n/transient-suffix 'transient--do-stay)
 (fset 'inc0n/transient-non-suffix 'transient--do-stay)
@@ -26,7 +24,7 @@ NAME and ARG-LIST and ARGS check `define-transient-command'."
   (let ((doc-str (and (stringp (car args)) (car args)))
         (rest-args (if (stringp (car args)) (cdr args) args)))
     `(progn
-       (define-transient-command ,name ,arg-list
+       (transient-define-prefix ,name ,arg-list
          ,doc-str
          :transient-suffix 'inc0n/transient-suffix
          :transient-non-suffix 'inc0n/transient-non-suffix
@@ -89,21 +87,5 @@ Check for `highlight-symbol' for more information such as for SYMBOL."
     (unless (highlight-symbol--symbol-highlighted-p symbol)
       (highlight-symbol symbol)))
   (transient-setup 'inc0n/transient-highlight-symbol))
-
-;; (defun inc0n/transient-highlight-symbol ()
-;;   "The transient version of command `highlight-symbol'."
-;;   (interactive)
-;;   (let ((symbol (or (highlight-symbol--get-symbol)
-;;                     (error "No symbol at point"))))
-;;     (unless (highlight-symbol--symbol-highlighted-p symbol)
-;;       (highlight-symbol symbol)))
-;;   (ask-action-on "Prompt"
-;;                  '((?n "next" highlight-symbol-next-in-defun)
-;;                    (?p "previous" highlight-symbol-prev-in-defun)
-;;                    (?q "query replace" highlight-symbol-query-replace))
-;;                  ;; :target symbol
-;;                  :on-exit 'transient-highlight-symbol-exit))
-
-;; (global-set-key (kbd "M-o") nil)
 
 (provide 'init-transient)

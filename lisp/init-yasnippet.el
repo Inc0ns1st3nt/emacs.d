@@ -21,6 +21,11 @@
                 ))
   (add-hook hook #'inc0n/enable-yas-minor-mode))
 
+(define-hook-setup 'org-mode-hook :yas
+  (define-hook-setup 'yas-keymap-disable-hook :org-mode
+    (org-at-heading-p)))
+
+;; (advice-remove 'yas-expand-from-trigger-key 'inc0n/yas-expand-from-trigger-key-hack)
 (advice-add 'yas-expand-from-trigger-key :around
             (defun inc0n/yas-expand-from-trigger-key-hack (orig-func &rest args)
               "Tab key won't trigger yasnippet expand in org heading.
@@ -94,6 +99,7 @@ Optional argument ARGS the arguements that the original function was called with
   ;; (add-to-list 'yas-snippet-dirs inc0n/yasnippets)
   (yas-reload-all))
 
+;; (global-set-key [C-tab] 'yas-next-field-or-maybe-expand)
 (global-set-key [C-tab] 'yas-expand)
 
 (provide 'init-yasnippet)

@@ -1,5 +1,7 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 
+;;; Code:
+
 (defun inc0n/kill-process-buffer-when-exit (process event)
   "Kill buffer of PROCESS when it's terminated.
 EVENT is ignored."
@@ -11,23 +13,21 @@ EVENT is ignored."
 ;; Enable auto-completion in `shell'.
 (with-eval-after-load 'shell
   ;; `comint-terminfo-terminal' is introduced in Emacs 26.1
-  (unless (and (boundp 'comint-terminfo-terminal)
-               comint-terminfo-terminal)
+  (unless (bound-and-true-p comint-terminfo-terminal)
     (setq comint-terminfo-terminal "dumb"))
   (native-complete-setup-bash))
 
 ;; `bash-completion-tokenize' can handle garbage output of "complete -p"
-(defun inc0n/bash-completion-tokenize-hack (orig-fun &rest args)
+(defun inc0n/bash-completion-tokenize-hack (orig-fun beg end &rest args)
   "Original code extracts tokens line by line of output of \"complete -p\"."
-  (let ((beg (nth 0 args))
-        (end (nth 1 args)))
-    (and
-     ;; filter out some weird lines
-     (string-match-p "^complete " (buffer-substring beg end))
-     (apply orig-fun args))))
-(advice-add 'bash-completion-tokenize :around #'inc0n/bash-completion-tokenize-hack)
+  (and
+   ;; filter out some weird lines
+   (string-match-p "^complete " (buffer-substring beg end))
+   (apply orig-fun beg end args)))
+(advice-add 'bash-completion-tokenize
+            :around #'inc0n/bash-completion-tokenize-hack)
 
-(defun shell-mode-hook-setup ()
+(define-hook-setup 'shell-mode-hook
   "Set up `shell-mode'."
   ;; hook `completion-at-point', optional
   (add-hook 'completion-at-point-functions #'native-complete-at-point nil t)
@@ -40,14 +40,11 @@ EVENT is ignored."
     ;; Don't waste time on dumb shell which `shell-write-history-on-exit' is binding to
     (unless (string-match shell-dumb-shell-regexp shell)
       (set-process-sentinel proc #'inc0n/kill-process-buffer-when-exit))))
-(add-hook 'shell-mode-hook
-          #'shell-mode-hook-setup)
 ;; }}
 
-(add-hook 'eshell-mode-hook
-          (defun eshell-mode-hook-setup ()
-            "Set up `eshell-mode'."
-            (local-set-key (kbd "M-n") 'counsel-esh-history)))
+(define-hook-setup 'eshell-mode-hook
+  "Set up `eshell-mode'."
+  (local-set-key (kbd "M-n") 'counsel-esh-history))
 
 ;; {{ @see http://emacs-journey.blogspot.com.au/2012/06/improving-ansi-term.html
 ;; TODO - see if process buffer would exit without this advice
@@ -63,28 +60,6 @@ EVENT is ignored."
               (set-buffer-process-coding-system 'utf-8-unix 'utf-8-unix)))
 ;; }}
 
-;; {{ hack counsel-browser-history
-(defvar var/comint-full-input nil)
-(defun inc0n/counsel-shell-history-hack (orig-func &rest args)
-  (let ((var/comint-full-input (util/comint-current-input)))
-	(util/comint-kill-current-input)
-	(apply orig-func args)))
-(advice-add 'counsel-shell-history :around #'inc0n/counsel-shell-history-hack)
-
-(defun inc0n/ivy-history-contents-hack (orig-func &rest args)
-  (let ((rlt (apply orig-func args))
-        (input var/comint-full-input))
-    (if (and input (not (string-empty-p input)))
-        ;; filter shell history with current input
-        (mapcan
-		 (lambda (s)
-           (and (string-match (regexp-quote input) s)
-                (list s)))
-		 rlt)
-      rlt)))
-(advice-add 'ivy-history-contents :around #'inc0n/ivy-history-contents-hack)
-;; }}
-
 ;; {{ comint-mode
 (with-eval-after-load 'comint
   ;; Don't echo passwords when communicating with interactive programs:
@@ -97,8 +72,7 @@ EVENT is ignored."
    (kbd "M-n") #'counsel-shell-history
    ;; Don't show trailing whitespace in REPL.
    (kbd "M-;") #'comment-dwim)
-  (add-hook 'comint-output-filter-functions
-            #'comint-watch-for-password-prompt))
+  (add-hook 'comint-output-filter-functions #'comint-watch-for-password-prompt))
 ;; }}
 
 (provide 'init-term-mode)

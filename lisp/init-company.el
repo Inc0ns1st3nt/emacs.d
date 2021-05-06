@@ -20,10 +20,19 @@
 (with-eval-after-load 'company
   ;; @see https://github.com/company-mode/company-mode/issues/348
   (company-statistics-mode)
-  (add-to-list 'company-backends 'company-cmake)
-  (add-to-list 'company-backends 'company-c-headers)
+  ;; (setq company-format-margin-function #'company-detect-icons-margin)
+  (setq company-format-margin-function nil
+        ;; #'company-dot-icons-margin
+        company-dot-icons-format "● ")
+
   ;; can't work with TRAMP
-  (setq company-backends (delete 'company-ropemacs company-backends))
+  (setq company-backends
+        (delete 'company-capf
+                (delete 'company-ropemacs company-backends)))
+
+  ;; add yasnippet to all backends
+  (setq company-backends
+        (mapcar #'inc0n/company-backend-with-yas company-backends))
 
   ;; company completion with just numbering
   (defun inc0n/company-number (num)
@@ -31,7 +40,6 @@
 	potentially part of the candidate. In that case, insert the
 	number."
 	(interactive (list (string-to-number (this-command-keys))))
-    (message "company %s" (company-tooltip-visible-p))
 	(let ((n (if (zerop num)
 				 10
 			   num))
@@ -45,9 +53,10 @@
 		  (self-insert-command 1)
 		(company-complete-number n))))
   (dotimes (i 10)
+    (define-key company-active-map
+	  (kbd (format "C-%d" i)) 'company-complete-number)
 	(define-key company-active-map
-	  (number-to-string i)
-	  'inc0n/company-number))
+	  (number-to-string i) 'nil))
 
   (defun inc0n/company-tab ()
 	(interactive)
@@ -67,9 +76,8 @@
   (unless (featurep 'company-ctags)
     (local-require 'company-ctags)
     ;; (autoload 'company-ctags-auto-setup "company-ctags")
-	(company-ctags-auto-setup))
-
-  (setq company-backends (delete 'company-capf company-backends))
+	(company-ctags-auto-setup)
+    (setq company-ctags-ignore-case t))
 
   ;; I don't like the downcase word in company-dabbrev
   (setq company-dabbrev-downcase nil
@@ -86,21 +94,19 @@
         company-require-match nil
         ;; @see https://github.com/company-mode/company-mode/issues/146
         company-tooltip-align-annotations t)
-  (setq company-ctags-ignore-case t)		; I use company-ctags instead
 
   ;; NOT to load company-mode for certain major modes.
   ;; https://github.com/company-mode/company-mode/issues/29
   (setq company-global-modes
-        '(not
-          eshell-mode
-          comint-mode
-          erc-mode
-          gud-mode
-          rcirc-mode
-          minibuffer-inactive-mode))
-  (define-key company-active-map (kbd "TAB") 'company-complete-or-yasnippet-expand)
-  (define-key company-active-map (kbd "C-n") 'company-select-next)
-  (define-key company-active-map (kbd "C-p") 'company-select-previous))
+        '(not eshell-mode
+              comint-mode
+              erc-mode
+              gud-mode
+              rcirc-mode
+              minibuffer-inactive-mode))
+  (define-key company-active-map [tab]   'inc0n/expand-snippet-or-complete-selection)
+  (define-key company-active-map [?\C-n] 'company-select-next)
+  (define-key company-active-map [?\C-p] 'company-select-previous))
 
 (with-eval-after-load 'company-ispell
   (defun inc0n/company-ispell-available-hack (orig-func &rest args)
@@ -144,13 +150,37 @@
 (add-hook 'org-mode-hook #'company-ispell-setup)
 ;; }}
 
-;; yasnippet
-;; too much accidental yasnippet expansion
-(defun company-complete-or-yasnippet-expand ()
-  "Let yasnippet over company."
-  ;; (let ((yas-fallback-behavior 'return-nil))
-  ;;   (unless (yas-expand)))
-  (company-complete-common))
+
+(defun inc0n/company-backend-with-yas (backends)
+  "Add :with `company-yasnippet' to company BACKENDS.
+Taken from https://github.com/syl20bnr/spacemacs/pull/179."
+  (if (and (listp backends)
+           (memq 'company-yasnippet backends))
+	  backends
+	(append (if (consp backends)
+		        backends
+		      (list backends))
+		    '(:with company-yasnippet))))
+
+(defun inc0n/expand-snippet-or-complete-selection ()
+  "Expand a yasnippet or complete company."
+  (interactive)
+  (when (company-manual-begin)
+    (let ((tick (buffer-chars-modified-tick)))
+      (company-complete-common)
+      (if (string= (elt company-candidates company-selection)
+                   company-prefix)
+          (company-complete-selection)
+        (let ((pos (cl-position company-prefix
+                                (if (> company-candidates-length 10)
+                                    (seq-subseq company-candidates 0 10)
+                                  company-candidates)
+                                :test #'string=)))
+          (company-set-selection pos)))
+      (when (and nil
+                 (eq tick (buffer-chars-modified-tick)))
+        (let ((company-selection-wrap-around t))
+          (company-select-next))))))
 
 (provide 'init-company)
 ;;; init-company.el ends here

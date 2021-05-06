@@ -10,7 +10,7 @@
 ;;                         user-emacs-directory))
 (package-initialize)
 
-(add-to-list-multi
+(add-to-list/s
  'package-archives
  '(("melpa" . "https://melpa.org/packages/")
    ("melpa-stable" . "https://stable.melpa.org/packages/")
@@ -22,7 +22,7 @@
 ;;   ("melpa" . "http://mirrors.tuna.tsinghua.edu.cn/elpa/melpa/")
 ;;   ("melpa-stable" . "http://mirrors.tuna.tsinghua.edu.cn/elpa/melpa-stable/"))
 
-(defun inc0n/emacs-d (path)
+(defsubst inc0n/emacs-d (path)
   "Get the expanded PATH under .emacs.d."
   (expand-file-name path user-emacs-directory))
 
@@ -74,7 +74,9 @@ You still need modify `package-archives' in \"init-elpa.el\" to PERMANENTLY use 
     evil-exchange
     evil-find-char-pinyin
 
+    cdlatex
 	auctex
+
 	which-key
 
     iedit

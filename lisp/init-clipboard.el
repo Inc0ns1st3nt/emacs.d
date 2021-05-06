@@ -33,7 +33,7 @@ If N is not nil, copy file name and line number."
   (interactive)
   (when buffer-file-name
     (util/set-clip (file-truename buffer-file-name))
-    (message "file full path => clipboard & yank ring")))
+    (message "file full path => clipboard & kill-ring")))
 
 (defun copy-to-clipboard (string)
   "Paste STRING to clipboard."
@@ -50,6 +50,8 @@ If N is not nil, copy file name and line number."
   "Paste string clipboard.  After the current cursor.
 Optional argument N does nothing right now"
   (interactive "P")
-  (util/insert-str (shell-command-to-string "wl-paste -n")))
+  (let ((str (shell-command-to-string "wl-paste -n")))
+    (dotimes (i (abs (or n 1)))
+      (util/insert-str str))))
 
 (provide 'init-clipboard)

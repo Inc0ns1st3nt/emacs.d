@@ -1,9 +1,8 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
-
+;;; Code:
 ;; some cool org tricks
 ;; @see http://emacs.stackexchange.com/questions/13820/inline-verbatim-and-code-with-quotes-in-org-mode
 
-(require-package 'org-re-reveal)
 (require-package 'org-appear)
 (require-package 'org-superstar)
 
@@ -53,7 +52,6 @@
     ;; org-mime setup, run this command in org-file, than
     ;; yank in `message-mode'
     (local-set-key (kbd "C-c M-o") 'org-mime-org-buffer-htmlize)
-    (local-set-key (kbd "M-+") 'org-count-words)
 
     ;; don't spell check double words
     (setq inc0n/flyspell-check-doublon nil)
@@ -97,7 +95,9 @@
                     (":PROPERTIES:" . ?☸)
                     (":END" . ?∎))))
     (prettify-symbols-mode 1)
-    (org-fragtog-mode 1)))
+    (org-fragtog-mode 1)
+    (org-appear-mode 1)
+    (org-superstar-mode 1)))
 
 (with-eval-after-load 'org
   ;; {{
@@ -120,19 +120,19 @@ ARG is ignored."
   (advice-add 'org-edit-src-exit :after #'inc0n/org-edit-src-exit)
   ;; }}
 
-  (util/ensure 'org-clock)
+  ;; (util/ensure 'org-clock)
 
   ;; odt export
   (add-to-list 'org-export-backends 'odt)
 
   ;; markdown export
-  (util/ensure 'ox-md)
+  ;; (util/ensure 'ox-md)
   (add-to-list 'org-export-backends 'md)
 
   (defun inc0n/org-publish-hack (orig-func &rest args)
     "Stop running `major-mode' hook when `org-publish'."
-    (let ((load-user-customized-major-mode-hook nil))
-      (apply orig-func args)))
+    ;; (let ((load-user-customized-major-mode-hook nil)))
+    (apply orig-func args))
   (advice-add 'org-publish :around #'inc0n/org-publish-hack)
 
   ;; {{ NO spell check for embedded snippets
@@ -172,29 +172,22 @@ ARG is ignored."
   (advice-add 'org-refile :around #'inc0n/org-refile-hack)
 
   (define-hook-setup org-after-todo-state-change-hook
-    "Log NEXT creation time in the property drawer under the key 'ACTIVATED'"
-    (when (and (string= (org-get-todo-state) "NEXT")
+    "Log TODO creation time in the property drawer under the key 'ACTIVATED'"
+    (when (and (string= (org-get-todo-state) "TODO")
                (not (org-entry-get nil "ACTIVATED")))
       (org-entry-put nil "ACTIVATED" (format-time-string "[%Y-%m-%d]"))))
 
-  (setq org-list-demote-modify-bullet '(("+" . "-") ("-" . "+") ("*" . "+") ("1." . "a."))
-        org-list-allow-alphabetical t  ; have a. A. a) A) list bullets
-        )
   (setq org-export-in-background nil ; run export processes in external emacs process
         org-catch-invisible-edits 'smart ; try not to accidently do weird stuff in invisible regions
         org-export-with-sub-superscripts '{} ; don't treat lone _ / ^ as sub/superscripts, require _{} / ^{}
         )
 
   ;; org-startup-options
-  (setq org-startup-with-latex-preview t
+  (setq org-startup-with-latex-preview nil
         org-startup-indented t
-        org-startup-folded 'content
+        org-startup-folded 'fold
 		org-hide-leading-stars nil
         org-pretty-entities t
-        org-log-done 'note
-        org-edit-src-content-indentation 2
-        org-edit-timestamp-down-means-later t
-        org-fast-tag-selection-single-key 'expert
         ;; org v8
         org-odt-preferred-output-format "doc"
         org-tags-column 80
@@ -203,33 +196,44 @@ ARG is ignored."
         org-refile-targets '(("projects.org" :regexp . "\\(?:\\(?:Note\\|Task\\)s\\)")
 							 ("agenda.org" :regexp . "Past"))
         org-refile-use-outline-path 'file
-        org-outline-path-complete-in-steps nil
+        org-outline-path-complete-in-steps t
         org-todo-keywords
 		'((sequence "TODO(t)" "STARTED(s@)" "NEXT(n)" "HOLD(h@/!)" "|" "DONE(d!/!)")
           (sequence "PROJECT(P@)" "|" "CANCELLED(c@/!)"))
-        org-imenu-depth 5
+        org-imenu-depth 5)
+  ;; org-behaviour
+  (setq org-cycle-emulate-tab t
+        org-log-done 'note
+        org-edit-src-content-indentation 2
+        org-edit-timestamp-down-means-later t
+        org-fast-tag-selection-single-key 'expert
         ;; @see http://irreal.org/blog/1
-        org-return-follows-link t)
-  ;; org agenda
-  (setq org-agenda-start-on-weekday nil
-        org-agenda-span 14
-        ;; org-agenda-include-diary t
-        org-agenda-window-setup 'only-window
-        ;; {{ org 8.2.6 has some performance issue. Here is the workaround.
-        ;; @see http://punchagan.muse-amuse.in/posts/how-i-learnt-to-use-emacs-profiler.html
-        org-agenda-inhibit-startup t       ;; ~50x speedup
-        org-agenda-use-tag-inheritance nil ;; 3-4x speedup
-        ;; }}
-        org-agenda-tags-column 80)
+        org-return-follows-link t
+        org-log-state-notes-into-drawer t)
+
 
   ;; Not needed see inc0n/org-insert
   ;; (define-hook-setup org-insert-heading-hook
   ;;   (evil-insert-state 1))
 
-  (general-define-key
-   :keymaps 'org-mode-map
-   [C-return] 'inc0n/org-insert
-   [return] 'org-return-and-maybe-indent)
+  (with-eval-after-load 'evil
+    (evil-define-key 'normal org-mode-map
+      [?\M-+] 'org-count-words
+      [C-return] 'inc0n/org-insert
+      [return] 'org-return))
+
+  (define-key org-mode-map "_" 'inc0n/sub-superscript)
+  (define-key org-mode-map "^" 'inc0n/sub-superscript)
+  (defun inc0n/sub-superscript ()
+    "Insert ^{} or _{}."
+    (interactive)
+    (if (save-excursion
+          (backward-char 1)
+          (looking-at-p " "))
+        (insert (event-basic-type last-command-event))
+      (insert (event-basic-type last-command-event))
+      (insert "{}")
+      (backward-char 1)))
 
   (setq org-directory "~/sources/org/agenda/")
   (setq org-agenda-files (list (concat org-directory "agenda.org")
@@ -238,29 +242,59 @@ ARG is ignored."
                                (concat org-directory "projects.org")
                                (concat org-directory "notes.org")
                                (concat org-directory "todo.org")))
-  (setq org-agenda-custom-commands
-        '(("n" "Agenda and all TODOs"
-           ((tags "CLOSED>=\"<today>\""
-                  ((org-agenda-overriding-header "Completed today")))
-            (agenda ""
-                    ((org-agenda-skip-function
-					  'org-agenda-skip-if-past-schedule)
-                     (org-deadline-warning-days 7)))
-            ;; (tags-todo "TODO")
-            (todo "TODO"
-                  (;; (org-agenda-format-date "")
-                   (org-agenda-prefix-format " %-10:c %s %l")
-                   (org-agenda-overriding-header "Todo")))
-            (todo "PROJECT"
-                  ((org-agenda-overriding-header "Projects")))
-            (todo "HOLD"
-                  ((org-agenda-overriding-header "Maybe")))))
-		  ("b" "buffer summary"
-		   ((agenda "" ((org-agenda-files (list (buffer-file-name)))))))))
+  ;; latex fragments
+  (add-to-list 'org-src-block-faces '("latex" (:inherit default :extend t)))
+  (setq org-highlight-latex-and-related '(native script entities))
+
+  (setq org-fontify-done-headline nil
+        org-fontify-quote-and-verse-blocks t
+        org-src-fontify-natively t
+        org-src-preserve-indentation t
+        org-link-descriptive t
+        org-hide-emphasis-markers t)
+  ;; org latex preview scale
+  (setq org-format-latex-options
+        (plist-put org-format-latex-options :scale 1.4))
+  (setq org-image-actual-width 500)
+  ;; (setq org-format-latex-options
+  ;;       (plist-put org-format-latex-options :background "Transparent"))
+  ;; org-babel for gnuplot
+  ;; @see https://www.orgmode.org/worg/org-contrib/babel/languages/ob-doc-gnuplot.html
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((emacs-lisp . t)
+     (gnuplot . t)
+     (dot . t)))
+  ;; cdlatex
+  ;; #'org-cdlatex-underscore-caret
+  (org-defkey org-cdlatex-mode-map (kbd "_") nil)
+  (org-defkey org-cdlatex-mode-map (kbd "^") nil)
+  ;; (require 'org-protocol)
+  (custom-set-faces
+   '(org-document-title ((t (:height 1.2))))
+   '(outline-1 ((t (:weight black :height 1.25))))
+   '(outline-2 ((t (:weight bold :height 1.15))))
+   '(outline-3 ((t (:weight bold :height 1.12))))
+   '(outline-4 ((t (:weight semi-bold :height 1.09))))
+   '(outline-5 ((t (:weight semi-bold :height 1.06))))
+   '(outline-6 ((t (:weight semi-bold :height 1.03))))
+   '(outline-8 ((t (:weight semi-bold))))
+   '(outline-9 ((t (:weight semi-bold))))))
+
+;; org capture
+(global-set-key [?\C-c ?\C-c] 'org-capture)
+
+;; This allows org C-c C-c to use org-capture
+(define-hook-setup org-ctrl-c-ctrl-c-final-hook :capture
+  (org-capture)
+  ;; force return t
+  t)
+
+(with-eval-after-load 'org-capture
   (setq org-capture-templates
 		`(("t" "Todo" entry  (file "todo.org")
 		   ,(concat "* TODO %?\n"
-					"/Entered on/ %U"))
+					":PROPERTIES:\n:ACTIVATED: %u\n:END:"))
           ("a" "Analysis" entry (file "analysis.org")
 		   "* TODO %? [%<%Y-%m-%d %a>]\n")
           ("e" "Event" entry (file+headline "agenda.org" "Future")
@@ -295,43 +329,80 @@ ARG is ignored."
 		  ;; ("h" "Habit" entry (file "refile.org")
 		  ;;  "* NEXT %?\n%U\n%a\nSCHEDULED: %(format-time-string \"%<<%Y-%m-%d %a .+1d/3d>>\")\n:PROPERTIES:\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:END:\n")
 		  ("p" "Project" entry (file "projects.org")
-		   ,(concat "* PROJECT [%<%Y-%m-%d %a>] %?"))))
-  ;; latex fragments
-  (add-to-list 'org-src-block-faces '("latex" (:inherit default :extend t)))
-  (setq org-highlight-latex-and-related '(native script entities))
+		   ,(concat "* PROJECT [%<%Y-%m-%d %a>] %?")))))
 
-  (setq org-fontify-quote-and-verse-blocks t
-        org-src-fontify-natively t
-        org-src-preserve-indentation t
-        org-link-descriptive t
-        org-hide-emphasis-markers t)
-  ;; org latex preview scale
-  (setq org-format-latex-options
-        (plist-put org-format-latex-options :scale 1.8))
-  ;; (setq org-format-latex-options
-  ;;       (plist-put org-format-latex-options :background "Transparent"))
-  ;; org-babel for gnuplot
-  ;; @see https://www.orgmode.org/worg/org-contrib/babel/languages/ob-doc-gnuplot.html
-  (org-babel-do-load-languages
-   'org-babel-load-languages
-   '((emacs-lisp . t)
-     (gnuplot . t)
-     (dot . t)))
-  ;; (require 'org-protocol)
-  (custom-set-faces
-   '(org-document-title ((t (:height 1.2))))
-   '(outline-1 ((t (:weight black :height 1.25))))
-   '(outline-2 ((t (:weight bold :height 1.15))))
-   '(outline-3 ((t (:weight bold :height 1.12))))
-   '(outline-4 ((t (:weight semi-bold :height 1.09))))
-   '(outline-5 ((t (:weight semi-bold :height 1.06))))
-   '(outline-6 ((t (:weight semi-bold :height 1.03))))
-   '(outline-8 ((t (:weight semi-bold))))
-   '(outline-9 ((t (:weight semi-bold))))))
+(with-eval-after-load 'org-list
+  (setq org-list-demote-modify-bullet
+        '(("+" . "-") ("-" . "+") ("*" . "+") ("1." . "a."))
+        ;; have a. A. a) A) list bullets
+        org-list-allow-alphabetical t))
+
+(use-package org-agenda
+  :defer t
+  :init
+  (setq org-agenda-custom-commands
+        '(("n" "Agenda and all TODOs"
+           ((tags "CLOSED>=\"<today>\""
+                  ((org-agenda-overriding-header "Completed today")))
+            (agenda ""
+                    ((org-agenda-skip-function
+					  'org-agenda-skip-if-past-schedule)
+                     (org-deadline-warning-days 7)))
+            ;; (tags-todo "TODO")
+            (todo "TODO"
+                  (;; (org-agenda-format-date "")
+                   (org-agenda-prefix-format " %-10:c %s %l")
+                   (org-agenda-overriding-header "Todo")))
+            (todo "PROJECT"
+                  ((org-agenda-overriding-header "Projects")))
+            (todo "HOLD"
+                  ((org-agenda-overriding-header "Maybe")))))
+		  ("b" "buffer summary"
+		   ((agenda "" ((org-agenda-files (list (buffer-file-name)))))))))
+  (setq org-agenda-start-on-weekday nil
+        org-agenda-span 14
+        ;; org-agenda-include-diary t
+        org-agenda-window-setup 'only-window
+        ;; {{ org 8.2.6 has some performance issue. Here is the workaround.
+        ;; @see http://punchagan.muse-amuse.in/posts/how-i-learnt-to-use-emacs-profiler.html
+        org-agenda-inhibit-startup t       ;; ~50x speedup
+        org-agenda-use-tag-inheritance nil ;; 3-4x speedup
+        ;; }}
+        org-agenda-tags-column 80)
+  (define-hook-setup org-agenda-mode-hook
+    (evil-mode 1)
+    (evil-motion-state)))
 
 (with-eval-after-load 'org-indent
   (setq org-indent-indentation-per-level 1 ; normal indent
         org-indent-mode-turns-on-hiding-stars nil))
+
+;;; org-appear
+(with-eval-after-load 'org-appear
+  (setq org-appear-autoemphasis t
+        org-appear-autosubmarkers t
+        org-appear-autoentities nil
+        org-appear-autolinks t)
+  ;; for proper first-time setup, `org-appear--set-elements'
+  ;; needs to be run after other hooks have acted.
+  (run-at-time nil nil #'org-appear--set-elements))
+
+(use-package org-superstar
+  :defer t
+  :config
+  (set-face-attribute 'org-superstar-leading nil :foreground "dark gray")
+  :init
+  ;; (setq org-superstar-headline-bullets-list '(?◉ ?◈ ?✸ ?▣)
+  ;;    org-superstar-item-bullet-alist '((?* . ?▶) (?+ . ?⬘) (?- . ?⬙))
+  (setq-default
+   org-superstar-prettify-item-bullets t
+   org-superstar-headline-bullets-list '(?Ⅰ ?Ⅱ ?Ⅲ ?Ⅳ ?Ⅴ ?Ⅵ ?Ⅶ ?Ⅷ ?Ⅸ ?Ⅹ)
+   org-superstar-headline-bullets-list '(?⬘)
+   org-superstar-item-bullet-alist '((?* . ?•) (?+ . ?•) (?- . ?–))
+   ;; org-superstar-item-bullet-alist '((?* . ?•) (?+ . ?➤) (?- . ?ⅰ))
+   org-superstar-leading-bullet ".")
+  (setq org-superstar-cycle-headline-bullets nil
+		org-superstar-special-todo-items nil))
 
 (defun inc0n/org-insert (&optional arg)
     "Insert item or heading depending on context.
@@ -340,22 +411,9 @@ Insert before if ARG is non-nil"
     (if (and (null arg)
              (org-in-item-p))
         (progn (org-end-of-item)
+               (backward-char)
                (org-insert-item))
-      (org-insert-heading-after-current))
-    (evil-insert-state 1))
-
-;;; org-appear
-(define-hook-setup 'org-mode-hook :org-appear
-  ;; (setq org-appear-elements (delq 'verbatim org-appear-elements))
-  (org-appear-mode 1))
-
-(with-eval-after-load 'org-appear
-  (setq org-appear-autoemphasis t
-        org-appear-autosubmarkers t
-        org-appear-autolinks t)
-  ;; for proper first-time setup, `org-appear--set-elements'
-  ;; needs to be run after other hooks have acted.
-  (run-at-time nil nil #'org-appear--set-elements))
+      (org-insert-heading-after-current)))
 
 (defun org-agenda-show-agenda-and-todo (&optional arg)
   "Better `org-mode' agenda view.  ARG is passed in."
@@ -376,32 +434,6 @@ should be continued."
            (< scheduled-seconds now)
            subtree-end))))
 
-(define-hook-setup org-agenda-mode-hook
-  (evil-mode 1)
-  (evil-motion-state))
-
-(with-eval-after-load 'org-superstar
-  ;; (setq org-superstar-headline-bullets-list '(?◉ ?◈ ?✸ ?▣)
-  ;;    org-superstar-item-bullet-alist '((?* . ?▶) (?+ . ?⬘) (?- . ?⬙))
-  (setq-default org-superstar-prettify-item-bullets t
-                org-superstar-headline-bullets-list '(?Ⅰ ?Ⅱ ?Ⅲ ?Ⅳ ?Ⅴ ?Ⅵ ?Ⅶ ?Ⅷ ?Ⅸ ?Ⅹ)
-                org-superstar-headline-bullets-list '(?⬘)
-                ;; org-superstar-item-bullet-alist '((?* . ?•) (?+ . ?➤) (?- . ?–))
-                org-superstar-item-bullet-alist '((?* . ?•) (?+ . ?➤) (?- . ?ⅰ))
-                org-superstar-leading-bullet ".")
-  (setq org-superstar-cycle-headline-bullets nil
-		org-superstar-special-todo-items nil)
-  (set-face-attribute 'org-superstar-leading nil :foreground "dark gray")
-  (org-superstar-restart))
-(add-hook 'org-mode-hook 'org-superstar-mode)
-
-;; org capture
-(global-set-key (kbd "C-c C-c") 'org-capture)
-
-(define-hook-setup org-ctrl-c-ctrl-c-final-hook :capture
-  (org-capture)
-  ;; force return t
-  t)
 
 (define-hook-setup org-tab-first-hook :indent
   (org-indent-line))
@@ -468,26 +500,25 @@ ARG will repeat this function ARG number of times."
   "This is the count words version that skips comments.
 It will operate between the region from START to END."
   (interactive "r")
+ ;; "^[ \t]*#[+ ].*"
+  ;; (count-matches (rx line-start (* space) "#" (any " " "+") (* any)))
   (save-excursion
     (save-restriction
       (narrow-to-region start end)
-      (setq start (point-min)
-            end (point-max))
-      (goto-char start)
-      (cl-loop with org-line-commentp =
-               (rx line-start (* space) "#" (any " " "+") (* any))
-               ;; "^[ \t]*#[+ ].*"
+      (goto-char (point-min))
+      (cl-loop with end = (point-max)
                for line-beg = (line-beginning-position)
                for line-end = (line-end-position)
                until (= line-end end)
-               unless (search-forward-regexp org-line-commentp line-end t)
-               sum (count-words line-beg line-end) into words-count
-               and sum 1 into lines-count
+               unless (org-at-comment-p)
+               sum 1 into lines-count
+               and sum (count-words line-beg line-end) into words-count
                and sum (- line-end line-beg) into chars-count
                do (goto-char (1+ line-end))
                finally (message "region has %d lines, %d words, %d characters"
                                 lines-count words-count chars-count)))))
 
+;;; org latex
 
 (defun latex-auto-ref-link-export (path _desc backend)
   "Exporting link using autoref of PATH for latex BACKEND."
@@ -499,6 +530,40 @@ It will operate between the region from START to END."
   (mapc (lambda (type)
           (org-link-set-parameters type :export 'latex-auto-ref-link-export))
         types))
+
+
+(with-eval-after-load 'ox-html
+  (setq org-html-validation-link nil))
+
+(with-eval-after-load 'ox-publish
+  (setq org-publish-project-alist
+        '(("github website"
+           :exclude "setup.org"
+           :base-directory "~/sources/git/Inc0ns1st3nt.github.io/src"
+           :base-extension "org"
+           :publishing-directory "~/sources/git/Inc0ns1st3nt.github.io/"
+           :publishing-function org-html-publish-to-html
+           :headline-levels 3)
+          ("advanced eletronics notes"
+           :exclude "setup.org"
+           :style "<link rel=\"stylesheet\" type=\"text/css\" href=\"style.css\" />"
+           :recursive t
+           :base-directory "~/soton/year2/elec2216-advanced-electronic-system/"
+           :base-extension "org"
+           :publishing-directory "~/sources/git/Inc0ns1st3nt.github.io/advanced-electronic-system/"
+           :publishing-function org-html-publish-to-html
+           :headline-levels 3)
+          ("computer-engineering notes"
+           :exclude "setup.org"
+           :style "<link rel=\"stylesheet\" type=\"text/css\" href=\"style.css\" />"
+           :base-directory "~/soton/year2/elec2204-computer-engineering/"
+           :base-extension "org"
+           :publishing-directory "~/sources/git/Inc0ns1st3nt.github.io/computer-engineering/"
+           :publishing-function org-html-publish-to-html
+           :headline-levels 3))))
+
+(use-package org-ref
+  :ensure t)
 
 (with-eval-after-load 'ox-latex
   (latex-set-org-link-parameters "lst" "table")
@@ -516,33 +581,41 @@ It will operate between the region from START to END."
           (org-export-resolve-fuzzy-link link info)))
       (funcall orig-func link nil info)))
   (advice-add 'org-latex-link :around 'inc0n/org-latex-link)
-  (add-to-list 'org-latex-listings-langs '(javascript "Javascript"))
-  (add-to-list 'org-latex-listings-langs '(asm "Assembler"))
-  (setq org-latex-caption-above '(table src-block)
+  (add-to-list/s 'org-latex-listings-langs
+                 '((javascript "Javascript")
+                   (asm "Assembler")))
+  (setq org-latex-caption-above '(src-block)
         ;; Our hack for using auto ref to generate our nice labels
         ;; org-latex-image-default-scale
         org-latex-listings t
         org-latex-prefer-user-labels t)
 
   ;; Export org-mode in Chinese into PDF
-  ;; @see http://freizl.github.io/posts/tech/2012-04-06-export-orgmode-file-in-Chinese.html
-  ;; and you need install texlive-xetex on different platforms
-  ;; To install texlive-xetex:
-  ;;    `sudo USE="cjk" emerge texlive-xetex` on Gentoo Linux
   (setq org-latex-pdf-process
-        '("xelatex -interaction nonstopmode -output-directory %o %f"
-          "xelatex -interaction nonstopmode -output-directory %o %f"
-          ;; org v8
-          "xelatex -interaction nonstopmode -output-directory %o %f"))
+      '("xelatex -interaction nonstopmode -output-directory %o %f"
+        ;; "bibtex %b"
+        "xelatex -interaction nonstopmode -output-directory %o %f"
+        "xelatex -interaction nonstopmode -output-directory %o %f"))
   ;; By default Org uses ~pdflatex~ \times 3 + ~bibtex~. This simply
   ;; won't do in our modern world. ~latexmk~ + ~biber~ (which is used
   ;; automatically with ~latexmk~) is a simply superior combination.
-  (setq org-latex-pdf-process
-        '("latexmk -%latex -shell-escape -interaction=nonstopmode -f -pdf -output-directory=%o %f"))
-
+  ;; (setq org-latex-pdf-process
+  ;;       '("latexmk -%latex -shell-escape -interaction=nonstopmode -f -pdf -output-directory=%o %f"))
+  (setq org-latex-packages-alist nil)
   (add-to-list/s 'org-latex-packages-alist
-                 '("margin=1.2in" "geometry" nil)
-                 "\\usepackage{amsmath, amssymb}"))
+                 '(("margin=1.2in" "geometry" nil)
+                   "\\usepackage{amsmath, amssymb}"
+                   ("" "listings" nil)
+                   ("" "parskip" nil)
+                   ("" "float" nil))))
+
+(with-eval-after-load 'org-table
+  (setq org-table-formula-constants
+        '(("c" . "299792458.")
+          ("pi" . "3.14159265358979323846"))))
+
+(fset 'markdown-link-to-org-link
+   (kmacro-lambda-form [?v ?% ?S ?\] ?l ?% ?l ?l ?l ?v ?h ?% ?h ?x ?h ?h ?% ?a ?\[ ?\] ?\C-b escape ?p ?l ?l ?% ?l ?l ?x ?x] 0 "%d"))
 
 ;; org-emphasis-alist
 (provide 'init-org)
