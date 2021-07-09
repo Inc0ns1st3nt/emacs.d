@@ -8,6 +8,7 @@
 
 ;; @see https://github.com/raxod502/selectrum
 (use-package selectrum
+  :ensure t
   :config
   (setq amx-backend 'selectrum)
   (setq selectrum-should-sort nil)

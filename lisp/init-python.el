@@ -7,8 +7,9 @@
 (require-package 'elpy)
 
 (use-package python
-  :mode "\\.py\\'"
-  :interpreter "python"
+  :ensure t
+  :mode ("\\.py\\'" . python-mode)
+  :interpreter ("python" . python-mode)
   :config
   ;; run command `pip install jedi flake8 importmagic` in shell,
   ;; or just check https://github.com/jorgenschaefer/elpy

@@ -7,6 +7,7 @@
 
 ;; @see https://github.com/wasamasa/shackle
 (use-package shackle
+  :ensure t
   :defer t
   :config
   (setq shackle-select-reused-windows nil ; default nil
@@ -55,6 +56,7 @@
       (select-window window))))
 
 (use-package popper
+  :ensure t
   :defer 1
   :init
   (message "popper initialized")

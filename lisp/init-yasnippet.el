@@ -40,7 +40,7 @@ Optional argument ARGS the arguements that the original function was called with
 (defun inc0n/yas-reload-all ()
   "Compile and reload snippets.  Run the command after adding new snippets."
   (interactive)
-  (yas-compile-directory (inc0n/emacs-d "snippets"))
+  (yas-compile-directory (my/emacs-d "snippets"))
   (yas-reload-all))
 
 (defun inc0n/yas-get-first-name-from-to-field ()
@@ -97,10 +97,9 @@ Optional argument ARGS the arguements that the original function was called with
 
   ;; how to add custom yasnippet directory
   ;; (add-to-list 'yas-snippet-dirs inc0n/yasnippets)
-  (yas-reload-all))
+  (inc0n/yas-reload-all))
 
 ;; (global-set-key [C-tab] 'yas-next-field-or-maybe-expand)
-(global-set-key [C-tab] 'yas-expand)
 
 (provide 'init-yasnippet)
 ;;; init-yasnippet ends here

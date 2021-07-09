@@ -82,6 +82,7 @@
 ;; this mode purges buffers which haven't been displayed in configured period
 (use-package midnight
   :defer t
+  :ensure t
   :init
   (setq midnight-period (* 3600 24)) ;; 24 hours
   (add-hook 'after-init-hook 'midnight-mode))
@@ -89,14 +90,17 @@
 ;; @see http://www.emacswiki.org/emacs/SavePlace
 (use-package save-place-mode
   :defer 1
+  ;; :ensure t
   :init (save-place-mode))
 
 (use-package amx-mode
   :defer t
+  :ensure amx
   :init (add-hook 'after-init-hook 'amx-mode))
 
 (use-package sr-speedbar
   :defer t
+  :ensure t
   :init
   (setq speedbar-use-images nil)
   (setq sr-speedbar-right-side t
@@ -126,7 +130,8 @@
 (advice-add 'indent-for-tab-command :around
             (defun tab-out-delimiter (orig-func &rest args)
               "Move cursor out of any delimiters."
-              (if (memq (char-syntax (following-char)) '(?\) ?\"))
+              (if (and (evil-insert-state-p)
+                       (memq (char-syntax (following-char)) '(?\) ?\")))
 	              (progn
                     (just-one-space 0) ;; delete any space before delimiter
 	                (forward-char 1))
@@ -161,10 +166,20 @@
 ;; (set-face-attribute 'default nil :weight 'normal :width 'semi-condensed :slant 'normal :height 140)
 
 
-(use-package csv-mode :mode "\\.[Cc][Ss][Vv]\\'")
-(use-package rust-mode :mode "\\.rs\\'")
-(use-package verilog-mode :mode "\\.[ds]?vh?\\'")
+(use-package csv-mode
+  :ensure t
+  :mode "\\.[Cc][Ss][Vv]\\'")
+
+(use-package rust-mode
+  :ensure t
+  :mode "\\.rs\\'")
+
+(use-package verilog-mode
+  :ensure t
+  :mode "\\.[ds]?vh?\\'")
+
 (use-package lua-mode
+  :ensure t
   :mode "\\.lua\\'"
   :interpreter "lua"
   :init
@@ -185,10 +200,12 @@
 ;; - aya-expand to expand snippet
 ;; - aya-open-line to finish
 (use-package auto-yasnippet
+  :ensure t
   :defer t
   :bind ("C-q" . aya-open-line))
 
 (use-package ace-link
+  :ensure t
   :defer t
   :bind ("M-z" . ace-link)
   :config (ace-link-setup-default))
@@ -269,16 +286,16 @@ This function can be re-used by other major modes after compilation."
 		           (not (string-match "^Eval:" (buffer-string))))
 	          ;; input single/double quotes at the end of word
 	          (and (memq char '(?\" ?\'))
-                   (char-before (1- (point)))
-                   (eq (char-syntax (char-before (1- (point)))) ?w))
+                   (char-after)
+                   (eq (char-syntax (char-after)) ?w))
 	          ;; I find it more often preferable not to pair when the
 	          ;; same char is next.
 	          (eq char (char-after))
-	          ;; Don't pair up when we insert the second of "" or of ((.
-	          (and (eq char ?\")
-                   (eq char (char-before (1- (point)))))
+	          ;; ;; Don't pair up when we insert the second of "" or of ((.
+	          ;; (and (eq char ?\") (eq char (following-char)))
               ;; I also find it often preferable not to pair next to a word.
-              (eq (char-syntax (following-char)) ?w)))))
+              (and (eq (char-charset (following-char)) 'ascii)
+                   (eq (char-syntax (following-char)) ?w))))))
 
 (add-hook 'before-save-hook
           (defun my-prog-nuke-trailing-whitespace ()
@@ -329,10 +346,74 @@ With exception to the current line."
       (subword-mode 1))
 
     (electric-pair-mode 1) ;; auto insert pairing delimiter
-	;; (hs-minor-mode)        ;; code/comment fold
+	(hs-minor-mode)        ;; code/comment fold
 	;; (turn-on-auto-fill)		;; auto indent
     (turn-on-eldoc-mode) ;; eldoc, show API doc in minibuffer echo area
     (setq show-trailing-whitespace t)))
+
+(use-package hideshow
+  :init
+  (defun hs/display-code-line-counts (ov)
+    (when (eq 'code (overlay-get ov 'hs))
+      (overlay-put ov 'display
+                   (format "%s... %d lines"
+                           (save-excursion
+                             (goto-char (overlay-start ov))
+                             (beginning-of-defun)
+                             ;; (message "%s %s"
+                             ;;          (overlay-start ov)
+                             ;;          (line-beginning-position))
+                             (if (checkdoc--next-docstring)
+                                 (format "\n%s"
+                                         (buffer-substring
+		                                  (line-beginning-position)
+                                          (progn (forward-sexp 1) (point))))
+                               ""))
+                           (count-lines (overlay-start ov)
+                                        (overlay-end ov))))))
+  (setq hs-set-up-overlay #'hs/display-code-line-counts))
+
+
+(defvar my/temp-lambda nil
+  "Variable holder for temporary lambda construct.")
+
+(defun read-current-expression ()
+  "Read the sexp under the cusor."
+  (let ((old-pos (marker-position (mark-marker))))
+    (set-marker (mark-marker) (point) (current-buffer))
+    (prog1 (read (mark-marker))
+      (set-marker (mark-marker) old-pos (current-buffer)))))
+
+(defun save-temp-lambda ()
+  "Save Kmacro for Lisp code."
+  (interactive)
+  (set-marker (mark-marker) (point) (current-buffer))
+  ;; wrap in lambda
+  (let* ((exp-under-cursor (read (mark-marker)))
+         (lambdad-exp (read (format "(lambda () %s)" `(message "\"%s\"" ,exp-under-cursor)))))
+    (setf my/temp-lambda lambdad-exp)
+    (message "new temp lambda saved. Call `run-temp-lambda' to run it.\n%S" exp-under-cursor)))
+
+(defun run-temp-lambda ()
+  "Run Kmacro for Lisp code."
+  (interactive)
+  (funcall my/temp-lambda))
+
+;; (defun run-temp-lambda ()
+;;   "Kmacro for Lisp code."
+;;   (interactive)
+;;   (set-marker (mark-marker) (point) (current-buffer))
+;;   ;; wrap in lambda
+;;   (if (null my/temp-lambda)
+;;       (let* ((exp-under-cursor (read (mark-marker)))
+;;              (lambdad-exp (read (format "(lambda () %s)" `(message "\"%s\"" ,exp-under-cursor)))))
+;;         (setf my/temp-lambda lambdad-exp)
+;;         ;; (funcall my/temp-lambda)
+;;         (message "new temp lambda saved. Call this command to execute the temp lambda."))
+;;     (if (y-or-n-p "Run previous temp lambda (y) or take new temp lambda (n)? ")
+;;         (funcall my/temp-lambda)
+;;       (setf my/temp-lambda nil)
+;;       (temp-lambda))))
 
 ;; some major-modes do NOT inherited from prog-mode
 (add-hook 'prog-mode-hook #'generic-prog-mode-hook-setup)
@@ -426,15 +507,14 @@ With exception to the current line."
 ;; {{ start dictionary lookup
 ;; use below commands to create dictionary
 ;; mkdir -p ~/.stardict/dic
-;; # wordnet English => English
-;; check out https://willschenk.com/articles/2020/getting_websters/
-;; # Langdao Chinese => English
-;; curl http://abloz.com/huzheng/stardict-dic/zh_CN/stardict-langdao-ec-gb-2.4.2.tar.bz2 | tar jx -C ~/.stardict/dic
+;; check out for stardict dictionary resources
+;; https://kdr2.com/resource/stardict.html
+;;
 (with-eval-after-load 'sdcv
   (setq sdcv-dictionary-simple-list
-		'("Webster's Revised Unabridged Dictionary (1913)"))
-  (setq sdcv-dictionary-complete-list
-		'("Webster's Revised Unabridged Dictionary (1913)")))
+        '("Webster's Revised Unabridged Dictionary (1913)"
+          "汉语大词典 离线版"))
+  (setq sdcv-dictionary-complete-list sdcv-dictionary-simple-list))
 ;; }}
 
 ;; @see http://bling.github.io/blog/2016/01/18/why-are-you-changing-gc-cons-threshold/
@@ -448,6 +528,7 @@ With exception to the current line."
             ;; evil-mode also use minibuf
             (setq gc-cons-threshold normal-gc-cons-threshold)))
 
+;; (file-name-nondirectory buffer-file-name)
 (defun inc0n/insert-absolute-path ()
   "Relative path to full path."
   (interactive)
@@ -621,9 +702,10 @@ VCS-TYPE is ignored."
 ;; {{ https://www.emacswiki.org/emacs/EmacsSession better than "desktop.el" or "savehist".
 ;; Any global variable matching `session-globals-regexp' is saved *automatically*.
 (use-package session
+  :ensure t
   :defer t
   :config
-  (setq session-save-file (inc0n/emacs-d ".session"))
+  (setq session-save-file (my/emacs-d ".session"))
   (setq session-globals-max-size 512)
   (setq session-globals-max-string (* 4 1024)) ; can store 4Mb string
   (setq session-globals-include '(kill-ring
@@ -638,6 +720,7 @@ VCS-TYPE is ignored."
 
 ;; asciidoc files
 (use-package adoc-mode
+  :ensure t
   :mode "\\.adoc\\'"
   :config
   (defun adoc-imenu-index ()
@@ -700,6 +783,7 @@ If the shell is already opened in some buffer, switch to that buffer."
 
 ;; {{ emms
 (use-package emms
+  :ensure t
   :defer t
   :config
   (emms-all)
@@ -823,6 +907,7 @@ version control automatically."
 
 (use-package pomodoro
   :defer t
+  :ensure t
   :config
   (push '(pomodoro-mode-line-string pomodoro-mode-line-string) mode-line-format)
   :init
@@ -833,11 +918,13 @@ version control automatically."
 
 ;; epub setup
 (use-package nov
-  :commands (nov-mode)
-  :mode "\\.epub\\'"
+  :ensure t
+  ;; :commands (nov-mode)
+  :mode ("\\.epub\\'" . nov-mode)
   :config
   (setq nov-text-width t)
   (evil-set-initial-state 'nov-mode 'motion)
+  ;; (general-define-key :keymaps)
   (evil-define-key 'motion nov-mode-map
     "q" 'ignore                         ; override quit window
     "R" 'nov-render-document            ; rebind from g to R
@@ -847,11 +934,15 @@ version control automatically."
     "n" 'nov-next-document
     "d" (lambda () (interactive)
 		  (sdcv-search-input (thing-at-point 'word))))
-  ;; (general-define-key :keymaps)
+  (defun fill-chinese-nobreak-p ()
+    "Seems to have no effect."
+    (looking-at (rx (or (any ?， ?\） ?\《 ?\“) (seq numeric "）")))))
+  (add-to-list 'fill-nobreak-predicate 'fill-chinese-nobreak-p)
+  (setq fill-nobreak-predicate nil)
   (define-hook-setup 'nov-pre-html-render-hook
     ;; column-width: 200px;
     ;; height: 180px;
-    (message "%s" (buffer-string))
+    ;; (message "%s" (buffer-string))
     1)
   (define-hook-setup 'nov-mode-hook
     ;; (face-remap-add-relative 'variable-pitch
@@ -864,9 +955,9 @@ version control automatically."
                 next-screen-context-lines 4)
     (setq-local visual-fill-column-center-text t
                 ;; visual-fill-column-extra-text-width '(0 . 0)
-                nov-text-width 80)
+                visual-fill-column-width 80)
     ;; nov-render-html
-    (visual-line-mode 1)
+    ;; (visual-line-mode 1)
     (visual-fill-column-mode 1)
     (setq-local simple-modeline-segments
                 `((simple-modeline-segment-winum
@@ -877,6 +968,7 @@ version control automatically."
 
 (use-package octave-mode
   :mode "\\.m$"
+  :ensure octave
   :init
   (define-hook-setup 'octave-mode-hook
     "Set up of `octave-mode'."
@@ -897,6 +989,7 @@ version control automatically."
 ;; {{ edit-server
 (use-package edit-server
   :defer t
+  :ensure t
   :config
   (setq edit-server-new-frame t)
   (add-hook 'edit-server-start-hook #'edit-server-start-hook-setup)
@@ -938,6 +1031,7 @@ version control automatically."
 
 (use-package which-key
   :defer t
+  :ensure t
   :init
   (setq which-key-allow-imprecise-window-fit t ; performance
         which-key-idle-delay 0.7
@@ -986,6 +1080,7 @@ version control automatically."
 
 (use-package rainbow-delimiters
   :defer t
+  :ensure t
   :config (setq rainbow-delimiters-max-face-count 1))
 
 ;; {{ `browse-url' setup
@@ -1022,6 +1117,7 @@ version control automatically."
 
 (use-package focus
   :defer t
+  :ensure t
   :init
   (setq focus-current-thing 'paragraph)
   (setq focus-mode-to-thing '((org-mode . defun)
@@ -1046,9 +1142,9 @@ By locating package.json around DIR."
 
 ;; {{ cache files
 (cl-flet ((inc0n/emacs.d/cache (path)
-							   (inc0n/emacs-d (concat "var/" path))))
-  (unless (file-directory-p (inc0n/emacs-d "var"))
-	(make-directory (inc0n/emacs-d "var")))
+							   (my/emacs-d (concat "var/" path))))
+  (unless (file-directory-p (my/emacs-d "var"))
+	(make-directory (my/emacs-d "var")))
   (setq amx-save-file (inc0n/emacs.d/cache "amx-items"))
   (setq company-statistics-file (inc0n/emacs.d/cache "company-statistics-cache.el"))
 

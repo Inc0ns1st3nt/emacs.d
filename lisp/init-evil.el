@@ -1,8 +1,9 @@
 ;;; init-evil.el --- evil setup -*- coding: utf-8; lexical-binding: t; -*-
-
+;;; Commentary:
 ;;; Code:
 
 (use-package evil
+  :ensure t
   :config
   ;; better normal -> motion -> emacs back to normal state switching
   (define-key evil-normal-state-map [remap evil-emacs-state] 'evil-motion-state)
@@ -16,7 +17,12 @@
 ;; {{ undo system
 ;; @see https://github.com/emacs-evil/evil/issues/1074
 (use-package undo-tree
+  :disabled
+  :ensure t
   :config
+  (setq undo-tree-limit 16000000
+        undo-tree-strong-limit 24000000
+        undo-tree-outer-limit 180000000)
   (setq undo-tree-history-directory-alist
         '(("." . "/home/linkedptr/.emacs.d/undo-history/")))
   ;; (setq undo-tree-auto-save-history t)
@@ -32,7 +38,8 @@ ORIG-FUNC and ARGS are the advice of undo-tree-make-history-save-file-name."
   (setq evil-undo-system 'undo-tree))
 
 (use-package undo-fu
-  :disabled ;; using in favor of undo-tree
+  ;; :disabled ;; using in favor of undo-tree
+  :ensure t
   :init
   ;; copied from doom-emacs
   (define-minor-mode global-undo-fu-mode
@@ -50,6 +57,7 @@ ORIG-FUNC and ARGS are the advice of undo-tree-make-history-save-file-name."
     :global t)
   (global-undo-fu-mode 1)
   (evil-set-undo-system 'undo-fu)
+  (setq evil-undo-system 'undo-fu)
   ;; Store more undo history to prevent loss of data
   (setq undo-limit 8000000
         undo-strong-limit 8000000
@@ -58,6 +66,7 @@ ORIG-FUNC and ARGS are the advice of undo-tree-make-history-save-file-name."
 
 ;; @see https://github.com/timcharper/evil-surround
 (use-package evil-surround
+  :ensure t
   :defer t
   :init (add-hook 'after-init-hook 'global-evil-surround-mode)
   :config
@@ -77,6 +86,7 @@ ORIG-FUNC and ARGS are the advice of undo-tree-make-history-save-file-name."
       (push '(?> . ("(e) => " . "(e)")) evil-surround-pairs-alist))))
 
 (use-package expand-region
+  :ensure t
   :defer t
   :config
   ;; press "v" to expand region
@@ -89,6 +99,7 @@ ORIG-FUNC and ARGS are the advice of undo-tree-make-history-save-file-name."
   (define-key evil-visual-state-map "v" #'er/expand-region))
 
 (use-package evil-matchit
+  :ensure t
   :defer t
   :config
   (setq evilmi-shortcut "m"
@@ -102,6 +113,7 @@ ORIG-FUNC and ARGS are the advice of undo-tree-make-history-save-file-name."
   :commands (evilmr-replace-in-defun evilmr-replace-in-buffer))
 
 (use-package evil-exchange
+  :ensure t
   :defer 1
   :config
   (evil-exchange-install)
@@ -121,10 +133,12 @@ ORIG-FUNC and ARGS are the advice of undo-tree-make-history-save-file-name."
 
 ;; Evil’s f/F/t/T command can search PinYin
 (use-package evil-find-char-pinyin
+  :ensure t
   :defer 2
   :config (evil-find-char-pinyin-mode))
 
 (use-package evil-args
+  :ensure t
   :defer t
   :init
   ;; bind evil-args text objects
@@ -141,6 +155,7 @@ ORIG-FUNC and ARGS are the advice of undo-tree-make-history-save-file-name."
 
 ;; @see https://github.com/syl20bnr/evil-escape
 (use-package evil-escape
+  :ensure t
   ;; evil-escape will be disabled when input method is on
   :defer t
   :config
@@ -386,7 +401,7 @@ Check `util/delim-p' for the definition of delim."
 
 (evil-define-key 'normal 'global
   "U" #'join-line
-  [tab] #'indent-for-tab-command
+  [tab] nil
   [return] #'newline-and-indent
   ;; evil re-assign "M-." to `evil-repeat-pop-next' which I don't use actually.
   ;; Restore "M-." to original binding command
@@ -617,9 +632,13 @@ Argument BACKWARD non-nil will jump backwards initially, otherwise jump forwards
 
   "ls" 'inc0n/transient-highlight-symbol
 
-  "mm" 'lookup-doc-in-man
+  ;; "mm" 'lookup-doc-in-man
   "mf" 'mark-defun
   "mp" 'pop-to-mark-command ;; 'avy-pop-mark
+  "mm" (lambda ()
+         (interactive)
+         (push-mark-command t)
+         (deactivate-mark))
 
   "op" 'compile
   "oa" 'selectrum-org-agenda-headlines

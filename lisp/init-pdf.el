@@ -6,6 +6,7 @@
 ;;; Code:
 
 (use-package pdf-tools
+  :ensure t
   :defer t
   :if (display-graphic-p)
   :config (pdf-loader-install))

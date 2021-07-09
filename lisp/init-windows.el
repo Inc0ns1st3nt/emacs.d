@@ -6,6 +6,7 @@
 
 ;; move focus between sub-windows
 (use-package winum
+  :ensure t
   :defer t
   :config
   (setq winum-format " %s ")

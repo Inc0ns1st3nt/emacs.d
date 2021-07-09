@@ -50,6 +50,7 @@
       (setq imenu-generic-expression css-imenu-expression))))
 
 (use-package scss-mode
+  :ensure t
   :mode "\\.scss\\'"
   :config
   ;; compile *.scss to *.css on the pot could break the project build

@@ -143,7 +143,7 @@
     (setq company-ispell-dictionary
           (if (boundp 'ispell-alternate-dictionary)
               ispell-alternate-dictionary
-			(inc0n/emacs-d "var/misc/english-words.txt")))))
+			(my/emacs-d "var/misc/english-words.txt")))))
 
 ;; message-mode use company-bbdb.
 ;; So we should NOT turn on company-ispell

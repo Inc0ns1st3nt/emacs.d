@@ -1,12 +1,5 @@
 ;; -*- coding: utf-8; lexical-binding: t; -*-
 ;;; Code:
-(autoload 'xclip-set-selection "xclip" "" t)
-(autoload 'xclip-get-selection "xclip" "" t)
-(autoload 'dianyou-group-make-nnir-group "dianyou" "" t)
-(autoload 'dianyou-summary-extract-email-address "dianyou" "" t)
-(autoload 'dianyou-switch-gnus-buffer "dianyou" "" t)
-(autoload 'dianyou-insert-email-address-from-received-mails "dianyou" "" t)
-(autoload 'dianyou-paste-image-from-clipboard "dianyou" "" t)
 (autoload 'gmail2bbdb-import-file "gmail2bbdb" "" t)
 (autoload 'mybigword-show-big-words-from-file "mybigword" "" t)
 (autoload 'mybigword-show-big-words-from-current-buffer "mybigword" "" t)
@@ -44,6 +37,8 @@
 (autoload 'gtags-mode "gtags" "" t)
 
 (autoload 'dropdown-list "dropdown-list")
+
+(autoload 'speed-type-text "speed-type")
 
 (provide 'init-autoload)
 ;;; init-autoload.el ends here
